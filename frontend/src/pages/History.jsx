@@ -6,7 +6,7 @@ function History() {
         History
       </h1>
 
-      <p className="text-muted">
+      <p className="mycare-muted">
         Your medication and symptom history will appear here.
       </p>
 

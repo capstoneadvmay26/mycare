@@ -43,16 +43,16 @@ function Medications() {
     <div className="container py-5">
 
       {/* Page Heading */}
-      <div className="dosewise-page-heading">
+      <div className="mycare-page-heading">
 
         <div>
-          <p className="dosewise-eyebrow">
+          <p className="mycare-eyebrow">
             MEDICATION MANAGEMENT
           </p>
 
           <h1>My Medications</h1>
 
-          <p className="dosewise-muted">
+          <p className="mycare-muted">
             Manage your medications and medication schedules.
           </p>
         </div>
@@ -69,12 +69,12 @@ function Medications() {
 
       {/* Loading State */}
       {loading && (
-        <div className="dosewise-card mt-4">
+        <div className="mycare-card mt-4">
           <div className="text-center py-5">
 
             <div className="spinner-border text-primary mb-3"></div>
 
-            <p className="dosewise-muted mb-0">
+            <p className="mycare-muted mb-0">
               Loading your medications...
             </p>
 
@@ -93,7 +93,7 @@ function Medications() {
 
       {/* Empty State */}
       {!loading && !error && medications.length === 0 && (
-        <div className="dosewise-card mt-4">
+        <div className="mycare-card mt-4">
 
           <div className="text-center py-5">
 
@@ -105,7 +105,7 @@ function Medications() {
               No medications yet
             </h3>
 
-            <p className="dosewise-muted">
+            <p className="mycare-muted">
               Add your first medication to start tracking
               your routine.
             </p>
@@ -134,7 +134,7 @@ function Medications() {
               key={medication.id}
             >
 
-              <div className="dosewise-card h-100 p-4">
+              <div className="mycare-card h-100 p-4">
 
                 {/* Medication Icon */}
                 <div className="fs-1 mb-3">

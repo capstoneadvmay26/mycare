@@ -3,7 +3,7 @@ function Profile() {
   return (
     <div className="container py-5">
 
-      <p className="dosewise-eyebrow">
+      <p className="mycare-eyebrow">
         ACCOUNT
       </p>
 
@@ -11,7 +11,7 @@ function Profile() {
         My Profile
       </h1>
 
-      <p className="dosewise-muted">
+      <p className="mycare-muted">
         Manage your personal information
         and preferences.
       </p>

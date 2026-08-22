@@ -1,189 +1,41 @@
-import AppShell from "./components/layout/AppShell.jsx";
-
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 
-import Home from "./pages/Home.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import Medications from "./pages/Medications.jsx";
-import AddMedication from "./pages/AddMedication.jsx";
-import Symptoms from "./pages/Symptoms.jsx";
-import Reports from "./pages/Reports.jsx";
-import Profile from "./pages/Profile.jsx";
-import History from "./pages/History.jsx";
+import AppShell from "./components/layout/AppShell";
+
+import Dashboard from "./pages/Dashboard";
+import Medications from "./pages/Medications";
+import Symptoms from "./pages/Symptoms";
+import History from "./pages/History";
+import Profile from "./pages/Profile";
 
 function App() {
-  // ========================================
-  // TOGGLE THEME STATE
-  // ========================================
-  const [theme, setTheme] = useState("light");
-
-  // ========================================
-  // TOGGLE THEME HELPER FUNCTIONS
-  // ========================================
-  const handleThemeToggle = () => {
-    setTheme((previousTheme) => (previousTheme === "light" ? "dark" : "light"));
-  };
-
-  // ========================================
-  // MEDICATION STATE
-  // ========================================
-
-  const [medication, setMedication] = useState({
-    name: "",
-    dosage: "",
-    frequency: "Once Daily",
-    startDate: "",
-    endDate: "",
-    reminderTime: "",
-    notes: "",
+  // Initialize state with stored theme or default to light
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("mycare-theme") || "light";
   });
 
-  const [medicationSaved, setMedicationSaved] = useState(false);
-
-  const [medicationErrors, setMedicationErrors] = useState({});
-
-  // ========================================
-  // MEDICATION HELPER FUNCTIONS
-  // ========================================
-
-  //HELPER FUNCTION 1 -  Handle changes to medication form fields
-  const handleMedicationChange = (event) => {
-    const { name, value } = event.target;
-
-    setMedication((previousMedication) => ({
-      ...previousMedication,
-      [name]: value,
-    }));
-
-    setMedicationErrors((previousErrors) => ({
-      ...previousErrors,
-      [name]: "",
-    }));
-
-    setMedicationSaved(false);
+  // Function to switch between light and dark modes
+  const handleThemeToggle = () => {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
-  //HELPER FUNCTION 2 -  Validate Medication Form -used by handleMedicationSubmit helper function
-  const validateMedicationForm = () => {
-    const errors = {};
-
-    if (!medication.name.trim()) {
-      errors.name = "Medication name is required.";
-    }
-
-    if (!medication.dosage.trim()) {
-      errors.dosage = "Dosage is required.";
-    }
-
-    if (!medication.frequency) {
-      errors.frequency = "Please select a frequency.";
-    }
-
-    if (!medication.startDate) {
-      errors.startDate = "Start date is required.";
-    }
-
-    if (!medication.reminderTime) {
-      errors.reminderTime = "Reminder time is required.";
-    }
-
-    if (
-      medication.startDate &&
-      medication.endDate &&
-      medication.endDate < medication.startDate
-    ) {
-      errors.endDate = "End date cannot be before start date.";
-    }
-
-    return errors;
-  };
-
-  //HELPER FUNCTION 3 - Handle medication form submission
-  const handleMedicationSubmit = (event) => {
-    event.preventDefault();
-
-    const errors = validateMedicationForm();
-
-    setMedicationErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      setMedicationSaved(false);
-      return;
-    }
-
-    console.log("Medication submitted:", medication);
-
-    setMedicationSaved(true);
-  };
-
-  //HELPER FUNCTION 4 -  Reset medication form
-  const handleMedicationReset = () => {
-    setMedication({
-      name: "",
-      dosage: "",
-      frequency: "Once Daily",
-      startDate: "",
-      endDate: "",
-      reminderTime: "",
-      notes: "",
-    });
-
-    setMedicationErrors({});
-
-    setMedicationSaved(false);
-  };
-
-  // ========================================
-  //JSX - APPLICATION UI
-  // ========================================
+  // Save selection so it persists on page refresh
+  useEffect(() => {
+    localStorage.setItem("mycare-theme", theme);
+  }, [theme]);
 
   return (
     <AppShell theme={theme} handleThemeToggle={handleThemeToggle}>
-
       <Routes>
-        
-        <Route path="/" element={<Home />} />
-
-        <Route
-          path="/dashboard"
-          element={
-            <Dashboard
-              medication={medication}
-              medicationSaved={medicationSaved}
-            />
-          }
-        />
-
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/medications" element={<Medications />} />
-
-        <Route
-          path="/medications/add"
-          element={
-            <AddMedication
-              medication={medication}
-              medicationErrors={medicationErrors}
-              handleMedicationChange={handleMedicationChange}
-              handleMedicationSubmit={handleMedicationSubmit}
-              handleMedicationReset={handleMedicationReset}
-              medicationSaved={medicationSaved}
-            />
-          }
-        />
-
         <Route path="/symptoms" element={<Symptoms />} />
-
-        <Route path="/reports" element={<Reports />} />
-
-        <Route path="/profile" element={<Profile />} />
-
         <Route path="/history" element={<History />} />
-
+        <Route path="/profile" element={<Profile />} />
       </Routes>
-
     </AppShell>
-
   );
 }
 

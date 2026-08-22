@@ -1,7 +1,7 @@
 function Loading({ message = "Loading..." }) {
 
   return (
-    <div className="dosewise-loading">
+    <div className="mycare-loading">
 
       <div
         className="spinner-border"
@@ -9,7 +9,7 @@ function Loading({ message = "Loading..." }) {
         aria-hidden="true"
       />
 
-      <p className="dosewise-loading-message">
+      <p className="mycare-loading-message">
         {message}
       </p>
 

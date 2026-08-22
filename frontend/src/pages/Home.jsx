@@ -9,17 +9,17 @@ function Home() {
 
         <div className="col-lg-7">
 
-          <p className="dosewise-eyebrow">
+          <p className="mycare-eyebrow">
             YOUR HEALTH. YOUR ROUTINE. YOUR CONTROL.
           </p>
 
           <h1 className="display-4 fw-bold">
             Stay on top of
             your health with
-            DoseWise.
+            MYCARE.
           </h1>
 
-          <p className="lead dosewise-muted mt-3">
+          <p className="lead mycare-muted mt-3">
             Track medications, manage reminders,
             monitor symptoms, and prepare for
             better health conversations.
@@ -48,7 +48,7 @@ function Home() {
 
         <div className="col-lg-5">
 
-          <div className="dosewise-hero-card">
+          <div className="mycare-hero-card">
 
             <div className="display-1">
               💊

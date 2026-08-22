@@ -4,7 +4,7 @@ function MedicationPreview({ medication }) {
     medication.name ||
     medication.dosage ||
     medication.startDate ||
-     medication.endDate ||
+    medication.endDate ||
     medication.reminderTime;
 
   return (
@@ -24,7 +24,7 @@ function MedicationPreview({ medication }) {
               Medication Preview
             </h4>
 
-            <p className="dosewise-muted mb-0">
+            <p className="mycare-muted mb-0">
               Review your medication details
             </p>
 
@@ -41,7 +41,7 @@ function MedicationPreview({ medication }) {
               💊
             </div>
 
-            <p className="dosewise-muted">
+            <p className="mycare-muted">
               Start filling the form to preview
               your medication.
             </p>

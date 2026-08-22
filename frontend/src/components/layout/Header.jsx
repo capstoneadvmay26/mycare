@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+//import logo from "../assets/images/mycare-logo.png";
 
 function Header({ theme, handleThemeToggle }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,14 +14,14 @@ function Header({ theme, handleThemeToggle }) {
   };
 
   return (
-    <header className="dosewise-header">
+    <header className="mycare-header">
       <div className="container">
-        <div className="dosewise-navbar">
-          {/* Left Section: Mobile Menu Button + Brand Logo */}
-          <div className="dosewise-header-left">
+        <div className="mycare-navbar">
+          {/* Left Section: Mobile Menu Button + Brand Logo Image */}
+          <div className="mycare-header-left">
             <button
               type="button"
-              className="dosewise-menu-toggle"
+              className="mycare-menu-toggle"
               onClick={handleMenuToggle}
               aria-label="Toggle navigation menu"
               aria-expanded={menuOpen}
@@ -28,33 +29,36 @@ function Header({ theme, handleThemeToggle }) {
               {menuOpen ? "✕" : "☰"}
             </button>
 
-            <Link to="/" className="dosewise-brand" onClick={handleMenuClose}>
-              <span className="dosewise-logo">💊</span>
-              <span className="dosewise-name">DoseWise</span>
+            <Link to="/" className="mycare-brand" onClick={handleMenuClose}>
+              <img
+                src="/images/mycare-logo-transparent.png"
+                alt="MyCare Logo"
+                className="mycare-logo"
+              />
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="dosewise-desktop-nav">
-            <Link to="/dashboard" className="dosewise-nav-link">
+          <nav className="mycare-desktop-nav">
+            <Link to="/dashboard" className="mycare-nav-link">
               Dashboard
             </Link>
-            <Link to="/medications" className="dosewise-nav-link">
+            <Link to="/medications" className="mycare-nav-link">
               Medications
             </Link>
-            <Link to="/symptoms" className="dosewise-nav-link">
+            <Link to="/symptoms" className="mycare-nav-link">
               Symptoms
             </Link>
-            <Link to="/profile" className="dosewise-nav-link">
+            <Link to="/profile" className="mycare-nav-link">
               Profile
             </Link>
           </nav>
 
           {/* Actions */}
-          <div className="dosewise-header-actions">
+          <div className="mycare-header-actions">
             <button
               type="button"
-              className="dosewise-theme-toggle"
+              className="mycare-theme-toggle"
               onClick={handleThemeToggle}
               aria-label="Toggle colour theme"
               title="Toggle theme"
@@ -66,31 +70,31 @@ function Header({ theme, handleThemeToggle }) {
 
         {/* Mobile Navigation Dropdown */}
         {menuOpen && (
-          <nav className="dosewise-mobile-nav">
+          <nav className="mycare-mobile-nav">
             <Link
               to="/dashboard"
-              className="dosewise-mobile-link"
+              className="mycare-mobile-link"
               onClick={handleMenuClose}
             >
               Dashboard
             </Link>
             <Link
               to="/medications"
-              className="dosewise-mobile-link"
+              className="mycare-mobile-link"
               onClick={handleMenuClose}
             >
               Medications
             </Link>
             <Link
               to="/symptoms"
-              className="dosewise-mobile-link"
+              className="mycare-mobile-link"
               onClick={handleMenuClose}
             >
               Symptoms
             </Link>
             <Link
               to="/profile"
-              className="dosewise-mobile-link"
+              className="mycare-mobile-link"
               onClick={handleMenuClose}
             >
               Profile

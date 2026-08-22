@@ -11,7 +11,7 @@ import BottomNavigation from "./BottomNavigation.jsx";
 
 function AppShell({ theme, handleThemeToggle, children }) {
   return (
-    <div className="dosewise-app" data-theme={theme}>
+    <div className="mycare-app" data-theme={theme}>
 
       {/* Application header */}
       <Header
@@ -26,7 +26,7 @@ function AppShell({ theme, handleThemeToggle, children }) {
         Whatever page is placed inside AppShell
         will appear here.
       */}
-      <main className="dosewise-main">
+      <main className="mycare-main">
         {children}
       </main>
 

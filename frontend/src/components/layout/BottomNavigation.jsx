@@ -10,15 +10,15 @@ import { NavLink } from "react-router-dom";
 
 function BottomNavigation() {
   return (
-    <nav className="dosewise-bottom-nav">
+    <nav className="mycare-bottom-nav">
 
       {/* Home */}
       <NavLink
         to="/"
         className={({ isActive }) =>
           isActive
-            ? "dosewise-bottom-link active"
-            : "dosewise-bottom-link"
+            ? "mycare-bottom-link active"
+            : "mycare-bottom-link"
         }
       >
         <span className="bottom-nav-icon">🏠</span>
@@ -31,8 +31,8 @@ function BottomNavigation() {
         to="/medications"
         className={({ isActive }) =>
           isActive
-            ? "dosewise-bottom-link active"
-            : "dosewise-bottom-link"
+            ? "mycare-bottom-link active"
+            : "mycare-bottom-link"
         }
       >
         <span className="bottom-nav-icon">💊</span>
@@ -45,8 +45,8 @@ function BottomNavigation() {
         to="/symptoms"
         className={({ isActive }) =>
           isActive
-            ? "dosewise-bottom-link active"
-            : "dosewise-bottom-link"
+            ? "mycare-bottom-link active"
+            : "mycare-bottom-link"
         }
       >
         <span className="bottom-nav-icon">🩺</span>
@@ -59,8 +59,8 @@ function BottomNavigation() {
         to="/history"
         className={({ isActive }) =>
           isActive
-            ? "dosewise-bottom-link active"
-            : "dosewise-bottom-link"
+            ? "mycare-bottom-link active"
+            : "mycare-bottom-link"
         }
       >
         <span className="bottom-nav-icon">📊</span>
@@ -73,8 +73,8 @@ function BottomNavigation() {
         to="/profile"
         className={({ isActive }) =>
           isActive
-            ? "dosewise-bottom-link active"
-            : "dosewise-bottom-link"
+            ? "mycare-bottom-link active"
+            : "mycare-bottom-link"
         }
       >
         <span className="bottom-nav-icon">👤</span>
