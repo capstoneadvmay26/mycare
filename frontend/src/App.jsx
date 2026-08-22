@@ -1,122 +1,190 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import AppShell from "./components/layout/AppShell.jsx";
+
+import { useState } from "react";
+
+import { Routes, Route } from "react-router-dom";
+
+import Home from "./pages/Home.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import Medications from "./pages/Medications.jsx";
+import AddMedication from "./pages/AddMedication.jsx";
+import Symptoms from "./pages/Symptoms.jsx";
+import Reports from "./pages/Reports.jsx";
+import Profile from "./pages/Profile.jsx";
+import History from "./pages/History.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
+  // ========================================
+  // TOGGLE THEME STATE
+  // ========================================
+  const [theme, setTheme] = useState("light");
+
+  // ========================================
+  // TOGGLE THEME HELPER FUNCTIONS
+  // ========================================
+  const handleThemeToggle = () => {
+    setTheme((previousTheme) => (previousTheme === "light" ? "dark" : "light"));
+  };
+
+  // ========================================
+  // MEDICATION STATE
+  // ========================================
+
+  const [medication, setMedication] = useState({
+    name: "",
+    dosage: "",
+    frequency: "Once Daily",
+    startDate: "",
+    endDate: "",
+    reminderTime: "",
+    notes: "",
+  });
+
+  const [medicationSaved, setMedicationSaved] = useState(false);
+
+  const [medicationErrors, setMedicationErrors] = useState({});
+
+  // ========================================
+  // MEDICATION HELPER FUNCTIONS
+  // ========================================
+
+  //HELPER FUNCTION 1 -  Handle changes to medication form fields
+  const handleMedicationChange = (event) => {
+    const { name, value } = event.target;
+
+    setMedication((previousMedication) => ({
+      ...previousMedication,
+      [name]: value,
+    }));
+
+    setMedicationErrors((previousErrors) => ({
+      ...previousErrors,
+      [name]: "",
+    }));
+
+    setMedicationSaved(false);
+  };
+
+  //HELPER FUNCTION 2 -  Validate Medication Form -used by handleMedicationSubmit helper function
+  const validateMedicationForm = () => {
+    const errors = {};
+
+    if (!medication.name.trim()) {
+      errors.name = "Medication name is required.";
+    }
+
+    if (!medication.dosage.trim()) {
+      errors.dosage = "Dosage is required.";
+    }
+
+    if (!medication.frequency) {
+      errors.frequency = "Please select a frequency.";
+    }
+
+    if (!medication.startDate) {
+      errors.startDate = "Start date is required.";
+    }
+
+    if (!medication.reminderTime) {
+      errors.reminderTime = "Reminder time is required.";
+    }
+
+    if (
+      medication.startDate &&
+      medication.endDate &&
+      medication.endDate < medication.startDate
+    ) {
+      errors.endDate = "End date cannot be before start date.";
+    }
+
+    return errors;
+  };
+
+  //HELPER FUNCTION 3 - Handle medication form submission
+  const handleMedicationSubmit = (event) => {
+    event.preventDefault();
+
+    const errors = validateMedicationForm();
+
+    setMedicationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setMedicationSaved(false);
+      return;
+    }
+
+    console.log("Medication submitted:", medication);
+
+    setMedicationSaved(true);
+  };
+
+  //HELPER FUNCTION 4 -  Reset medication form
+  const handleMedicationReset = () => {
+    setMedication({
+      name: "",
+      dosage: "",
+      frequency: "Once Daily",
+      startDate: "",
+      endDate: "",
+      reminderTime: "",
+      notes: "",
+    });
+
+    setMedicationErrors({});
+
+    setMedicationSaved(false);
+  };
+
+  // ========================================
+  //JSX - APPLICATION UI
+  // ========================================
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <AppShell theme={theme} handleThemeToggle={handleThemeToggle}>
 
-      <div className="ticks"></div>
+      <Routes>
+        
+        <Route path="/" element={<Home />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <Route
+          path="/dashboard"
+          element={
+            <Dashboard
+              medication={medication}
+              medicationSaved={medicationSaved}
+            />
+          }
+        />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <Route path="/medications" element={<Medications />} />
+
+        <Route
+          path="/medications/add"
+          element={
+            <AddMedication
+              medication={medication}
+              medicationErrors={medicationErrors}
+              handleMedicationChange={handleMedicationChange}
+              handleMedicationSubmit={handleMedicationSubmit}
+              handleMedicationReset={handleMedicationReset}
+              medicationSaved={medicationSaved}
+            />
+          }
+        />
+
+        <Route path="/symptoms" element={<Symptoms />} />
+
+        <Route path="/reports" element={<Reports />} />
+
+        <Route path="/profile" element={<Profile />} />
+
+        <Route path="/history" element={<History />} />
+
+      </Routes>
+
+    </AppShell>
+
+  );
 }
 
-export default App
+export default App;

@@ -1,0 +1,745 @@
+/* =========================================
+   DOSEWISE BRAND
+========================================= */
+
+:root {
+
+  /* Brand */
+
+  --dosewise-primary: #2563eb;
+  --dosewise-teal: #0f766e;
+  --dosewise-cyan: #06b6d4;
+
+  --dosewise-gradient: linear-gradient(
+    135deg,
+    #0f766e 0%,
+    #2563eb 55%,
+    #06b6d4 100%
+  );
+
+
+  /* Light Theme */
+
+  --dosewise-bg: #f8fafc;
+  --dosewise-surface: #ffffff;
+  --dosewise-text: #0f172a;
+  --dosewise-muted: #64748b;
+  --dosewise-border: #e2e8f0;
+
+}
+
+
+.dosewise-app {
+
+  --dosewise-bg: #f8fafc;
+  --dosewise-surface: #ffffff;
+  --dosewise-text: #0f172a;
+  --dosewise-muted: #64748b;
+  --dosewise-border: #e2e8f0;
+
+}
+
+
+.dosewise-app[data-theme="dark"] {
+
+  --dosewise-bg: #0f172a;
+  --dosewise-surface: #1e293b;
+  --dosewise-text: #f8fafc;
+  --dosewise-muted: #94a3b8;
+  --dosewise-border: #334155;
+
+}
+
+
+/* =========================================
+   GLOBAL
+========================================= */
+
+body {
+  margin: 0;
+  background-color: var(--dosewise-bg);
+  color: var(--dosewise-text);
+
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+
+
+/* =========================================
+   HEADER LAYOUT
+========================================= */
+
+
+.dosewise-header {
+  background: var(--dosewise-gradient);
+  color: white;
+
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.12);
+}
+
+.dosewise-navbar {
+  min-height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+/* =========================================
+   DESKTOP NAVIGATION
+========================================= */
+
+.dosewise-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.dosewise-nav-link {
+  color: rgba(255, 255, 255, 0.9);
+
+  text-decoration: none;
+
+  font-size: 0.95rem;
+  font-weight: 500;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dosewise-nav-link:hover {
+  color: white;
+  transform: translateY(-1px);
+}
+
+
+
+
+/* =========================================
+   BRAND
+========================================= */
+
+.dosewise-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dosewise-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 42px;
+  height: 42px;
+
+  background: rgba(255, 255, 255, 0.16);
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  border-radius: 12px;
+
+  font-size: 1.3rem;
+}
+
+.dosewise-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff; /* High-contrast white for dark teal/blue header */
+  text-decoration: none; /* Removes any default link underline */
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Optional: Handles hover state if .dosewise-name is an <a> tag */
+.dosewise-name:hover {
+  color: #f0f0f0;
+  text-decoration: none;
+}
+
+
+
+
+/* =========================================
+   MOBILE MENU TOGGLE
+========================================= */
+
+.dosewise-menu-toggle {
+  display: none;
+
+  border: 0;
+  background: transparent;
+
+  color: white;
+
+  font-size: 1.7rem;
+
+  padding: 6px 10px;
+
+  cursor: pointer;
+}
+
+
+
+
+
+/* =========================================
+   MOBILE NAVIGATION
+========================================= */
+
+.dosewise-mobile-nav {
+  display: none;
+}
+
+.dosewise-mobile-link {
+  display: block;
+
+  color: white;
+  text-decoration: none;
+
+  padding: 12px 0;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+
+
+
+
+
+
+
+.dosewise-card {
+  background: var(--dosewise-surface);
+  color: var(--dosewise-text);
+  border: 1px solid var(--dosewise-border);
+}
+
+.dosewise-page {
+  background: var(--dosewise-bg);
+  color: var(--dosewise-text);
+}
+
+
+
+.dosewise-app {
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  background-color: var(--dosewise-bg);
+  color: var(--dosewise-text);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+
+
+.dosewise-main {
+  flex: 1;
+}
+
+
+
+
+
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes fadeIn {
+
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+
+}
+
+
+@keyframes slideInUp {
+
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
+
+@keyframes slideInRight {
+
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+}
+
+
+.dosewise-fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+.dosewise-slide-up {
+  animation: slideInUp 0.5s ease;
+}
+
+.dosewise-slide-right {
+  animation: slideInRight 0.5s ease;
+}
+
+
+
+.medication-preview {
+  animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+}
+
+
+
+@keyframes menuSlideDown {
+
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
+.medication-card {
+  background-color: var(--dosewise-surface);
+  color: var(--dosewise-text);
+
+  border: 1px solid var(--dosewise-border);
+
+  border-radius: 16px;
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.medication-card:hover {
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 10px 25px rgba(15, 23, 42, 0.08);
+}
+
+
+.dosewise-muted {
+  color: var(--dosewise-muted);
+}
+
+
+.dosewise-app,
+.dosewise-card,
+.dosewise-footer {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.dosewise-footer {
+  background-color: var(--dosewise-surface);
+
+  border-top: 1px solid var(--dosewise-border);
+
+  color: var(--dosewise-text);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.dosewise-footer-content {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 30px;
+
+  padding: 32px 0;
+}
+
+.dosewise-footer-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.dosewise-footer-text {
+  max-width: 420px;
+
+  margin: 8px 0 0;
+
+  color: var(--dosewise-muted);
+
+  font-size: 0.9rem;
+
+  line-height: 1.6;
+}
+
+.dosewise-footer-links {
+  display: flex;
+  gap: 20px;
+}
+
+.dosewise-footer-links a {
+  color: var(--dosewise-muted);
+
+  text-decoration: none;
+
+  font-size: 0.9rem;
+
+  transition: color 0.2s ease;
+}
+
+.dosewise-footer-links a:hover {
+  color: var(--dosewise-primary);
+}
+
+.dosewise-footer-bottom {
+  padding: 18px 0;
+
+  border-top: 1px solid var(--dosewise-border);
+
+  color: var(--dosewise-muted);
+
+  font-size: 0.8rem;
+
+  text-align: center;
+}
+
+
+
+
+
+/* =========================================
+   LOADING
+========================================= */
+
+.dosewise-loading {
+  min-height: 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 15px;
+
+  color: var(--dosewise-muted);
+}
+
+.dosewise-loading .spinner-border {
+  width: 2.5rem;
+  height: 2.5rem;
+
+  color: var(--dosewise-primary);
+}
+
+.dosewise-loading-message {
+  margin: 0;
+
+  font-size: 0.95rem;
+}
+
+
+
+
+/* =========================================
+   PAGE HEADINGS
+========================================= */
+
+.dosewise-page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.dosewise-eyebrow {
+  margin-bottom: 8px;
+
+  color: var(--dosewise-primary);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dosewise-page-heading h1 {
+  margin-bottom: 8px;
+
+  color: var(--dosewise-text);
+
+  font-weight: 700;
+}
+
+
+/* =========================================
+   DOSEWISE CARD
+========================================= */
+
+.dosewise-card {
+  padding: 28px;
+
+  background-color: var(--dosewise-surface);
+
+  color: var(--dosewise-text);
+
+  border: 1px solid var(--dosewise-border);
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 6px 20px rgba(15, 23, 42, 0.05);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.25s ease;
+}
+
+.dosewise-card:hover {
+  transform: translateY(-3px);
+}
+
+
+/* =========================================
+   HERO
+========================================= */
+
+.dosewise-hero-card {
+  min-height: 350px;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 15px;
+
+  padding: 40px;
+
+  border-radius: 24px;
+
+  background: var(--dosewise-gradient);
+
+  color: white;
+
+  text-align: center;
+
+  box-shadow:
+    0 20px 45px rgba(15, 118, 110, 0.2);
+
+  animation: slideInRight 0.6s ease;
+}
+
+
+
+/* =========================================
+   BOTTOM NAVIGATION
+========================================= */
+
+.dosewise-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  height: 60px;
+  background-color: var(--dosewise-surface);
+  border-top: 1px solid var(--dosewise-border);
+
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.dosewise-bottom-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 2px;
+  flex: 1;
+  height: 100%;
+
+  color: var(--dosewise-muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.bottom-nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Hover & Active States */
+.dosewise-bottom-link:hover {
+  color: var(--dosewise-primary);
+}
+
+.dosewise-bottom-link.active {
+  color: var(--dosewise-primary);
+  font-weight: 600;
+}
+
+
+
+
+
+
+/* Responsive Behavior: Hide on Desktop, Display on Mobile */
+@media (min-width: 768px) {
+  .dosewise-bottom-nav {
+    display: none;
+  }
+}
+
+
+
+
+@media (max-width: 767.98px) {
+
+  /* Flexbox wrapper to place Hamburger and Brand side-by-side */
+  .dosewise-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Adjust spacing between hamburger and logo */
+  }
+
+  .dosewise-desktop-nav {
+    display: none;
+  }
+
+  .dosewise-menu-toggle {
+    display: block;
+    padding: 6px 4px; /* Reduced side padding for tighter alignment */
+  }
+
+  .dosewise-mobile-nav {
+    display: block;
+    padding-bottom: 15px;
+    animation: menuSlideDown 0.25s ease;
+  }
+
+  .dosewise-footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dosewise-footer-links {
+    flex-wrap: wrap;
+  }
+
+  .dosewise-page-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dosewise-desktop-nav {
+    display: none;
+  }
+
+  .dosewise-menu-toggle {
+    display: block;
+  }
+
+  .dosewise-mobile-nav {
+    display: block;
+
+    padding-bottom: 15px;
+
+    animation: menuSlideDown 0.25s ease;
+  }
+
+
+  .dosewise-footer-content {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+  .dosewise-footer-links {
+    flex-wrap: wrap;
+  }
+
+
+  .dosewise-page-heading {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+
+}
