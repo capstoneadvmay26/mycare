@@ -1,5 +1,5 @@
 const express = require("express");
-const profikeRoutes = require("./routes/profile.route");
+const profileRoutes = require("./routes/profile.route");
 const medicationRoutes = require("./routes/medication.route");
 
 const app = express();
