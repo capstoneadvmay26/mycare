@@ -1,39 +1,64 @@
-import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 
-import AppShell from "./components/layout/AppShell";
+import AppShell from "./components/layout/AppShell.jsx";
 
-import Dashboard from "./pages/Dashboard";
-import Medications from "./pages/Medications";
-import Symptoms from "./pages/Symptoms";
-import History from "./pages/History";
-import Profile from "./pages/Profile";
+import Home from "./pages/Home.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import Medications from "./pages/Medications.jsx";
+import AddMedication from "./pages/AddMedication.jsx";
+import EditMedication from "./pages/EditMedication.jsx";
+import Symptoms from "./pages/Symptoms.jsx";
+import LogSymptom from "./pages/LogSymptom.jsx";
+import History from "./pages/History.jsx";
+import Profile from "./pages/Profile.jsx";
 
 function App() {
-  // Initialize state with stored theme or default to light
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("mycare-theme") || "light";
-  });
-
-  // Function to switch between light and dark modes
-  const handleThemeToggle = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
-  };
-
-  // Save selection so it persists on page refresh
-  useEffect(() => {
-    localStorage.setItem("mycare-theme", theme);
-  }, [theme]);
-
   return (
-    <AppShell theme={theme} handleThemeToggle={handleThemeToggle}>
+    <AppShell>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/medications" element={<Medications />} />
-        <Route path="/symptoms" element={<Symptoms />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/profile" element={<Profile />} />
+
+        <Route path="/" element={<Home />} />
+
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
+
+        <Route
+          path="/medications"
+          element={<Medications />}
+        />
+
+        <Route
+          path="/medications/add"
+          element={<AddMedication />}
+        />
+
+        <Route
+          path="/medications/:id/edit"
+          element={<EditMedication />}
+        />
+
+        <Route
+          path="/symptoms"
+          element={<Symptoms />}
+        />
+
+        <Route
+          path="/symptoms/log"
+          element={<LogSymptom />}
+        />
+
+        <Route
+          path="/history"
+          element={<History />}
+        />
+
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
+
       </Routes>
     </AppShell>
   );

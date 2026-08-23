@@ -7,10 +7,10 @@ function Footer() {
         <div className="mycare-footer-content">
           <div>
             <div className="mycare-footer-brand">
-              <img 
-                src="/frontend/public/images/mycare-logo.png"
-                alt="MyCare Logo" 
-                className="mycare-footer-logo-img" 
+             <img
+                src="/images/mycare-logo-transparent.png"
+                alt="MyCare Logo"
+                className="mycare-logo"
               />
             </div>
 
