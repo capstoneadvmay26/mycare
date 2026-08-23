@@ -25,6 +25,7 @@
   --mycare-text: #0f172a;
   --mycare-muted: #64748b;
   --mycare-border: #e2e8f0;
+  
 
 }
 
@@ -36,19 +37,23 @@
   --mycare-text: #0f172a;
   --mycare-muted: #64748b;
   --mycare-border: #e2e8f0;
+  
+  
 
 }
 
 
 .mycare-app[data-theme="dark"] {
 
-  --mycare-bg: #0f172a;
+  --mycare-bg: #0d3798;
   --mycare-surface: #1e293b;
   --mycare-text: #f8fafc;
   --mycare-muted: #94a3b8;
   --mycare-border: #334155;
-
+  --mycare-eyebrow: #ffffff;
 }
+
+
 
 
 /* =========================================
@@ -74,16 +79,6 @@ body {
    HEADER LAYOUT
 ========================================= */
 
-/*
-.mycare-header {
-  background: var(--mycare-gradient);
-  color: white;
-
-  box-shadow:
-    0 4px 16px rgba(15, 23, 42, 0.12);
-}
-*/
-
 /* Adapt header gradient slightly for light vs dark mode */
 .mycare-header {
   background: var(--mycare-gradient);
@@ -91,8 +86,8 @@ body {
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
 }
 
-.mycare-app[data-theme="dark"] .mycare-header {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
+.mycare-app[data-theme="dark"] .mycare-header .mycare-eyebrow {
+  background: linear-gradient(135deg, #0d3491 0%, cd#2458ac 50%, #0f766e 100%);
   border-bottom: 1px solid var(--mycare-border);
 }
 
@@ -149,25 +144,7 @@ body {
   gap: 10px;
 }
 
-/*
 
-.mycare-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 82px;
-  height: 62px;
-
-  background: rgba(255, 255, 255, 0.16);
-
-  border: 1px solid rgba(255, 255, 255, 0.25);
-
-  border-radius: 12px;
-
-  font-size: 1.3rem;
-}
-*/
 
 .mycare-logo {
   display: flex;
@@ -234,9 +211,6 @@ body {
 }
 
 
-
-
-
 /* =========================================
    MOBILE NAVIGATION
 ========================================= */
@@ -255,12 +229,6 @@ body {
 
   border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
-
-
-
-
-
-
 
 
 .mycare-card {
@@ -512,9 +480,6 @@ body {
 }
 
 
-
-
-
 /* =========================================
    LOADING
 ========================================= */
@@ -548,7 +513,6 @@ body {
 
 
 
-
 /* =========================================
    PAGE HEADINGS
 ========================================= */
@@ -562,12 +526,10 @@ body {
 
 .mycare-eyebrow {
   margin-bottom: 8px;
-
-  color: var(--mycare-primary);
-
-  font-size: 0.75rem;
-  font-weight: 700;
-
+  color: var(--mycare-cyan);
+  font-weight: bolder;
+  transition: color 0.3s ease;
+  font-size: 0.99rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
