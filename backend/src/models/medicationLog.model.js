@@ -28,6 +28,10 @@ const medicationLogSchema = new mongoose.Schema({
         type: Date
     },
 
+     skippedAt: {
+        type: Date
+    },
+
     skipReason: {
         type: String,
         trim: true
