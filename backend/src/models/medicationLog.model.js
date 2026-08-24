@@ -20,7 +20,8 @@ const medicationLogSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ['taken', 'skipped'],
+        enum: ["pending", "taken", "skipped"],
+        default: "pending",
         required: true
     },
 
