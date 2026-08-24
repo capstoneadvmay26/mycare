@@ -13,7 +13,7 @@ const medicationLogSchema = new mongoose.Schema({
         required: true
     },
 
-    scheduledAt: {
+    scheduledFor: { // when the medication should be taken
         type: Date,
         required: true
     },
