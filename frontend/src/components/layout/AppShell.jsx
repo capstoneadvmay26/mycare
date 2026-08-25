@@ -1,17 +1,8 @@
 import { useState, useEffect } from 'react';
-import Home from './pages/Home';
-import Onboarding from './pages/Onboarding';
-import Placeholder from './pages/Placeholder';
+import Header from './Header';
+import BottomNav from './BottomNav';
 
-// Import Layout Components
-import Header from './components/layout/Header';
-import BottomNav from './components/layout/BottomNav';
-// (Removed the unused Logo import here)
-
-const App = () => {
-  const [isOnboarded, setIsOnboarded] = useState(false); 
-  const [userName, setUserName] = useState('');
-  const [currentTab, setCurrentTab] = useState('Home'); 
+const AppShell = ({ currentTab, onTabChange, onLogout, children }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -24,48 +15,19 @@ const App = () => {
 
   const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings', 'Help & Support'];
 
-  const renderScreen = () => {
-    switch (currentTab) {
-      case 'Home': return <Home userName={userName} />;
-      case 'Medications': return <Placeholder title="Medications" />;
-      case 'Symptoms': return <Placeholder title="Symptoms" />;
-      case 'History': return <Placeholder title="History" />;
-      case 'Profiles': return <Placeholder title="Profiles" />;
-      case 'Settings': return <Placeholder title="Settings" />;
-      case 'Help & Support': return <Placeholder title="Help & Support" />;
-      default: return <Home userName={userName} />;
-    }
-  };
-
-  const handleLogout = () => {
-    setUserName('');
-    setCurrentTab('Home');
-    setIsOnboarded(false);
-    setShowMenu(false);
-  };
-
-  if (!isOnboarded) {
-    return (
-      <Onboarding 
-        onComplete={() => setIsOnboarded(true)} 
-        setUserName={setUserName} 
-      />
-    );
-  }
-
   return (
     <div className="d-flex flex-column vh-100 bg-light">
       
       <Header onMenuClick={() => setShowMenu(true)} isDesktop={isDesktop} />
 
-      {/* DESKTOP NAV */}
+      {/* Desktop Nav (Only on desktop) */}
       {isDesktop && (
         <nav className="d-flex align-items-center gap-4 px-4 py-2 bg-white border-bottom">
           {navItems.map((item) => (
             <button
               key={item}
               className={`btn border-0 p-0 ${currentTab === item ? 'text-primary fw-bold' : 'text-secondary'}`}
-              onClick={() => setCurrentTab(item)}
+              onClick={() => onTabChange(item)}
             >
               {item}
             </button>
@@ -73,7 +35,7 @@ const App = () => {
         </nav>
       )}
 
-      {/* MOBILE DRAWER OVERLAY */}
+      {/* MOBILE DRAWER START */}
       {showMenu && (
         <div 
           className="position-fixed top-0 start-0 w-100 h-100" 
@@ -82,7 +44,6 @@ const App = () => {
         ></div>
       )}
 
-      {/* MOBILE DRAWER */}
       <div 
         className="position-fixed top-0 start-0 h-100 bg-white p-4"
         style={{ 
@@ -95,8 +56,11 @@ const App = () => {
       >
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h5 className="text-primary fw-bold m-0">Menu</h5>
-          <button onClick={() => setShowMenu(false)} className="btn btn-link p-0 text-dark" style={{ fontSize: '28px' }}>
-            &#10005;
+          <button onClick={() => setShowMenu(false)} className="btn btn-link p-0 text-dark" aria-label="Close">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
         
@@ -104,15 +68,16 @@ const App = () => {
           {navItems.map((item) => (
             <button
               key={item}
-              onClick={() => { setCurrentTab(item); setShowMenu(false); }}
+              onClick={() => { onTabChange(item); setShowMenu(false); }}
               className={`btn d-flex justify-content-start border-0 p-0 ${currentTab === item ? 'text-primary fw-bold' : 'text-dark'}`}
               style={{ fontSize: '18px' }}
             >
               {item}
             </button>
           ))}
+          
           <button 
-            onClick={handleLogout} 
+            onClick={() => { setShowMenu(false); onLogout(); }} 
             className="btn text-danger border-0 p-0 text-start fw-bold mt-4" 
             style={{ fontSize: '18px' }}
           >
@@ -120,17 +85,17 @@ const App = () => {
           </button>
         </div>
       </div>
+      {/* MOBILE DRAWER END */}
 
-      {/* MAIN CONTENT */}
+      {/* Main Area */}
       <main className="flex-grow-1 pb-5 overflow-auto">
-        {renderScreen()}
+        {children}
       </main>
 
-      {/* BOTTOM NAV */}
-      {!isDesktop && <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />}
-
+      {/* Bottom Nav (Only on Mobile) */}
+      {!isDesktop && <BottomNav currentTab={currentTab} onTabChange={onTabChange} />}
     </div>
   );
 };
 
-export default App;
+export default AppShell;
