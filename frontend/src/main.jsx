@@ -6,7 +6,7 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 // If you want a global CSS file, put it here. 
 // (For now, we are using inline styles from the Figma, so this can be empty or just resets)
-import "./styles/mycare.css"; 
+//import "./styles/mycare.css"; 
 
 import App from "./App.jsx";
 
