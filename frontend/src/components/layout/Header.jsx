@@ -1,109 +1,32 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-//import logo from "../assets/images/mycare-logo.png";
+//import React from 'react';
+import { List, Bell, Person } from 'react-bootstrap-icons';
+import Logo from '../ui/Logo';
 
-function Header({ theme, handleThemeToggle }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleMenuToggle = () => {
-    setMenuOpen((previousState) => !previousState);
-  };
-
-  const handleMenuClose = () => {
-    setMenuOpen(false);
-  };
-
+const Header = ({ onMenuClick, isDesktop }) => {
   return (
-    <header className="mycare-header">
-      <div className="container">
-        <div className="mycare-navbar">
-          {/* Left Section: Mobile Menu Button + Brand Logo Image */}
-          <div className="mycare-header-left">
-            <button
-              type="button"
-              className="mycare-menu-toggle"
-              onClick={handleMenuToggle}
-              aria-label="Toggle navigation menu"
-              aria-expanded={menuOpen}
-            >
-              {menuOpen ? "✕" : "☰"}
-            </button>
+    <header className="bg-white shadow-sm sticky-top" style={{ zIndex: 1030 }}>
+      <div className="d-flex align-items-center justify-content-between px-3 py-2">
+        
+        {!isDesktop && (
+          <button onClick={onMenuClick} className="btn p-0 border-0 text-dark me-2">
+            <List size={28} />
+          </button>
+        )}
 
-            <Link to="/" className="mycare-brand" onClick={handleMenuClose}>
-              <img
-                src="/images/mycare-logo-transparent.png"
-                alt="MyCare Logo"
-                className="mycare-logo"
-              />
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="mycare-desktop-nav">
-            <Link to="/dashboard" className="mycare-nav-link">
-              Dashboard
-            </Link>
-            <Link to="/medications" className="mycare-nav-link">
-              Medications
-            </Link>
-            <Link to="/symptoms" className="mycare-nav-link">
-              Symptoms
-            </Link>
-            <Link to="/profile" className="mycare-nav-link">
-              Profile
-            </Link>
-          </nav>
-
-          {/* Actions */}
-          <div className="mycare-header-actions">
-            <button
-              type="button"
-              className="mycare-theme-toggle"
-              onClick={handleThemeToggle}
-              aria-label="Toggle colour theme"
-              title="Toggle theme"
-            >
-              {theme === "light" ? "🌙" : "☀️"}
-            </button>
-          </div>
+        <div className="flex-grow-1 d-flex justify-content-center justify-content-lg-start">
+          <Logo height="40px" />
         </div>
 
-        {/* Mobile Navigation Dropdown */}
-        {menuOpen && (
-          <nav className="mycare-mobile-nav">
-            <Link
-              to="/dashboard"
-              className="mycare-mobile-link"
-              onClick={handleMenuClose}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/medications"
-              className="mycare-mobile-link"
-              onClick={handleMenuClose}
-            >
-              Medications
-            </Link>
-            <Link
-              to="/symptoms"
-              className="mycare-mobile-link"
-              onClick={handleMenuClose}
-            >
-              Symptoms
-            </Link>
-            <Link
-              to="/profile"
-              className="mycare-mobile-link"
-              onClick={handleMenuClose}
-            >
-              Profile
-            </Link>
-          </nav>
-        )}
+        <div className="d-flex align-items-center gap-3">
+          <div className="position-relative">
+            <Bell size={24} className="text-dark" />
+            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem' }}>3</span>
+          </div>
+          <Person size={28} className="text-secondary" />
+        </div>
       </div>
     </header>
   );
-}
+};
 
 export default Header;

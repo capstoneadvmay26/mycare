@@ -1,24 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
-import "./styles/mycare.css";
+// If you want a global CSS file, put it here. 
+// (For now, we are using inline styles from the Figma, so this can be empty or just resets)
+import "./styles/mycare.css"; 
 
 import App from "./App.jsx";
-import { ThemeProvider } from "./context/ThemeContext.jsx";
-import { AuthProvider } from "./context/AuthContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <App />
   </StrictMode>
 );
