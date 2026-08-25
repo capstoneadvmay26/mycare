@@ -6,8 +6,8 @@ function validate(schema) {
         const { error } = schema.validate(req.body, { abortEarly: false });
 
         if (error) {
-            const errors = error.dtails.map((detail) => ({
-                field: detail.path.join(""),
+            const errors = error.details.map((detail) => ({
+                field: detail.path.join("."),
                 message: detail.message.replace(/"/g, ""),
             }));
 

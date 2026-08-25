@@ -16,7 +16,7 @@ const profileSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true,
-            minilength: 2,
+            miniLength: 2,
         },
 
         // true = this profile is the account holder themselves

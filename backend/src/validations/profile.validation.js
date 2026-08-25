@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const createProfileSchema = Joi.object({
-    fullNamr: Joi.string().min(2).max(100).required(),
+    fullName: Joi.string().min(2).max(100).required(),
     isSelf: Joi.boolean().optional(),
     relationship: Joi.string().when("isSelf", {
         is: false,
@@ -16,7 +16,8 @@ const createProfileSchema = Joi.object({
 
 const updateProfileSchema = Joi.object({
     fullName: Joi.string().min(2).max(100).optional(),
-    relationship: Jpi.string().optional().allow(null, ""),
+    relationship: Joi.string().optional().allow(null, ""),
+    dateOfBirth: Joi.date().optional(),
     gender: Joi.string()
     .valid("male", "female", "other", "prefer_not_to_say")
     .optional(),

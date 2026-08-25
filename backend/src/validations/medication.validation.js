@@ -1,11 +1,11 @@
 const Joi = require("joi");
 
-const creatmedicationSchema = Joi.object({
+const createMedicationSchema = Joi.object({
     profileId: Joi.string().required(),
     name: Joi.string().min(1).max(150).required(),
     dosage: Joi.string().min(1).max(50).required(),
     frequency: Joi.string()
-    .valid("Once_daily", "twice_dialy", "three_daily", "weekly", "as_needed")
+    .valid("once_daily", "twice_daily", "three_times_daily", "weekly", "as_needed")
     .required(),
     scheduledTimes: Joi.array().items(Joi.string()).optional(),
     startDate:Joi.date().required(),
