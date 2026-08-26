@@ -1,5 +1,4 @@
 // src/pages/Home.jsx
-//import React from 'react';
 import { ChevronRight } from 'react-bootstrap-icons';
 
 const Home = ({ userName }) => {
