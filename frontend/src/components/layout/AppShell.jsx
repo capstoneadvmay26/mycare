@@ -1,25 +1,32 @@
+// src/components/layout/AppShell.jsx
+//import { useApp } from '../../context/AppContext.jsx';
 import Header from './Header';
 import BottomNav from './BottomNav';
 import DesktopNav from './DesktopNav';
 import MobileDrawer from './MobileDrawer';
+import { useApp } from '../../context/useApp';
 
-const AppShell = ({ children, userName, currentTab, onTabChange, isMenuOpen, onMenuClick, onMenuClose, onLogout }) => {
+
+const AppShell = ({ children }) => {
+  const { currentTab, setCurrentTab, isMenuOpen, setIsMenuOpen, handleLogout, userName, currentProfile } = useApp();
+
   return (
     <div className="d-flex flex-column vh-100 bg-light">
-      <Header onMenuClick={onMenuClick} />
-      <DesktopNav currentTab={currentTab} onTabChange={onTabChange} />
+      <Header onMenuClick={() => setIsMenuOpen(true)} />
+      <DesktopNav currentTab={currentTab} onTabChange={setCurrentTab} />
       <MobileDrawer 
         isOpen={isMenuOpen} 
-        onClose={onMenuClose} 
+        onClose={() => setIsMenuOpen(false)} 
         userName={userName} 
         currentTab={currentTab} 
-        onTabChange={onTabChange} 
-        onLogout={onLogout} 
+        onTabChange={setCurrentTab} 
+        onLogout={handleLogout} 
+        currentProfile={currentProfile}
       />
       <main className="flex-grow-1 pb-5 overflow-auto">
         {children}
       </main>
-      <BottomNav currentTab={currentTab} onTabChange={onTabChange} />
+      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
     </div>
   );
 };

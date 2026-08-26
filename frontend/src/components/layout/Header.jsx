@@ -1,5 +1,5 @@
 import { List, Bell, Person } from 'react-bootstrap-icons';
-import Logo from '../ui/Logo';
+import Logo from '../ui/Logo.jsx';
 
 const Header = ({ onMenuClick }) => (
   <header className="bg-white shadow-sm sticky-top" style={{ zIndex: 1030 }}>
