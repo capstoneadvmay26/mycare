@@ -1,0 +1,82 @@
+/* ==========================================================================
+   1. DESIGN TOKENS (Global Variables)
+   ========================================================================== */
+:root {
+  /* Colors */
+  --primary: #0033CC;
+  --primary-light: rgba(0, 51, 204, 0.1);
+  --primary-dark: #002699;
+  
+  --danger: #D92D20;
+  --success: #4CBB17;
+  --warning: #F7C81B;
+  
+  --text-dark: #000000;
+  --text-muted: rgba(0, 0, 0, 0.6);
+  
+  --bg-light: #FFFFFF;
+  --bg-gray: #F8F9FA;
+  
+  /* Borders & Radii */
+  --border-color: rgba(0, 0, 0, 0.15);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-round: 50%;
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* ==========================================================================
+   2. GLOBAL RESET
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-gray);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   3. BOOTSTRAP OVERRIDES (Global UI consistency)
+   ========================================================================== */
+.btn {
+  font-family: var(--font-family);
+  font-weight: 600;
+}
+
+.form-control {
+  font-family: var(--font-family);
+}
+
+/* ==========================================================================
+   4. RESPONSIVE LAYOUT UTILITIES
+   (Mobile-First: Show mobile, Hide desktop; Desktop: Reverse)
+   ========================================================================== */
+/* Mobile Defaults */
+.hide-mobile { display: flex !important; }
+.show-desktop { display: none !important; }
+.bottom-nav { display: flex !important; }
+
+/* Desktop Overrides (>= 992px) */
+@media (min-width: 992px) {
+  .hide-mobile { display: none !important; }
+  .show-desktop { display: flex !important; }
+  .bottom-nav { display: none !important; }
+  
+  /* Cursor pointer for desktop navigation */
+  .show-desktop button { cursor: pointer; }
+}
