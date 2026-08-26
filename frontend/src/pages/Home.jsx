@@ -1,9 +1,21 @@
 // src/pages/Home.jsx
+<<<<<<< Updated upstream
 import { ChevronRight } from 'react-bootstrap-icons';
 
 const Home = ({ userName }) => {
   // PRD: Section 4.4 (Daily Medication Schedule)
   // Mock data until backend is connected
+=======
+import { useApp } from '../context/useApp';
+import { ChevronRight } from 'react-bootstrap-icons';
+
+
+const Home = () => {
+  // Pull the user's name directly from Context!
+  const { userName } = useApp(); 
+
+  // PRD: Section 4.4 (Daily Medication Schedule)
+>>>>>>> Stashed changes
   const schedule = {
     dueNow: [{ name: 'Amlodipine', dosage: '5mg', time: '8:00am' }],
     upcoming: [{ name: 'Metformin', dosage: '500mg', time: '12:00pm' }],
@@ -12,7 +24,11 @@ const Home = ({ userName }) => {
 
   return (
     <div className="d-flex flex-column h-100 p-3">
+<<<<<<< Updated upstream
       {/* Greeting */}
+=======
+      {/* Greeting - NOW USES THE CONTEXT USERNAME! */}
+>>>>>>> Stashed changes
       <div className="mb-4 mt-2">
         <h1 className="fw-bold m-0" style={{ fontSize: '24px', color: '#000' }}>
           Good morning, {userName || 'Tolu'}
