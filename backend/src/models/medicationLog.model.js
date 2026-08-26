@@ -41,6 +41,11 @@ const medicationLogSchema = new mongoose.Schema({
     timestamps: true
 });
 
+medicationLogSchema.index(  // Ensures the user doesn't have same medication with same time twice in same day
+    { medication: 1, scheduledFor: 1 },
+    { unique: true }
+);
+
 const MedicationLog = mongoose.model('MedicationLog', medicationLogSchema);
 
 module.exports = MedicationLog;
