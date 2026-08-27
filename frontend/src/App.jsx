@@ -1,18 +1,21 @@
-import { AppProvider } from './context/AppContext';
-import { useApp } from './context/useApp';
-
-//import { AppProvider, useApp } from './context/AppContext';
+//import { useState } from 'react';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
 import Placeholder from './pages/Placeholder';
 import AppShell from './components/layout/AppShell';
 
+// Fixed: useApp is imported from useApp.js, not AppContext.jsx!
+import { AppProvider } from './context/AppContext';
+import { useApp } from './context/useApp';
+
 const AppContent = () => {
-  const { isOnboarded, currentTab } = useApp();
+  const { isOnboarded, currentTab, setCurrentTab, userName } = useApp();
+
+  const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings', 'Help & Support'];
 
   const renderScreen = () => {
     switch (currentTab) {
-      case 'Home': return <Home />; // <--- NO userName prop passed here!
+      case 'Home': return <Home />;
       case 'Medications': return <Placeholder title="Medications" />;
       case 'Symptoms': return <Placeholder title="Symptoms" />;
       case 'History': return <Placeholder title="History" />;
@@ -28,7 +31,12 @@ const AppContent = () => {
   }
 
   return (
-    <AppShell>
+    <AppShell 
+      navItems={navItems}
+      currentTab={currentTab}
+      setCurrentTab={setCurrentTab}
+      userName={userName}
+    >
       {renderScreen()}
     </AppShell>
   );
