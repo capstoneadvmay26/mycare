@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #0033CC;
+  --danger: #D92D20;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  background-color: #F8F9FA;
+}
+
+/* DESKTOP MODE (Screens 768px and ABOVE) */
+@media (min-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-desktop { display: flex !important; }
+}
