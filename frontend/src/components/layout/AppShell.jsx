@@ -1,7 +1,7 @@
 // src/components/layout/AppShell.jsx
 //import { useApp } from '../../context/AppContext.jsx';
 import Header from './Header';
-import BottomNav from './BottomNav';
+
 import DesktopNav from './DesktopNav';
 import MobileDrawer from './MobileDrawer';
 import { useApp } from '../../context/useApp';
@@ -26,7 +26,7 @@ const AppShell = ({ children }) => {
       <main className="flex-grow-1 pb-5 overflow-auto">
         {children}
       </main>
-      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
+      
     </div>
   );
 };

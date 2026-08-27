@@ -1,5 +1,5 @@
 import { useApp } from '../context/useApp';
-import { Alarm, Clock, CheckCircle, ChevronRight } from 'react-bootstrap-icons'; // Removed ArrowLeftRight!
+import { Clock, CheckCircle, ChevronRight } from 'react-bootstrap-icons'; 
 
 const Home = () => {
   const { userName } = useApp();
@@ -45,7 +45,7 @@ const Home = () => {
         </div>
         {schedule.dueNow.map((med, idx) => (
           <div key={idx} className="d-flex align-items-center">
-            <Alarm size={32} className="me-3 text-dark" />
+            <Clock size={32} className="me-3 text-dark" />
             <div>
               <p className="m-0 fw-bold" style={{ fontSize: '20px' }}>{med.name} <span style={{ fontSize: '13px', fontWeight: '400' }}>{med.dosage}</span></p>
               <p className="m-0" style={{ fontSize: '13px' }}>{med.time}</p>
