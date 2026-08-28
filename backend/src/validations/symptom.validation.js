@@ -18,4 +18,13 @@ const createSymptomSchema = Joi.object({
         .required(),
 });
 
-module.exports = { createSymptomSchema };
+const checkInSchema = Joi.object({
+    status: Joi.string()
+        .valid("better", "same", "worse")
+        .required(),
+});
+
+module.exports = {
+    createSymptomSchema,
+    checkInSchema
+};

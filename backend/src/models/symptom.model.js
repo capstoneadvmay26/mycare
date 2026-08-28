@@ -32,8 +32,47 @@ const symptomSchema = new mongoose.Schema(
             default: Date.now,
         },
 
-        followUpStartDate: {
-            type: Date,
+        checkIns: [
+            {
+                day: {
+                    type: Number,
+                    enum: [1, 2, 3],
+                    required: true,
+                },
+
+                status: {
+                    type: String,
+                    enum: ["better", "same", "worse"],
+                    required: true,
+                },
+
+                checkedInAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            }
+        ],
+
+        professionalCareNudge: {
+            shown: {
+                type: Boolean,
+                default: false,
+            },
+
+            shownAt: {
+                type: Date,
+            },
+        },
+
+        doctorFollowUp: {
+            response: {
+                type: String,
+                enum: ["yes", "no", "not_yet"],
+            },
+
+            respondedAt: {
+                type: Date,
+            },
         },
     },
     { timestamps: true }
