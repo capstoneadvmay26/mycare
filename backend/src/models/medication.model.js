@@ -31,7 +31,7 @@ const medicationSchema = new mongoose.Schema(
 
         // Specific clock times this medication should taken, e.g. ["08:00", "20:00"].
         // An array becuase some medication are taken multiple times a day.
-        scheduleTimes: {
+        scheduleTime: {
             type: [String],
             default: [],
         },
