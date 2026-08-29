@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
 import Placeholder from './pages/Placeholder';
 import AppShell from './components/layout/AppShell';
+import Medications from './pages/Medications';
 
 // Fixed: useApp is imported from useApp.js, not AppContext.jsx!
 import { AppProvider } from './context/AppContext';
@@ -16,7 +17,7 @@ const AppContent = () => {
   const renderScreen = () => {
     switch (currentTab) {
       case 'Home': return <Home />;
-      case 'Medications': return <Placeholder title="Medications" />;
+      case 'Medications': return <Medications />;
       case 'Symptoms': return <Placeholder title="Symptoms" />;
       case 'History': return <Placeholder title="History" />;
       case 'Profiles': return <Placeholder title="Profiles" />;
