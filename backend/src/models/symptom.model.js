@@ -67,15 +67,17 @@ const symptomSchema = new mongoose.Schema(
         doctorFollowUp: {
             response: {
                 type: String,
-                enum: ["yes", "no", "not_yet"],
+                enum: ["yes", "no", "remind_later"],
             },
 
             respondedAt: {
                 type: Date,
             },
+
+            nextReminderAt: {
+                type: Date,
+            },
         },
-    },
-    { timestamps: true }
-);
+    },{ timestamps: true });
 
 module.exports = mongoose.model("Symptom", symptomSchema);

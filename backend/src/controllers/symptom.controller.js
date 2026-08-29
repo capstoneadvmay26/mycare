@@ -176,6 +176,7 @@ const addCheckIn = async (req, res, next) => {
     }
 };
 
+
 const getSymptomStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -215,20 +216,16 @@ const getSymptomStatus = async (req, res, next) => {
         let isImproving = null;
 
         if (checkInCount > 0) {
-            // Check if any check-in was worse
             const hasWorseResponse = symptom.checkIns.some(
                 checkIn => checkIn.status === "worse"
             );
 
-            // Count same/worse responses
             const sameOrWorseCount = symptom.checkIns.filter(
                 checkIn =>
                     checkIn.status === "same" ||
                     checkIn.status === "worse"
             ).length;
 
-            // Any "worse" OR 2+ "same/worse" responses
-            // means the symptom is not considered improving.
             isImproving =
                 !hasWorseResponse && sameOrWorseCount < 2;
         }
@@ -237,10 +234,298 @@ const getSymptomStatus = async (req, res, next) => {
         const needsDoctorNudge =
             symptom.professionalCareNudge?.shown === true;
 
+        // Determine whether doctor follow-up is due
+        let doctorFollowUpDue = false;
+
+        if (needsDoctorNudge) {
+            const now = new Date();
+
+            // First follow-up:
+            // 8 hours after the professional-care nudge
+            if (!symptom.doctorFollowUp?.respondedAt) {
+                const firstFollowUpTime = new Date(
+                    symptom.professionalCareNudge.shownAt
+                );
+
+                firstFollowUpTime.setHours(
+                    firstFollowUpTime.getHours() + 8
+                );
+
+                doctorFollowUpDue = now >= firstFollowUpTime;
+            }
+
+            // Later follow-ups:
+            // 8 hours after "remind_later"
+            else if (
+                symptom.doctorFollowUp.response === "remind_later" &&
+                symptom.doctorFollowUp.nextReminderAt
+            ) {
+                doctorFollowUpDue =
+                    now >= symptom.doctorFollowUp.nextReminderAt;
+            }
+        }
+
         return res.status(200).json({
             current_day: currentDay,
             is_improving: isImproving,
-            needs_doctor_nudge: needsDoctorNudge
+            needs_doctor_nudge: needsDoctorNudge,
+            doctor_follow_up_due: doctorFollowUpDue
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+const recordDoctorFollowUp = async (req, res, next) => {
+    try {
+        const { symptomId, response } = req.body;
+
+        // Find symptom
+        const symptom = await SymptomModel.findById(symptomId);
+
+        if (!symptom) {
+            return res.status(404).json({
+                message: "Symptom not found."
+            });
+        }
+
+        // Find profile
+        const profile = await ProfileModel.findById(symptom.profile);
+
+        if (!profile) {
+            return res.status(404).json({
+                message: "Profile not found."
+            });
+        }
+
+        // Check profile ownership
+        if (profile.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                message: "You don't have access to this symptom."
+            });
+        }
+
+        // Make sure professional-care nudge was shown
+        if (!symptom.professionalCareNudge?.shown) {
+            return res.status(400).json({
+                message: "Professional-care follow-up is not available for this symptom."
+            });
+        }
+
+        const now = new Date();
+
+        // Make sure the first follow-up is not submitted before 8 hours
+        if (!symptom.doctorFollowUp?.respondedAt) {
+            const followUpAvailableAt = new Date(
+                symptom.professionalCareNudge.shownAt
+            );
+
+            followUpAvailableAt.setHours(
+                followUpAvailableAt.getHours() + 8
+            );
+
+            if (now < followUpAvailableAt) {
+                return res.status(400).json({
+                    message: "Doctor follow-up is not available yet."
+                });
+            }
+        }
+
+        // If the previous response was remind_later,
+        // make sure the next 8-hour reminder is due.
+        if (
+            symptom.doctorFollowUp?.response === "remind_later" &&
+            symptom.doctorFollowUp?.nextReminderAt
+        ) {
+            if (now < symptom.doctorFollowUp.nextReminderAt) {
+                return res.status(400).json({
+                    message: "The next doctor follow-up reminder is not available yet."
+                });
+            }
+        }
+
+        // Save user's response
+        symptom.doctorFollowUp.response = response;
+        symptom.doctorFollowUp.respondedAt = now;
+
+        // Remind again after 8 hours
+        if (response === "remind_later") {
+            symptom.doctorFollowUp.nextReminderAt = new Date(
+                now.getTime() + 8 * 60 * 60 * 1000
+            );
+        } else {
+            // Yes or No ends the follow-up cycle
+            symptom.doctorFollowUp.nextReminderAt = null;
+        }
+
+        await symptom.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Doctor follow-up response recorded successfully.",
+            doctorFollowUp: symptom.doctorFollowUp
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getSymptomOptions = async (req, res, next) => {
+    try {
+        const symptoms = [
+            "Headache",
+            "Fatigue",
+            "Fever",
+            "Nausea",
+            "Dizziness",
+            "Body pains",
+            "Cough",
+            "Chest discomfort",
+            "Stomachache",
+            "Others"
+        ];
+
+        return res.status(200).json({
+            symptoms
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getSymptomHistory = async (req, res, next) => {
+    try {
+        const { symptom } = req.query;
+
+        // Find profiles belonging to the authenticated user
+        const profiles = await ProfileModel.find({
+            owner: req.user.id
+        }).select("_id");
+
+        const profileIds = profiles.map(profile => profile._id);
+
+        // Build query
+        const query = {
+            profile: { $in: profileIds }
+        };
+
+        // Optional symptom filter
+        if (symptom) {
+            query.symptoms = {
+                $regex: symptom,
+                $options: "i"
+            };
+        }
+
+        // Find symptom history
+        const symptoms = await SymptomModel.find(query)
+            .sort({ loggedAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: symptoms.length,
+            symptoms
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateSymptom = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { symptoms, otherSymptom, severity } = req.body;
+
+        // Find symptom
+        const symptom = await SymptomModel.findById(id);
+
+        if (!symptom) {
+            return res.status(404).json({
+                message: "Symptom not found."
+            });
+        }
+
+        // Find profile
+        const profile = await ProfileModel.findById(symptom.profile);
+
+        if (!profile) {
+            return res.status(404).json({
+                message: "Profile not found."
+            });
+        }
+
+        // Check profile ownership
+        if (profile.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                message: "You don't have access to this symptom."
+            });
+        }
+
+        // Update supplied fields only
+        if (symptoms !== undefined) {
+            symptom.symptoms = symptoms;
+        }
+
+        if (otherSymptom !== undefined) {
+            symptom.otherSymptom = otherSymptom;
+        }
+
+        if (severity !== undefined) {
+            symptom.severity = severity;
+        }
+
+        await symptom.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Symptom updated successfully.",
+            symptom
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteSymptom = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        // Find symptom
+        const symptom = await SymptomModel.findById(id);
+
+        if (!symptom) {
+            return res.status(404).json({
+                message: "Symptom not found."
+            });
+        }
+
+        // Find profile
+        const profile = await ProfileModel.findById(symptom.profile);
+
+        if (!profile) {
+            return res.status(404).json({
+                message: "Profile not found."
+            });
+        }
+
+        // Check profile ownership
+        if (profile.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                message: "You don't have access to this symptom."
+            });
+        }
+
+        await SymptomModel.findByIdAndDelete(id);
+
+        return res.status(200).json({
+            success: true,
+            message: "Symptom deleted successfully."
         });
 
     } catch (error) {
@@ -251,5 +536,10 @@ const getSymptomStatus = async (req, res, next) => {
 module.exports = {
     createSymptom,
     addCheckIn,
-    getSymptomStatus
+    getSymptomStatus,
+    recordDoctorFollowUp,
+    getSymptomOptions,
+    getSymptomHistory,
+    updateSymptom,
+    deleteSymptom
 };
