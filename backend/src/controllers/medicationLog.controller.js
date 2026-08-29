@@ -255,6 +255,26 @@ const markDoseAsTaken = async (req, res, next) => {
             });
         }
 
+        // Find the profile attached to this medication log
+        const profile = await ProfileModel.findById(
+            medicationLog.profile
+        );
+
+        if (!profile) {
+            return res.status(404).json({
+                message: "Profile not found."
+            });
+        }
+
+        // Check that the logged-in user owns the profile
+        if (profile.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                message:
+                    "You don't have access to this medication log."
+            });
+        }
+
+        // Only the owner can mark the dose as taken
         medicationLog.status = "taken";
         medicationLog.takenAt = new Date();
         medicationLog.skippedAt = null;
@@ -284,6 +304,26 @@ const markDoseAsSkipped = async (req, res, next) => {
             });
         }
 
+        // Find the profile attached to this medication log
+        const profile = await ProfileModel.findById(
+            medicationLog.profile
+        );
+
+        if (!profile) {
+            return res.status(404).json({
+                message: "Profile not found."
+            });
+        }
+
+        // Check that the logged-in user owns the profile
+        if (profile.owner.toString() !== req.user.id) {
+            return res.status(403).json({
+                message:
+                    "You don't have access to this medication log."
+            });
+        }
+
+        // Only the owner can mark the dose as skipped
         medicationLog.status = "skipped";
         medicationLog.skippedAt = new Date();
         medicationLog.takenAt = null;

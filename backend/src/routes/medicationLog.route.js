@@ -5,8 +5,11 @@ const {
     markDoseAsTaken,
     markDoseAsSkipped
 } = require('../controllers/medicationLog.controller');
+const requireAuth = require("../middlewares/requireAuth");
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 router.get("/medication-history/:profileId", getMedicationHistory);
 
