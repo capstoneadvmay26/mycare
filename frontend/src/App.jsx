@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
 import Placeholder from './pages/Placeholder';
 import AppShell from './components/layout/AppShell';
+import Symptoms from './pages/Symptoms';
 import Medications from './pages/Medications';
 
 // Fixed: useApp is imported from useApp.js, not AppContext.jsx!
@@ -18,7 +19,7 @@ const AppContent = () => {
     switch (currentTab) {
       case 'Home': return <Home />;
       case 'Medications': return <Medications />;
-      case 'Symptoms': return <Placeholder title="Symptoms" />;
+      case 'Symptoms': return <Symptoms />;
       case 'History': return <Placeholder title="History" />;
       case 'Profiles': return <Placeholder title="Profiles" />;
       case 'Settings': return <Placeholder title="Settings" />;
