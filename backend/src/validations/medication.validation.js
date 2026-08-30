@@ -7,7 +7,7 @@ const createMedicationSchema = Joi.object({
     frequency: Joi.string()
     .valid("once_daily", "twice_daily", "three_times_daily", "weekly", "as_needed")
     .required(),
-    scheduledTimes: Joi.array().items(Joi.string()).optional(),
+    scheduleTime: Joi.array().items(Joi.string()).optional(),
     startDate:Joi.date().required(),
     endDate: Joi.date().optional().allow(null),
 });
@@ -18,7 +18,7 @@ const updateMedicationSchema = Joi.object({
     frequency: Joi.string()
     .valid("once_daily", "twice_daily", "three_times_daily", "weekly", "as_needed")
     .optional(),
-    scheduledTimes: Joi.array().items(Joi.string()).optional(),
+    scheduleTime: Joi.array().items(Joi.string()).optional(),
     startDate: Joi.date().optional(),
     endDate: Joi.date().optional().allow(null),
 });
