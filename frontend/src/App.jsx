@@ -5,6 +5,7 @@ import Placeholder from './pages/Placeholder';
 import AppShell from './components/layout/AppShell';
 import Symptoms from './pages/Symptoms';
 import Medications from './pages/Medications';
+import History from './pages/History';
 
 // Fixed: useApp is imported from useApp.js, not AppContext.jsx!
 import { AppProvider } from './context/AppContext';
@@ -20,7 +21,7 @@ const AppContent = () => {
       case 'Home': return <Home />;
       case 'Medications': return <Medications />;
       case 'Symptoms': return <Symptoms />;
-      case 'History': return <Placeholder title="History" />;
+      case 'History': return <History />;
       case 'Profiles': return <Placeholder title="Profiles" />;
       case 'Settings': return <Placeholder title="Settings" />;
       case 'Help & Support': return <Placeholder title="Help & Support" />;
