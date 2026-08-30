@@ -19,15 +19,9 @@ const AppContent = () => {
   const renderScreen = () => {
     switch (currentTab) {
       case 'Home': return <Home />;
-
       case 'Medications': return <Medications />;
       case 'Symptoms': return <Symptoms />;
-<<<<<<< Updated upstream
-
-      case 'History': return <Placeholder title="History" />;
-=======
       case 'History': return <History />;
->>>>>>> Stashed changes
       case 'Profiles': return <Placeholder title="Profiles" />;
       case 'Settings': return <Placeholder title="Settings" />;
       case 'Help & Support': return <Placeholder title="Help & Support" />;
