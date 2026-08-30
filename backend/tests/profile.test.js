@@ -123,4 +123,24 @@ describe("Profile CRUD", () => {
 
     expect(listRes.body.data.length).toBe(0); // archived profiles excluded from active list
   });
+
+  it("rejects unauthenticated requests to list profiles", async () => {
+    const res = await request(app)
+      .get("/api/profiles");
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("rejects unauthenticated requests to create a profile", async () => {
+    const res = await request(app)
+      .post("/api/profiles")
+      .send({
+        fullName: "Unauthenticated User",
+        isSelf: true,
+      });
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
 });
