@@ -1,26 +1,33 @@
-const jwt = require('jsonwebtoken');
+// Protects routes that require a logged-in user.
+// Verifies the JWT sent in the Authorizaion header and attaches the user's ID to req.user
+// so controllers know WHO is making the request - this is what powers
+// every ownership check in profiles and Medications.
 
-/**
- * Middleware to verify authorization tokens and protect routes.
- */
-const requireAuth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+const jwt = require("jsonwebtoken");
 
-  // Check if Bearer token is provided in headers
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
-  }
+function requireAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
 
-  const token = authHeader.split(' ')[1];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            success: false,
+            message: "No token provided. Please log in",
+        });
+    }
 
-  try {
-    // Verify JWT secret and decode payload
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-    req.user = decoded; // Attach user payload (id, role) to request
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid or expired token.' });
-  }
-};
+    const token = authHeader.split(" ")[1];
+
+    try{
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = { id: decoded.userId };
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            success: false,
+            message: "invalid or expired token. Please log in again",
+        });
+    }
+}
+
 
 module.exports = requireAuth;

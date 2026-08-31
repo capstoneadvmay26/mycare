@@ -1,33 +1,30 @@
-const mongoose = require('mongoose');
+// MINIMAl bootstrap User model - only what's needed for Profiles/Medicatiions
+// to reference an owner and for tests to create real accounts. The
+// feature/auth branch may build this out further (e.g. phone, roles);
+// reconcile fiels names with that branch before merging to main.
 
-// Schema definition for application users
+const mongoose = require("mongoose");
+
 const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
+    {
+        fullName: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        email: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+        },
+        password: {
+            type: String,
+            required: true, // stored as a bcrypt hash, never a plain text
+        },
     },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: [true, 'Password is required'],
-      minlength: 6,
-      select: false, // Prevents password hash from returning in standard queries
-    },
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
-    },
-  },
-  { timestamps: true }
+    { timestamps: true }
 );
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);

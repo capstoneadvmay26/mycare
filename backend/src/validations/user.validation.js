@@ -1,8 +1,8 @@
 // Validates registration payload fields before passing data to the controller
 const validateRegister = (req, res, next) => {
-  const { name, email, password } = req.body;
+  const { fullName, email, password } = req.body;
 
-  if (!name || !email || !password) {
+  if (!fullName || !email || !password) {
     return res.status(400).json({ message: 'Name, email, and password are required.' });
   }
 
