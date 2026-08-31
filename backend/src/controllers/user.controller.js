@@ -4,13 +4,16 @@ const { hashPassword, comparePassword } = require('../utils/bcrypt');
 
 // Generates a signed JWT token valid for 1 day
 const generateToken = (userId, role) => {
-  return jwt.sign({ id: userId, role }, process.env.JWT_SECRET || 'fallback_secret', {
-    expiresIn: '1d',
-  });
+  return jwt.sign(
+    { id: userId, role },
+    process.env.JWT_SECRET || "fallback_secret",
+    {
+      expiresIn: "1d",
+    }
+  );
 };
 
 // Handles user registration//
-
 const registerUser = async (req, res, next) => {
   try {
     const { fullName, email, password } = req.body;
