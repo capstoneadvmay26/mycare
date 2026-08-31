@@ -204,7 +204,7 @@ const getConsultBrief = async (req, res, next) => {
                     name: medication.name,
                     dosage: medication.dosage,
                     frequency: medication.frequency,
-                    scheduleTimes: medication.scheduleTimes,
+                    scheduleTime: medication.scheduleTime,
                     startDate: medication.startDate,
                     endDate: medication.endDate
                 })

@@ -198,7 +198,7 @@ describe("History API", () => {
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
-                scheduleTimes: ["08:00"],
+                scheduleTime: ["08:00"],
                 startDate: new Date("2026-08-01"),
             });
 
@@ -276,7 +276,7 @@ describe("History API", () => {
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
-                scheduleTimes: ["08:00"],
+                scheduleTime: ["08:00"],
                 startDate: new Date("2026-08-01"),
             });
 

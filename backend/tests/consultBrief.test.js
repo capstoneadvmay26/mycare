@@ -239,7 +239,7 @@ describe("Consult Brief API", () => {
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
-                scheduleTimes: ["08:00"],
+                scheduleTime: ["08:00"],
                 startDate: new Date("2026-08-01"),
                 endDate: new Date("2026-12-31"),
                 status: "active",
@@ -269,7 +269,7 @@ describe("Consult Brief API", () => {
             expect(response.body.currentMedications[0].frequency)
                 .toBe("once_daily");
 
-            expect(response.body.currentMedications[0].scheduleTimes)
+            expect(response.body.currentMedications[0].scheduleTime)
                 .toEqual(["08:00"]);
         });
 
@@ -281,7 +281,7 @@ describe("Consult Brief API", () => {
                 name: "Old Medication",
                 dosage: "10mg",
                 frequency: "once_daily",
-                scheduleTimes: ["08:00"],
+                scheduleTime: ["08:00"],
                 startDate: new Date("2026-01-01"),
                 endDate: new Date("2026-07-01"),
                 status: "active",
@@ -398,7 +398,7 @@ describe("Consult Brief API", () => {
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "three_times_daily",
-                scheduleTimes: ["08:00", "20:00", "22:00"],
+                scheduleTime: ["08:00", "20:00", "22:00"],
                 startDate: new Date("2026-08-20"),
                 endDate: new Date("2026-08-20"),
                 status: "active",
@@ -483,7 +483,7 @@ describe("Consult Brief API", () => {
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
-                scheduleTimes: ["08:00"],
+                scheduleTime: ["08:00"],
                 startDate: new Date("2026-08-20"),
                 endDate: new Date("2026-08-22"),
                 status: "active",

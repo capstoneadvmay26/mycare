@@ -10,14 +10,14 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
     }
 
     // How many schedule times should each frequency have?
-    const expectedScheduleTimes = {
+    const expectedScheduleTime = {
         once_daily: 1,
         twice_daily: 2,
         three_times_daily: 3,
         weekly: 1
     };
 
-    const expectedCount = expectedScheduleTimes[medication.frequency];
+    const expectedCount = expectedScheduleTime[medication.frequency];
 
     if (!expectedCount) {
         throw new Error(
@@ -25,7 +25,7 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
         );
     }
 
-    if (medication.scheduleTimes.length !== expectedCount) {
+    if (medication.scheduleTime.length !== expectedCount) {
         throw new Error(
             `${medication.frequency} requires exactly ${expectedCount} schedule time(s).`
         );
@@ -47,7 +47,7 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
     let currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
-        for (const time of medication.scheduleTimes) {
+        for (const time of medication.scheduleTime) {
             const scheduledDate = new Date(currentDate);
 
             const [hours, minutes] = time.split(":");
