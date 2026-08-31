@@ -6,9 +6,11 @@ import AppShell from './components/layout/AppShell';
 import Symptoms from './pages/Symptoms';
 import Medications from './pages/Medications';
 import History from './pages/History';
+import Profiles from './pages/Profiles';
 
 // Fixed: useApp is imported from useApp.js, not AppContext.jsx!
 import { AppProvider } from './context/AppContext';
+import { ProfileProvider } from './context/ProfileContext';
 import { useApp } from './context/useApp';
 
 const AppContent = () => {
@@ -22,7 +24,7 @@ const AppContent = () => {
       case 'Medications': return <Medications />;
       case 'Symptoms': return <Symptoms />;
       case 'History': return <History />;
-      case 'Profiles': return <Placeholder title="Profiles" />;
+      case 'Profiles': return <Profiles />;
       case 'Settings': return <Placeholder title="Settings" />;
       case 'Help & Support': return <Placeholder title="Help & Support" />;
       default: return <Home />;
@@ -47,10 +49,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AppProvider>
+  <AppProvider>        {/* AppProvider stays on the outside */}
+    <ProfileProvider>  {/* ProfileProvider goes inside */}
+      {/* AppShell and page content goes here */}
       <AppContent />
-    </AppProvider>
-  );
+    </ProfileProvider>
+  </AppProvider>
+);
 };
 
 export default App;
