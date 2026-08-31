@@ -30,7 +30,6 @@ afterAll(async () => {
     await closeTestDB();
 });
 
-
 describe("Consult Brief API", () => {
 
     let userId;
@@ -405,44 +404,31 @@ describe("Consult Brief API", () => {
             });
 
 
-            /*
-             * The generator uses local server time when converting
-             * scheduleTimes into Date objects.
-             *
-             * Nigeria is UTC+1, so:
-             *
-             * 08:00 Nigeria = 07:00 UTC
-             * 20:00 Nigeria = 19:00 UTC
-             * 22:00 Nigeria = 21:00 UTC
-             *
-             * We use those same UTC values here so the controller
-             * recognizes these logs instead of generating duplicates.
-             */
-
+            // These are UTC timestamps, matching the ISO-8601 Z values used by the app.
             await MedicationLogModel.create([
                 {
                     profile: profileId,
                     medication: medication._id,
                     scheduledFor:
-                        new Date("2026-08-20T07:00:00.000Z"),
+                        new Date("2026-08-20T08:00:00.000Z"),
                     status: "taken",
                     takenAt:
-                        new Date("2026-08-20T07:05:00.000Z"),
+                        new Date("2026-08-20T08:05:00.000Z"),
                 },
                 {
                     profile: profileId,
                     medication: medication._id,
                     scheduledFor:
-                        new Date("2026-08-20T19:00:00.000Z"),
+                        new Date("2026-08-20T20:00:00.000Z"),
                     status: "skipped",
                     skippedAt:
-                        new Date("2026-08-20T19:05:00.000Z"),
+                        new Date("2026-08-20T20:05:00.000Z"),
                 },
                 {
                     profile: profileId,
                     medication: medication._id,
                     scheduledFor:
-                        new Date("2026-08-20T21:00:00.000Z"),
+                        new Date("2026-08-20T22:00:00.000Z"),
                     status: "pending",
                 },
             ]);

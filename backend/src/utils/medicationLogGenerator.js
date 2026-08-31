@@ -9,7 +9,6 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
         throw new Error("Start date cannot be after end date.");
     }
 
-    // How many schedule times should each frequency have?
     const expectedScheduleTime = {
         once_daily: 1,
         twice_daily: 2,
@@ -17,7 +16,8 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
         weekly: 1
     };
 
-    const expectedCount = expectedScheduleTime[medication.frequency];
+    const expectedCount =
+        expectedScheduleTime[medication.frequency];
 
     if (!expectedCount) {
         throw new Error(
@@ -31,7 +31,6 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
         );
     }
 
-    // How many days should we move forward after each occurrence date?
     const daysToAddByFrequency = {
         once_daily: 1,
         twice_daily: 1,
@@ -48,17 +47,26 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
 
     while (currentDate <= endDate) {
         for (const time of medication.scheduleTime) {
-            const scheduledDate = new Date(currentDate);
-
             const [hours, minutes] = time.split(":");
 
-            scheduledDate.setHours(hours, minutes, 0, 0);
+            const scheduledDate = new Date(currentDate);
+
+            // scheduleTime is interpreted as UTC.
+            // Example:
+            // "08:00" -> 2026-08-20T08:00:00.000Z
+            scheduledDate.setUTCHours(
+                Number(hours),
+                Number(minutes),
+                0,
+                0
+            );
 
             occurrences.push(scheduledDate);
         }
 
-        currentDate.setDate(
-            currentDate.getDate() + daysToAdd
+        // Keep date iteration in UTC as well.
+        currentDate.setUTCDate(
+            currentDate.getUTCDate() + daysToAdd
         );
     }
 
