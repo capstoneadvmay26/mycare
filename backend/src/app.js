@@ -2,6 +2,7 @@ const express = require("express");
 const profileRoutes = require("./routes/profile.route");
 const medicationRoutes = require("./routes/medication.route");
 const errorHandler = require("./middlewares/errorHandler");
+const userRoutes = require("./routes/user.route");
 
 const app = express();
 app.use(express.json());
