@@ -7,18 +7,21 @@ const bcrypt = require("bcryptjs");
 const User = require("../src/models/user.model");
 
 async function createTestUserAndToken(email = "test@example.com") {
-    const hashedPassword = await bcrypt.hash("password123", 10);
-   const user = await User.create({
-  fullName: "Test User",
-  email,
-  password: hashedPassword,   // make sure this matches the corrected variable name
-});
+  const hashedPassword = await bcrypt.hash("password123", 10);
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-    });
+  const user = await User.create({
+    fullName: "Test User",
+    email,
+    password: hashedPassword,
+  });
 
-    return { user, token };
+  const token = jwt.sign(
+    { id: user._id.toString(), role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  return { user, token };
 }
 
 module.exports = { createTestUserAndToken };

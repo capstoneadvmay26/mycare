@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "cross-env TZ=Africa/Lagos jest --detectOpenHandles"
   },
   "keywords": [],
   "type": "commonjs",
@@ -19,7 +19,8 @@
     "mongoose": "^9.9.3"
   },
   "devDependencies": {
-    "jest": "^30.4.2",
+    "cross-env": "^10.1.0",
+    "jest": "^30.5.0",
     "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2"
