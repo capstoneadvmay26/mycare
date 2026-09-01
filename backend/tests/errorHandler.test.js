@@ -8,7 +8,7 @@ describe("Global Error Handler", () => {
   beforeEach(() => {
     req = {
       method: "GET",
-      originalUrl: "/api/test",
+      originalUrl: "/api/v1/test",
       requestId: "test-request-id",
       user: {
         id: "test-user-id",

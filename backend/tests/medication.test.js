@@ -10,7 +10,7 @@ afterEach(async () => clearTestDB());
 
 async function createProfile(token) {
     const res = await request(app)
-        .post("/api/profiles")
+        .post("/api/v1/profiles")
         .set("Authorization", `Bearer ${token}`)
         .send({ fullName: "Chibundu Ahamefula", isSelf: true });
     return res.body.data._id;
@@ -19,12 +19,12 @@ async function createProfile(token) {
 describe("Medication CRUD", () => {
     it("add a medication to profile", async () => {
         const { token } = await createTestUserAndToken();
-        const profileId = await createProfile(token);
+        const profile_id = await createProfile(token);
 
         const res = await request(app)
-            .post("/api/medications").set("Authorization", `Bearer ${token}`)
+            .post("/api/v1/medications").set("Authorization", `Bearer ${token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Paracetamol",
                 dosage: "500mg",
                 frequency: "twice_daily",
@@ -40,13 +40,13 @@ describe("Medication CRUD", () => {
     it("blocks adding a medication to a profile you don't own", async () => {
         const UserA = await createTestUserAndToken("a@example.com");
         const UserB = await createTestUserAndToken("b@example.com");
-        const profileId = await createProfile(UserA.token);
+        const profile_id = await createProfile(UserA.token);
 
         const res = await request(app)
-            .post("/api/medications")
+            .post("/api/v1/medications")
             .set("Authorization", `Bearer ${UserB.token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Paracetamol",
                 dosage: "500mg",
                 frequency: "once_daily",
@@ -58,13 +58,13 @@ describe("Medication CRUD", () => {
 
     it("lists medications for a profile", async () => {
         const { token } = await createTestUserAndToken();
-        const profileId = await createProfile(token);
+        const profile_id = await createProfile(token);
 
         await request(app)
-            .post("/api/medications")
+            .post("/api/v1/medications")
             .set("Authorization", `Bearer ${token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Vitamin D",
                 dosage: "1 tablet",
                 frequency: "once_daily",
@@ -72,7 +72,7 @@ describe("Medication CRUD", () => {
             });
 
         const res = await request(app)
-            .get(`/api/medications?profileId=${profileId}`)
+            .get(`/api/v1/medications?profile_id=${profile_id}`)
             .set("Authorization", `Bearer ${token}`);
 
         expect(res.statusCode).toBe(200);
@@ -81,13 +81,13 @@ describe("Medication CRUD", () => {
 
     it("rejects an invalid frequency value", async () => {
         const { token } = await createTestUserAndToken();
-        const profileId = await createProfile(token);
+        const profile_id = await createProfile(token);
 
         const res = await request(app)
-            .post("/api/medications")
+            .post("/api/v1/medications")
             .set("Authorization", `Bearer ${token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Paracetamol",
                 dosage: "500mg",
                 frequency: "sometimes", // not in the allowed enum
@@ -99,13 +99,13 @@ describe("Medication CRUD", () => {
 
     it("updates an existing medication", async () => {
         const { token } = await createTestUserAndToken();
-        const profileId = await createProfile(token);
+        const profile_id = await createProfile(token);
 
         const createRes = await request(app)
-            .post("/api/medications")
+            .post("/api/v1/medications")
             .set("Authorization", `Bearer ${token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Paracetamol",
                 dosage: "500mg",
                 frequency: "once_daily",
@@ -115,7 +115,7 @@ describe("Medication CRUD", () => {
         const medicationId = createRes.body.data._id;
 
         const updateRes = await request(app)
-            .put(`/api/medications/${medicationId}`)
+            .put(`/api/v1/medications/${medicationId}`)
             .set("Authorization", `Bearer ${token}`)
             .send({
                 dosage: "1000mg",
@@ -132,13 +132,13 @@ describe("Medication CRUD", () => {
         const userA = await createTestUserAndToken("update-a@example.com");
         const userB = await createTestUserAndToken("update-b@example.com");
 
-        const profileId = await createProfile(userA.token);
+        const profile_id = await createProfile(userA.token);
 
         const createRes = await request(app)
-            .post("/api/medications")
+            .post("/api/v1/medications")
             .set("Authorization", `Bearer ${userA.token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Paracetamol",
                 dosage: "500mg",
                 frequency: "once_daily",
@@ -148,7 +148,7 @@ describe("Medication CRUD", () => {
         const medicationId = createRes.body.data._id;
 
         const updateRes = await request(app)
-            .put(`/api/medications/${medicationId}`)
+            .put(`/api/v1/medications/${medicationId}`)
             .set("Authorization", `Bearer ${userB.token}`)
             .send({
                 dosage: "1000mg",
@@ -159,13 +159,13 @@ describe("Medication CRUD", () => {
 
     it("archive a medication", async () => {
         const { token } = await createTestUserAndToken();
-        const profileId = await createProfile(token);
+        const profile_id = await createProfile(token);
 
         const creatRes = await request(app)
-            .post("/api/medications")
+            .post("/api/v1/medications")
             .set("Authorization", `Bearer ${token}`)
             .send({
-                profileId,
+                profile_id,
                 name: "Paracetamol",
                 dosage: "500mg",
                 frequency: "once_daily",
@@ -175,7 +175,7 @@ describe("Medication CRUD", () => {
         const medicationId = creatRes.body.data._id;
 
         const archiveRes = await request(app)
-            .delete(`/api/medications/${medicationId}`)
+            .delete(`/api/v1/medications/${medicationId}`)
             .set("Authorization", `Bearer ${token}`);
 
         expect(archiveRes.statusCode).toBe(200);
@@ -187,7 +187,7 @@ describe("Medication CRUD", () => {
         const fakeId = new mongoose.Types.ObjectId().toString();
 
         const res = await request(app)
-            .get(`/api/medications/${fakeId}`)
+            .get(`/api/v1/medications/${fakeId}`)
             .set("Authorization", `Bearer ${token}`);
 
         expect(res.statusCode).toBe(404);

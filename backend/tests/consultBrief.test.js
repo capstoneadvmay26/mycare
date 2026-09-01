@@ -33,7 +33,7 @@ afterAll(async () => {
 describe("Consult Brief API", () => {
 
     let userId;
-    let profileId;
+    let profile_id;
     let token;
 
 
@@ -52,17 +52,17 @@ describe("Consult Brief API", () => {
             isSelf: true,
         });
 
-        profileId = profile._id;
+        profile_id = profile._id;
     });
 
 
-    describe("GET /api/consult-brief/:profileId", () => {
+    describe("GET /api/v1/consult-brief/:profile_id", () => {
 
         // BASIC SUCCESS
         it("should return a consult brief for the authenticated user", async () => {
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -74,8 +74,8 @@ describe("Consult Brief API", () => {
 
             expect(response.body.success).toBe(true);
 
-            expect(response.body.profile.profileId)
-                .toBe(profileId.toString());
+            expect(response.body.profile.profile_id)
+                .toBe(profile_id.toString());
 
             expect(response.body.profile.fullName)
                 .toBe("Test User");
@@ -100,7 +100,7 @@ describe("Consult Brief API", () => {
         it("should return 401 when no authentication token is provided", async () => {
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -111,10 +111,10 @@ describe("Consult Brief API", () => {
         });
 
         // INVALID PROFILE ID
-        it("should return 400 when profileId is invalid", async () => {
+        it("should return 400 when profile_id is invalid", async () => {
 
             const response = await request(app)
-                .get("/api/consult-brief/invalid-profile-id")
+                .get("/api/v1/consult-brief/invalid-profile-id")
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -125,18 +125,18 @@ describe("Consult Brief API", () => {
             expect(response.statusCode).toBe(400);
 
             expect(response.body.message)
-                .toBe("Invalid profileId.");
+                .toBe("Invalid profile_id.");
         });
 
         // PROFILE NOT FOUND
         it("should return 404 when the profile does not exist", async () => {
 
-            const fakeProfileId =
+            const fakeprofile_id =
                 new mongoose.Types.ObjectId();
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${fakeProfileId}`)
+                .get(`/api/v1/consult-brief/${fakeprofile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -166,7 +166,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${anotherProfile._id}`)
+                .get(`/api/v1/consult-brief/${anotherProfile._id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -184,7 +184,7 @@ describe("Consult Brief API", () => {
         it("should return 400 when startDate and endDate are missing", async () => {
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .set("Authorization", `Bearer ${token}`);
 
 
@@ -198,7 +198,7 @@ describe("Consult Brief API", () => {
         it("should return 400 when the dates are invalid", async () => {
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "invalid-date",
                     endDate: "2026-08-30",
@@ -216,7 +216,7 @@ describe("Consult Brief API", () => {
         it("should return 400 when startDate is after endDate", async () => {
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-30",
                     endDate: "2026-08-01",
@@ -234,7 +234,7 @@ describe("Consult Brief API", () => {
         it("should include current medications", async () => {
 
             await MedicationModel.create({
-                profile: profileId,
+                profile: profile_id,
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
@@ -246,7 +246,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -276,7 +276,7 @@ describe("Consult Brief API", () => {
         it("should not include medications whose endDate has passed", async () => {
 
             await MedicationModel.create({
-                profile: profileId,
+                profile: profile_id,
                 name: "Old Medication",
                 dosage: "10mg",
                 frequency: "once_daily",
@@ -288,7 +288,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -306,7 +306,7 @@ describe("Consult Brief API", () => {
         it("should include symptoms within the selected date range", async () => {
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: new Date("2026-08-20T08:00:00.000Z"),
@@ -314,7 +314,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -338,7 +338,7 @@ describe("Consult Brief API", () => {
         it("should include symptom check-ins", async () => {
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: new Date("2026-08-18T08:00:00.000Z"),
@@ -360,7 +360,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -393,7 +393,7 @@ describe("Consult Brief API", () => {
         it("should calculate medication adherence correctly", async () => {
 
             const medication = await MedicationModel.create({
-                profile: profileId,
+                profile: profile_id,
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "three_times_daily",
@@ -407,7 +407,7 @@ describe("Consult Brief API", () => {
             // These are UTC timestamps, matching the ISO-8601 Z values used by the app.
             await MedicationLogModel.create([
                 {
-                    profile: profileId,
+                    profile: profile_id,
                     medication: medication._id,
                     scheduledFor:
                         new Date("2026-08-20T08:00:00.000Z"),
@@ -416,7 +416,7 @@ describe("Consult Brief API", () => {
                         new Date("2026-08-20T08:05:00.000Z"),
                 },
                 {
-                    profile: profileId,
+                    profile: profile_id,
                     medication: medication._id,
                     scheduledFor:
                         new Date("2026-08-20T20:00:00.000Z"),
@@ -425,7 +425,7 @@ describe("Consult Brief API", () => {
                         new Date("2026-08-20T20:05:00.000Z"),
                 },
                 {
-                    profile: profileId,
+                    profile: profile_id,
                     medication: medication._id,
                     scheduledFor:
                         new Date("2026-08-20T22:00:00.000Z"),
@@ -435,7 +435,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-20",
                     endDate: "2026-08-20",
@@ -465,7 +465,7 @@ describe("Consult Brief API", () => {
         it("should generate pending medication logs for missing scheduled doses", async () => {
 
             await MedicationModel.create({
-                profile: profileId,
+                profile: profile_id,
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
@@ -478,7 +478,7 @@ describe("Consult Brief API", () => {
 
             const beforeCount =
                 await MedicationLogModel.countDocuments({
-                    profile: profileId,
+                    profile: profile_id,
                 });
 
 
@@ -486,7 +486,7 @@ describe("Consult Brief API", () => {
 
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-20",
                     endDate: "2026-08-22",
@@ -499,7 +499,7 @@ describe("Consult Brief API", () => {
 
             const afterCount =
                 await MedicationLogModel.countDocuments({
-                    profile: profileId,
+                    profile: profile_id,
                 });
 
 
@@ -517,7 +517,7 @@ describe("Consult Brief API", () => {
         it("should return empty medications and symptoms when no data exists", async () => {
 
             const response = await request(app)
-                .get(`/api/consult-brief/${profileId}`)
+                .get(`/api/v1/consult-brief/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-02",

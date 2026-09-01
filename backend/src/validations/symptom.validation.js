@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const createSymptomSchema = Joi.object({
-    profileId: Joi.string().required(),
+    profile_id: Joi.string().required(),
 
     symptoms: Joi.array()
         .items(Joi.string().trim().min(1))

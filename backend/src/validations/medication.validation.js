@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const createMedicationSchema = Joi.object({
-    profileId: Joi.string().required(),
+    profile_id: Joi.string().required(),
     name: Joi.string().min(1).max(150).required(),
     dosage: Joi.string().min(1).max(50).required(),
     frequency: Joi.string()

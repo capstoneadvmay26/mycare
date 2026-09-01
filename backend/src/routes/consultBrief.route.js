@@ -5,6 +5,6 @@ const requireAuth = require("../middlewares/requireAuth");
 
 const router = express.Router();
 
-router.get("/consult-brief/:profileId", requireAuth, getConsultBrief);
+router.get("/reports/consult-brief", requireAuth, getConsultBrief);
 
 module.exports = router;

@@ -3,8 +3,8 @@ const Profile = require("../models/profile.model");
 
 // Small shared helper — confirms the logged-in user actually owns the
 // profile a medication is attached to. Used by every function below.
-async function verifyProfileOwnership(profileId, userId) {
-  const profile = await Profile.findById(profileId);
+async function verifyProfileOwnership(profile_id, userId) {
+  const profile = await Profile.findById(profile_id);
   if (!profile) {
     return { error: "Profile not found", status: 404 };
   }
@@ -14,19 +14,19 @@ async function verifyProfileOwnership(profileId, userId) {
   return { profile };
 }
 
-// CREATE - POST /api/medications
+// CREATE - POST /api/v1/medications
 async function addMedication(req, res, next) {
   try {
-    const { profileId } = req.body;
+    const { profile_id } = req.body;
 
-    const check = await verifyProfileOwnership(profileId, req.user.id);
+    const check = await verifyProfileOwnership(profile_id, req.user.id);
     if (check.error) {
       return res.status(check.status).json({ success: false, message: check.error });
     }
 
     const medication = await Medication.create({
       ...req.body,
-      profile: profileId,
+      profile: profile_id,
     });
 
     res.status(201).json({ success: true, data: medication });
@@ -35,25 +35,25 @@ async function addMedication(req, res, next) {
   }
 }
 
-// READ ALL - GET /api/medications?profileId=...
+// READ ALL - GET /api/v1/medications?profile_id=...
 async function getMedications(req, res, next) {
   try {
-    const { profileId } = req.query;
+    const { profile_id } = req.query;
 
-    if (!profileId) {
+    if (!profile_id) {
       return res.status(400).json({
         success: false,
-        message: "profileId query parameter is required.",
+        message: "profile_id query parameter is required.",
       });
     }
 
-    const check = await verifyProfileOwnership(profileId, req.user.id);
+    const check = await verifyProfileOwnership(profile_id, req.user.id);
     if (check.error) {
       return res.status(check.status).json({ success: false, message: check.error });
     }
 
     const medications = await Medication.find({
-      profile: profileId,
+      profile: profile_id,
       status: "active",
     }).sort({ createdAt: -1 });
 
@@ -63,7 +63,7 @@ async function getMedications(req, res, next) {
   }
 }
 
-// READ ONE - GET /api/medications/:id
+// READ ONE - GET /api/v1/medications/:id
 async function getMedicationById(req, res, next) {
   try {
     const medication = await Medication.findById(req.params.id);
@@ -82,7 +82,7 @@ async function getMedicationById(req, res, next) {
   }
 }
 
-// UPDATE - PUT /api/medications/:id
+// UPDATE - PUT /api/v1/medications/:id
 async function updateMedication(req, res, next) {
   try {
     const medication = await Medication.findById(req.params.id);
@@ -104,7 +104,7 @@ async function updateMedication(req, res, next) {
   }
 }
 
-// ARCHIVE - DELETE /api/medications/:id
+// ARCHIVE - DELETE /api/v1/medications/:id
 async function archiveMedication(req, res, next) {
   try {
     const medication = await Medication.findById(req.params.id);

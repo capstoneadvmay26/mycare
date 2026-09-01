@@ -48,12 +48,12 @@ describe("Notification Settings API", () => {
     // GET NOTIFICATION SETTINGS
     // ==========================================
 
-    describe("GET /api/settings/notifications", () => {
+    describe("GET /api/v1/settings/notifications", () => {
 
         it("should return default notification settings for an authenticated user", async () => {
 
             const response = await request(app)
-                .get("/api/settings/notifications")
+                .get("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -92,7 +92,7 @@ describe("Notification Settings API", () => {
             });
 
             const response = await request(app)
-                .get("/api/settings/notifications")
+                .get("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -113,7 +113,7 @@ describe("Notification Settings API", () => {
         it("should return 401 when no authentication token is provided", async () => {
 
             const response = await request(app)
-                .get("/api/settings/notifications");
+                .get("/api/v1/settings/notifications");
 
             expect(response.statusCode).toBe(401);
         });
@@ -125,12 +125,12 @@ describe("Notification Settings API", () => {
     // UPDATE NOTIFICATION SETTINGS
     // ==========================================
 
-    describe("PUT /api/settings/notifications", () => {
+    describe("PUT /api/v1/settings/notifications", () => {
 
         it("should update push notification preference", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     pushEnabled: false,
@@ -148,7 +148,7 @@ describe("Notification Settings API", () => {
         it("should update quiet hours", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     quietHours: {
@@ -176,7 +176,7 @@ describe("Notification Settings API", () => {
         it("should allow quiet hours to be disabled", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     quietHours: {
@@ -206,7 +206,7 @@ describe("Notification Settings API", () => {
             });
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     pushEnabled: false,
@@ -232,7 +232,7 @@ describe("Notification Settings API", () => {
         it("should return 401 when updating without authentication", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .send({
                     pushEnabled: false,
                 });
@@ -244,7 +244,7 @@ describe("Notification Settings API", () => {
         it("should return 400 when pushEnabled is not a boolean", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     pushEnabled: "false",
@@ -257,7 +257,7 @@ describe("Notification Settings API", () => {
         it("should return 400 when quietHours is not an object", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     quietHours: "disabled",
@@ -270,7 +270,7 @@ describe("Notification Settings API", () => {
         it("should return 400 when quietHours.enabled is not a boolean", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     quietHours: {
@@ -285,7 +285,7 @@ describe("Notification Settings API", () => {
         it("should return 400 when quietHours.start has an invalid time", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     quietHours: {
@@ -300,7 +300,7 @@ describe("Notification Settings API", () => {
         it("should return 400 when quietHours.end has an invalid time", async () => {
 
             const response = await request(app)
-                .put("/api/settings/notifications")
+                .put("/api/v1/settings/notifications")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     quietHours: {
