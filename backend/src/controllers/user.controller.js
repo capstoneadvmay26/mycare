@@ -16,7 +16,7 @@ const generateToken = (userId, role) => {
 // Handles user registration//
 const registerUser = async (req, res, next) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -27,7 +27,7 @@ const registerUser = async (req, res, next) => {
     // Hash password and store user
     const hashedPassword = await hashPassword(password);
     const user = await User.create({
-      fullName,
+      name,
       email,
       password: hashedPassword,
     });
@@ -39,7 +39,7 @@ const registerUser = async (req, res, next) => {
       token,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        name: user.name,
         email: user.email,
         role: user.role,
       },
@@ -73,7 +73,7 @@ const loginUser = async (req, res, next) => {
       token,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        name: user.name,
         email: user.email,
         role: user.role,
       },

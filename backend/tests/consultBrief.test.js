@@ -48,7 +48,7 @@ describe("Consult Brief API", () => {
 
         const profile = await ProfileModel.create({
             owner: userId,
-            fullName: "Test User",
+            name: "Test User",
             isSelf: true,
         });
 
@@ -77,7 +77,7 @@ describe("Consult Brief API", () => {
             expect(response.body.profile.profile_id)
                 .toBe(profile_id.toString());
 
-            expect(response.body.profile.fullName)
+            expect(response.body.profile.name)
                 .toBe("Test User");
 
             expect(response.body.dateRange.startDate)
@@ -160,7 +160,7 @@ describe("Consult Brief API", () => {
             const anotherProfile =
                 await ProfileModel.create({
                     owner: anotherUserId,
-                    fullName: "Another User",
+                    name: "Another User",
                     isSelf: true,
                 });
 

@@ -53,7 +53,7 @@ describe("Medication Log API", () => {
         // Create profile owned by test user
         const profile = await ProfileModel.create({
             owner: userId,
-            fullName: "Test User",
+            name: "Test User",
             isSelf: true,
         });
 
@@ -138,7 +138,7 @@ describe("Medication Log API", () => {
             const anotherProfile =
                 await ProfileModel.create({
                     owner: anotherUserId,
-                    fullName: "Another User",
+                    name: "Another User",
                     isSelf: true,
                 });
 

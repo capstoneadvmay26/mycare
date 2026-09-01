@@ -20,13 +20,13 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        fullName: "Chibundu Ahamefula",
+        name: "Chibundu Ahamefula",
         isSelf: true,
       });
 
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.profile.fullName || res.body.profile.name).toBe(
+    expect(res.body.profile.name || res.body.profile.name).toBe(
       "Chibundu Ahamefula"
     );
     expect(res.body.profile.id).toBeDefined();
@@ -39,14 +39,14 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        fullName: "Chinadu Ahamefula",
+        name: "Chinadu Ahamefula",
         isSelf: false,
         relationship: "Son",
       });
 
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.profile.fullName || res.body.profile.name).toBe(
+    expect(res.body.profile.name || res.body.profile.name).toBe(
       "Chinadu Ahamefula"
     );
     expect(res.body.profile.relationship).toBe("Son");
@@ -59,7 +59,7 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        fullName: "Chinadu Ahamefula",
+        name: "Chinadu Ahamefula",
         isSelf: false,
       });
 
@@ -73,7 +73,7 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        fullName: "Chibundu Ahamefula",
+        name: "Chibundu Ahamefula",
         isSelf: true,
       });
 
@@ -81,7 +81,7 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        fullName: "Chibundu Ahamefula",
+        name: "Chibundu Ahamefula",
         isSelf: true,
       });
 
@@ -96,7 +96,7 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${userA.token}`)
       .send({
-        fullName: "Chibundu Ahamefula",
+        name: "Chibundu Ahamefula",
         isSelf: true,
       });
 
@@ -142,7 +142,7 @@ describe("Profile CRUD", () => {
       .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        fullName: "Chibundu Ahamefula",
+        name: "Chibundu Ahamefula",
         isSelf: true,
       });
 
@@ -176,7 +176,7 @@ describe("Profile CRUD", () => {
     const res = await request(app)
       .post("/api/v1/profiles")
       .send({
-        fullName: "Chinadu Ahamefula",
+        name: "Chinadu Ahamefula",
         isSelf: false,
         relationship: "Son",
       });

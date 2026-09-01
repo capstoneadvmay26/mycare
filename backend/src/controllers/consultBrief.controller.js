@@ -316,7 +316,7 @@ const getConsultBrief = async (req, res, next) => {
 
             profile: {
                 profile_id: profile._id,
-                fullName: profile.fullName
+                name: profile.name
             },
 
             dateRange: {

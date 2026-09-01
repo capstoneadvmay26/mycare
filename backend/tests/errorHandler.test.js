@@ -118,8 +118,8 @@ describe("Global Error Handler", () => {
         path: "email",
         message: "Email is required",
       },
-      fullName: {
-        path: "fullName",
+      name: {
+        path: "name",
         message: "Full name is required",
       },
     };
@@ -139,7 +139,7 @@ describe("Global Error Handler", () => {
           message: "Email is required",
         },
         {
-          field: "fullName",
+          field: "name",
           message: "Full name is required",
         },
       ],

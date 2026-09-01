@@ -12,7 +12,7 @@ async function createProfile(token) {
     const res = await request(app)
         .post("/api/v1/profiles")
         .set("Authorization", `Bearer ${token}`)
-        .send({ fullName: "Chibundu Ahamefula", isSelf: true });
+        .send({ name: "Chibundu Ahamefula", isSelf: true });
     return res.body.data._id;
 }
 
