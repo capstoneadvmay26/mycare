@@ -1,22 +1,20 @@
-//import { useState } from 'react';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
-import Placeholder from './pages/Placeholder';
 import AppShell from './components/layout/AppShell';
-import Symptoms from './pages/Symptoms';
 import Medications from './pages/Medications';
+import Symptoms from './pages/Symptoms';
 import History from './pages/History';
 import Profiles from './pages/Profiles';
-
-// Fixed: useApp is imported from useApp.js, not AppContext.jsx!
+import Settings from './pages/Settings';
 import { AppProvider } from './context/AppContext';
+import { useApp } from './context/useApp'; 
 import { ProfileProvider } from './context/ProfileContext';
-import { useApp } from './context/useApp';
+import { ThemeProvider } from './context/ThemeContext';
 
 const AppContent = () => {
   const { isOnboarded, currentTab, setCurrentTab, userName } = useApp();
-
-  const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings', 'Help & Support'];
+  
+  const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings'];
 
   const renderScreen = () => {
     switch (currentTab) {
@@ -25,8 +23,8 @@ const AppContent = () => {
       case 'Symptoms': return <Symptoms />;
       case 'History': return <History />;
       case 'Profiles': return <Profiles />;
-      case 'Settings': return <Placeholder title="Settings" />;
-      case 'Help & Support': return <Placeholder title="Help & Support" />;
+      case 'Settings': return <Settings />;
+
       default: return <Home />;
     }
   };
@@ -36,7 +34,7 @@ const AppContent = () => {
   }
 
   return (
-    <AppShell 
+    <AppShell
       navItems={navItems}
       currentTab={currentTab}
       setCurrentTab={setCurrentTab}
@@ -49,13 +47,14 @@ const AppContent = () => {
 
 const App = () => {
   return (
-  <AppProvider>        {/* AppProvider stays on the outside */}
-    <ProfileProvider>  {/* ProfileProvider goes inside */}
-      {/* AppShell and page content goes here */}
-      <AppContent />
-    </ProfileProvider>
-  </AppProvider>
-);
+    <ThemeProvider>
+      <AppProvider>
+        <ProfileProvider>
+          <AppContent />
+        </ProfileProvider>
+      </AppProvider>
+    </ThemeProvider>
+  );
 };
 
 export default App;

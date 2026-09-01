@@ -1,3 +1,4 @@
+// src/pages/Onboarding.jsx
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/useApp';
 import Logo from '../components/ui/Logo';
@@ -176,8 +177,9 @@ const Onboarding = () => {
     transition: 'all 0.2s ease',
   });
 
+  // FIX: Added justify-content-center to center content, added text-dark class for visibility
   return (
-    <div className="d-flex flex-column vh-100 bg-white px-3 px-sm-4 py-3 py-sm-4 overflow-auto">
+    <div className="d-flex flex-column vh-100 bg-white px-3 px-sm-4 py-3 py-sm-4 justify-content-center">
       
       {/* STEP 1: SIGNUP */}
       {step === 'signup' && (
@@ -186,7 +188,8 @@ const Onboarding = () => {
             <Logo height="70px" />
           </div>
           <h2 className="text-center fw-bold mb-2" style={{ fontSize: '24px' }}>Your Health, Our Priority</h2>
-          <p className="text-center mb-4" style={{ fontSize: '14px', color: 'rgba(0,0,0,0.7)' }}>Sign up to manage your medications and symptoms.</p>
+          {/* FIX: Changed inline color to text-dark */}
+          <p className="text-center text-dark mb-4" style={{ fontSize: '14px' }}>Sign up to manage your medications and symptoms.</p>
 
           {/* Phone / Email Tabs */}
           <div className="d-flex border rounded-3 overflow-hidden mb-4" style={{ height: '50px', border: '1px solid rgba(0,0,0,0.2)', borderRadius: '8px' }}>
@@ -230,13 +233,15 @@ const Onboarding = () => {
           </button>
 
           <div className="text-center mb-2">
-            <p className="m-0" style={{ fontSize: '13px', color: 'rgba(0,0,0,0.7)' }}>By continuing, you agree to our</p>
+            {/* FIX: Changed inline color to text-dark */}
+            <p className="m-0 text-dark" style={{ fontSize: '13px' }}>By continuing, you agree to our</p>
             <p className="fw-bold" style={{ fontSize: '13px', color: '#0033CC', cursor: 'pointer' }}>Terms & Privacy Policy</p>
           </div>
 
           <div className="d-flex align-items-center my-2">
             <div className="flex-grow-1 border-top" style={{ borderColor: 'rgba(0,0,0,0.2)' }}></div>
-            <span className="px-3 text-center" style={{ fontSize: '14px', color: 'rgba(0,0,0,0.7)' }}>
+            {/* FIX: Changed inline color to text-dark */}
+            <span className="px-3 text-center text-dark" style={{ fontSize: '14px' }}>
               Already have an account? <span className="fw-bold" style={{ color: '#0033CC', cursor: 'pointer' }}>Log in</span>
             </span>
             <div className="flex-grow-1 border-top" style={{ borderColor: 'rgba(0,0,0,0.2)' }}></div>
@@ -264,9 +269,9 @@ const Onboarding = () => {
             className="d-flex justify-content-center gap-2 gap-sm-3 mb-4" 
             style={{ 
               width: '100%', 
-              maxWidth: '400px', // Optional: keeps it from stretching too wide on tablets/desktop
-              margin: '0 auto',  // Centers the container
-              flexWrap: 'nowrap' // CRITICAL: Forbids wrapping
+              maxWidth: '400px', 
+              margin: '0 auto',  
+              flexWrap: 'nowrap'
             }}
           >
             {otp.map((digit, idx) => (
@@ -279,10 +284,10 @@ const Onboarding = () => {
                 pattern="[0-9]"
                 style={{
                   ...otpInputStyle(!!digit),
-                  flex: '1 1 0',       // Makes all boxes equal width and allows them to shrink
-                  width: 'auto',       // Overrides the 100% width
-                  maxWidth: '60px',    // Keeps the size limit on larger screens
-                  minWidth: '0'        // Prevents flex items from overflowing
+                  flex: '1 1 0',       
+                  width: 'auto',       
+                  maxWidth: '60px',    
+                  minWidth: '0'        
                 }}
                 className="otp-input"
                 value={digit}
@@ -298,7 +303,7 @@ const Onboarding = () => {
               Didn't get code? <u>Resend Code</u>
             </p>
           ) : (
-            <p className="text-center fw-bold mt-2" style={{ color: '#000', fontSize: '15px' }}>
+            <p className="text-center fw-bold mt-2 text-dark" style={{ fontSize: '15px' }}>
               Didn't get code? Resend code in 00:{timer < 10 ? `0${timer}` : timer}
             </p>
           )}
