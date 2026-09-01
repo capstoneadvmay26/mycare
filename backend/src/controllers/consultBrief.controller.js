@@ -7,7 +7,6 @@ const SymptomModel = require("../models/symptom.model");
 
 const generateScheduledOccurrences = require("../utils/medicationLogGenerator");
 
-
 const getConsultBrief = async (req, res, next) => {
     try {
         const { profileId } = req.params;
@@ -90,13 +89,19 @@ const getConsultBrief = async (req, res, next) => {
 
             let medicationEnd = new Date(end);
 
+            if (medication.endDate) {
+                const medicationEndDate = new Date(medication.endDate);
 
-            if (
-                medication.endDate &&
-                medication.endDate < medicationEnd
-            ) {
-                medicationEnd =
-                    new Date(medication.endDate);
+                medicationEndDate.setUTCHours(
+                    23,
+                    59,
+                    59,
+                    999
+                );
+
+                if (medicationEndDate < medicationEnd) {
+                    medicationEnd = medicationEndDate;
+                }
             }
 
 
@@ -281,10 +286,10 @@ const getConsultBrief = async (req, res, next) => {
 
                 const symptomName =
                     symptom.symptoms &&
-                    symptom.symptoms.length > 0
+                        symptom.symptoms.length > 0
                         ? symptom.symptoms.join(", ")
                         : symptom.otherSymptom ||
-                          "Unknown symptom";
+                        "Unknown symptom";
 
 
                 return {

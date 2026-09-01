@@ -122,4 +122,14 @@ describe("Authentication Endpoints", () => {
         expect(res.statusCode).toEqual(401);
         expect(res.body.message).toMatch(/no token provided/i);
     });
+
+    // Test protected route with invalid JWT
+    it("should deny access to protected route with invalid token", async () => {
+        const res = await request(app)
+            .get("/api/users/me")
+            .set("Authorization", "Bearer this-is-not-a-valid-jwt");
+
+        expect(res.statusCode).toEqual(401);
+        expect(res.body.message).toMatch(/invalid or expired token/i);
+    });
 });
