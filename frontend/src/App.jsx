@@ -6,7 +6,6 @@ import Symptoms from './pages/Symptoms';
 import History from './pages/History';
 import Profiles from './pages/Profiles';
 import Settings from './pages/Settings';
-
 import { AppProvider } from './context/AppContext';
 import { useApp } from './context/useApp'; 
 import { ProfileProvider } from './context/ProfileContext';
@@ -25,6 +24,7 @@ const AppContent = () => {
       case 'History': return <History />;
       case 'Profiles': return <Profiles />;
       case 'Settings': return <Settings />;
+
       default: return <Home />;
     }
   };
