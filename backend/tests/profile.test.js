@@ -1,7 +1,11 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../src/app");
-const { connectTestDB, closeTestDB, clearTestDB } = require("./setup");
+const {
+  connectTestDB,
+  closeTestDB,
+  clearTestDB,
+} = require("./setup");
 const { createTestUserAndToken } = require("./testHelpers");
 
 beforeAll(async () => await connectTestDB());
@@ -9,35 +13,55 @@ afterAll(async () => await closeTestDB());
 afterEach(async () => await clearTestDB());
 
 describe("Profile CRUD", () => {
-  it("create a self profile", async () => {
+  it("creates a self profile", async () => {
     const { token } = await createTestUserAndToken();
 
     const res = await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
-      .send({ fullName: "Chibundu Ahamefula", isSelf: true });
+      .send({
+        fullName: "Chibundu Ahamefula",
+        isSelf: true,
+      });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body.data.isSelf).toBe(true);
+    expect(res.body.success).toBe(true);
+    expect(res.body.profile.fullName || res.body.profile.name).toBe(
+      "Chibundu Ahamefula"
+    );
+    expect(res.body.profile.id).toBeDefined();
   });
 
-  it("create a dependent profile requiring a relationship", async () => {
+  it("creates a dependent profile requiring a relationship", async () => {
     const { token } = await createTestUserAndToken();
 
     const res = await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
-      .send({ fullName: "Chinadu Ahamefula", isSelf: false, relationship: "Son" });
+      .send({
+        fullName: "Chinadu Ahamefula",
+        isSelf: false,
+        relationship: "Son",
+      });
 
     expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.profile.fullName || res.body.profile.name).toBe(
+      "Chinadu Ahamefula"
+    );
+    expect(res.body.profile.relationship).toBe("Son");
   });
 
   it("rejects a dependent profile with no relationship", async () => {
     const { token } = await createTestUserAndToken();
+
     const res = await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
-      .send({ fullName: "Chinadu Ahamefula", isSelf: false });
+      .send({
+        fullName: "Chinadu Ahamefula",
+        isSelf: false,
+      });
 
     expect(res.statusCode).toBe(400);
   });
@@ -46,46 +70,56 @@ describe("Profile CRUD", () => {
     const { token } = await createTestUserAndToken();
 
     await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
-      .send({ fullName: "Chibundu Ahamefula", isSelf: true });
+      .send({
+        fullName: "Chibundu Ahamefula",
+        isSelf: true,
+      });
 
     const res = await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
-      .send({ fullName: "Chibundu Ahamefula", isSelf: true });
+      .send({
+        fullName: "Chibundu Ahamefula",
+        isSelf: true,
+      });
 
     expect(res.statusCode).toBe(400);
   });
 
   it("blocks access to another user's profile", async () => {
-    const UserA = await createTestUserAndToken("a@example.com");
-    const UserB = await createTestUserAndToken("b@example.com");
+    const userA = await createTestUserAndToken("a@example.com");
+    const userB = await createTestUserAndToken("b@example.com");
 
     const createRes = await request(app)
-      .post("/api/profiles")
-      .set("Authorization", `Bearer ${UserA.token}`)
-      .send({ fullName: "User A Self", isSelf: true });
+      .post("/api/v1/profiles")
+      .set("Authorization", `Bearer ${userA.token}`)
+      .send({
+        fullName: "Chibundu Ahamefula",
+        isSelf: true,
+      });
 
-    const profileId = createRes.body.data._id;
+    expect(createRes.statusCode).toBe(201);
+
+    const profileId = createRes.body.profile.id;
 
     const res = await request(app)
-      .get(`/api/profiles/${profileId}`)
-      .set("Authorization", `Bearer ${UserB.token}`);
+      .get(`/api/v1/profiles/${profileId}`)
+      .set("Authorization", `Bearer ${userB.token}`);
 
-    expect(res.statusCode).toBe(403);
+    // Ownership is part of the lookup query, so another user's
+    // profile is intentionally indistinguishable from a missing profile.
+    expect(res.statusCode).toBe(404);
   });
 
   it("returns 404 for a made-up profile ID", async () => {
     const { token } = await createTestUserAndToken();
 
-    // Generate a real, correctly-formatted ObjectId that simply doesn't
-    // exist in the database — avoids manually counting characters,
-    // which is error-prone and was the cause of the earlier 500 error.
     const fakeId = new mongoose.Types.ObjectId().toString();
 
     const res = await request(app)
-      .get(`/api/profiles/${fakeId}`)
+      .get(`/api/v1/profiles/${fakeId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.statusCode).toBe(404);
@@ -95,7 +129,7 @@ describe("Profile CRUD", () => {
     const { token } = await createTestUserAndToken();
 
     const res = await request(app)
-      .get("/api/profiles/not-a-valid-id")
+      .get("/api/v1/profiles/not-a-valid-id")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.statusCode).toBe(400);
@@ -105,28 +139,34 @@ describe("Profile CRUD", () => {
     const { token } = await createTestUserAndToken();
 
     const createRes = await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`)
-      .send({ fullName: "Chibundu Ahamefula", isSelf: true });
+      .send({
+        fullName: "Chibundu Ahamefula",
+        isSelf: true,
+      });
 
-    const profileId = createRes.body.data._id;
+    expect(createRes.statusCode).toBe(201);
+
+    const profileId = createRes.body.profile.id;
 
     const archiveRes = await request(app)
-      .delete(`/api/profiles/${profileId}`)
+      .delete(`/api/v1/profiles/${profileId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(archiveRes.statusCode).toBe(200);
+    expect(archiveRes.body.success).toBe(true);
 
     const listRes = await request(app)
-      .get("/api/profiles")
+      .get("/api/v1/profiles")
       .set("Authorization", `Bearer ${token}`);
 
-    expect(listRes.body.data.length).toBe(0); // archived profiles excluded from active list
+    expect(listRes.statusCode).toBe(200);
+    expect(listRes.body.profiles).toHaveLength(0);
   });
 
   it("rejects unauthenticated requests to list profiles", async () => {
-    const res = await request(app)
-      .get("/api/profiles");
+    const res = await request(app).get("/api/v1/profiles");
 
     expect(res.statusCode).toBe(401);
     expect(res.body.success).toBe(false);
@@ -134,10 +174,11 @@ describe("Profile CRUD", () => {
 
   it("rejects unauthenticated requests to create a profile", async () => {
     const res = await request(app)
-      .post("/api/profiles")
+      .post("/api/v1/profiles")
       .send({
-        fullName: "Unauthenticated User",
-        isSelf: true,
+        fullName: "Chinadu Ahamefula",
+        isSelf: false,
+        relationship: "Son",
       });
 
     expect(res.statusCode).toBe(401);

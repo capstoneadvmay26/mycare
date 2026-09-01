@@ -26,14 +26,16 @@ app.use(express.json());
 // Routes
 // ------------------------------------------------------------
 
-app.use("/api/users", userRoutes);
-app.use("/api/profiles", profileRoutes);
-app.use("/api/medications", medicationRoutes);
-app.use("/api", medicationLogRoutes);
-app.use("/api", symptomRoutes);
-app.use("/api", historyRoutes);
-app.use("/api", consultBriefRoutes);
-app.use("/api", notificationSettingsRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/profiles", profileRoutes);
+
+app.use("/api/v1", medicationLogRoutes);
+app.use("/api/v1/medications", medicationRoutes);
+
+app.use("/api/v1", symptomRoutes);
+app.use("/api/v1", historyRoutes);
+app.use("/api/v1", consultBriefRoutes);
+app.use("/api/v1", notificationSettingsRoutes);
 
 // ------------------------------------------------------------
 // Health check

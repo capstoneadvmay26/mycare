@@ -31,7 +31,7 @@ describe("Authentication Endpoints", () => {
     // Test successful user registration
     it("should register a new user successfully", async () => {
         const res = await request(app)
-            .post("/api/users/register")
+            .post("/api/v1/users/register")
             .send(testUser);
 
         expect(res.statusCode).toEqual(201);
@@ -42,7 +42,7 @@ describe("Authentication Endpoints", () => {
     // Test registration with missing fields
     it("should return 400 for incomplete registration data", async () => {
         const res = await request(app)
-            .post("/api/users/register")
+            .post("/api/v1/users/register")
             .send({
                 email: "incomplete@example.com",
             });
@@ -55,11 +55,11 @@ describe("Authentication Endpoints", () => {
         // Register the user first because the test database is cleared
         // after every test.
         await request(app)
-            .post("/api/users/register")
+            .post("/api/v1/users/register")
             .send(testUser);
 
         const res = await request(app)
-            .post("/api/users/login")
+            .post("/api/v1/users/login")
             .send({
                 email: testUser.email,
                 password: testUser.password,
@@ -75,11 +75,11 @@ describe("Authentication Endpoints", () => {
     it("should reject login with wrong password", async () => {
         // Register the user first because each test gets a clean database.
         await request(app)
-            .post("/api/users/register")
+            .post("/api/v1/users/register")
             .send(testUser);
 
         const res = await request(app)
-            .post("/api/users/login")
+            .post("/api/v1/users/login")
             .send({
                 email: testUser.email,
                 password: "WrongPassword",
@@ -94,11 +94,11 @@ describe("Authentication Endpoints", () => {
         // Register and login inside this test so it does not depend
         // on another test running before it.
         await request(app)
-            .post("/api/users/register")
+            .post("/api/v1/users/register")
             .send(testUser);
 
         const loginRes = await request(app)
-            .post("/api/users/login")
+            .post("/api/v1/users/login")
             .send({
                 email: testUser.email,
                 password: testUser.password,
@@ -107,7 +107,7 @@ describe("Authentication Endpoints", () => {
         token = loginRes.body.token;
 
         const res = await request(app)
-            .get("/api/users/me")
+            .get("/api/v1/users/me")
             .set("Authorization", `Bearer ${token}`);
 
         expect(res.statusCode).toEqual(200);
@@ -117,7 +117,7 @@ describe("Authentication Endpoints", () => {
     // Test protected route without token
     it("should deny access to protected route without token", async () => {
         const res = await request(app)
-            .get("/api/users/me");
+            .get("/api/v1/users/me");
 
         expect(res.statusCode).toEqual(401);
         expect(res.body.message).toMatch(/no token provided/i);
@@ -126,7 +126,7 @@ describe("Authentication Endpoints", () => {
     // Test protected route with invalid JWT
     it("should deny access to protected route with invalid token", async () => {
         const res = await request(app)
-            .get("/api/users/me")
+            .get("/api/v1/users/me")
             .set("Authorization", "Bearer this-is-not-a-valid-jwt");
 
         expect(res.statusCode).toEqual(401);

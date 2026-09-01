@@ -27,7 +27,7 @@ afterAll(async () => {
 
 describe("Symptom API", () => {
     let userId;
-    let profileId;
+    let profile_id;
     let token;
 
     // Create a fresh user, profile and JWT before every test
@@ -48,18 +48,18 @@ describe("Symptom API", () => {
             isSelf: true,
         });
 
-        profileId = profile._id;
+        profile_id = profile._id;
     });
 
     // CREATE SYMPTOM
-    describe("POST /api/symptoms/log", () => {
+    describe("POST /api/v1/symptoms/log", () => {
 
         it("should create a symptom successfully", async () => {
             const response = await request(app)
-                .post("/api/symptoms/log")
+                .post("/api/v1/symptoms/log")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                    profileId: profileId.toString(),
+                    profile_id: profile_id.toString(),
                     symptoms: ["Headache"],
                     severity: "moderate",
                 });
@@ -75,19 +75,19 @@ describe("Symptom API", () => {
                 .toBe("moderate");
 
             expect(response.body.symptom.profile)
-                .toBe(profileId.toString());
+                .toBe(profile_id.toString());
         });
 
 
         it("should return 404 when the profile does not exist", async () => {
-            const fakeProfileId =
+            const fakeprofile_id =
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .post("/api/symptoms/log")
+                .post("/api/v1/symptoms/log")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                    profileId: fakeProfileId.toString(),
+                    profile_id: fakeprofile_id.toString(),
                     symptoms: ["Headache"],
                     severity: "moderate",
                 });
@@ -107,10 +107,10 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post("/api/symptoms/log")
+                .post("/api/v1/symptoms/log")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                    profileId: anotherProfile._id.toString(),
+                    profile_id: anotherProfile._id.toString(),
                     symptoms: ["Headache"],
                     severity: "moderate",
                 });
@@ -121,10 +121,10 @@ describe("Symptom API", () => {
 
         it("should reject an invalid severity", async () => {
             const response = await request(app)
-                .post("/api/symptoms/log")
+                .post("/api/v1/symptoms/log")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                    profileId: profileId.toString(),
+                    profile_id: profile_id.toString(),
                     symptoms: ["Headache"],
                     severity: "invalid",
                 });
@@ -134,11 +134,11 @@ describe("Symptom API", () => {
     });
 
     // SYMPTOM OPTIONS
-    describe("GET /api/symptoms/options", () => {
+    describe("GET /api/v1/symptoms/options", () => {
 
         it("should return the available symptom options", async () => {
             const response = await request(app)
-                .get("/api/symptoms/options")
+                .get("/api/v1/symptoms/options")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -163,18 +163,18 @@ describe("Symptom API", () => {
     });
 
     // SYMPTOM HISTORY
-    describe("GET /api/symptoms/history", () => {
+    describe("GET /api/v1/symptoms/history", () => {
 
         it("should return symptoms belonging to the authenticated user", async () => {
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
             });
 
             const response = await request(app)
-                .get("/api/symptoms/history")
+                .get("/api/v1/symptoms/history")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -208,7 +208,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .get("/api/symptoms/history")
+                .get("/api/v1/symptoms/history")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -221,19 +221,19 @@ describe("Symptom API", () => {
         it("should filter symptom history by symptom name", async () => {
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
             });
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Fever"],
                 severity: "severe",
             });
 
             const response = await request(app)
-                .get("/api/symptoms/history?symptom=headache")
+                .get("/api/v1/symptoms/history?symptom=headache")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -246,18 +246,18 @@ describe("Symptom API", () => {
     });
 
     // UPDATE SYMPTOM
-    describe("PATCH /api/symptoms/:id", () => {
+    describe("PATCH /api/v1/symptoms/:id", () => {
 
         it("should update a symptom successfully", async () => {
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "mild",
             });
 
             const response = await request(app)
-                .patch(`/api/symptoms/${symptom._id}`)
+                .patch(`/api/v1/symptoms/${symptom._id}`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptoms: ["Fever"],
@@ -282,7 +282,7 @@ describe("Symptom API", () => {
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .patch(`/api/symptoms/${fakeSymptomId}`)
+                .patch(`/api/v1/symptoms/${fakeSymptomId}`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     severity: "severe",
@@ -293,18 +293,18 @@ describe("Symptom API", () => {
     });
 
     // DELETE SYMPTOM
-    describe("DELETE /api/symptoms/:id", () => {
+    describe("DELETE /api/v1/symptoms/:id", () => {
 
         it("should delete a symptom successfully", async () => {
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
             });
 
             const response = await request(app)
-                .delete(`/api/symptoms/${symptom._id}`)
+                .delete(`/api/v1/symptoms/${symptom._id}`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -324,7 +324,7 @@ describe("Symptom API", () => {
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .delete(`/api/symptoms/${fakeSymptomId}`)
+                .delete(`/api/v1/symptoms/${fakeSymptomId}`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(404);
@@ -332,19 +332,19 @@ describe("Symptom API", () => {
     });
 
     // SYMPTOM CHECK-IN
-    describe("POST /api/symptoms/:id/check-in", () => {
+    describe("POST /api/v1/symptoms/:id/check-in", () => {
 
         it("should return 400 when Day 1 check-in is attempted too early", async () => {
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: new Date(),
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "better",
@@ -364,14 +364,14 @@ describe("Symptom API", () => {
             yesterday.setDate(yesterday.getDate() - 1);
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: yesterday,
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "better",
@@ -394,14 +394,14 @@ describe("Symptom API", () => {
             yesterday.setDate(yesterday.getDate() - 1);
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: yesterday,
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "invalid",
@@ -433,7 +433,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "better",
@@ -449,7 +449,7 @@ describe("Symptom API", () => {
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .post(`/api/symptoms/${fakeSymptomId}/check-in`)
+                .post(`/api/v1/symptoms/${fakeSymptomId}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "better",
@@ -460,18 +460,18 @@ describe("Symptom API", () => {
     });
 
     // SYMPTOM STATUS
-    describe("GET /api/symptoms/:id/status", () => {
+    describe("GET /api/v1/symptoms/:id/status", () => {
 
         it("should return status for a new symptom", async () => {
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
             });
 
             const response = await request(app)
-                .get(`/api/symptoms/${symptom._id}/status`)
+                .get(`/api/v1/symptoms/${symptom._id}/status`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -491,7 +491,7 @@ describe("Symptom API", () => {
         it("should show improving after a better check-in", async () => {
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
 
@@ -505,7 +505,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .get(`/api/symptoms/${symptom._id}/status`)
+                .get(`/api/v1/symptoms/${symptom._id}/status`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(200);
@@ -529,7 +529,7 @@ describe("Symptom API", () => {
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .get(`/api/symptoms/${fakeSymptomId}/status`)
+                .get(`/api/v1/symptoms/${fakeSymptomId}/status`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(404);
@@ -548,7 +548,7 @@ describe("Symptom API", () => {
             day2.setDate(day2.getDate() - 2);
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: new Date(day1.getTime() - 24 * 60 * 60 * 1000),
@@ -568,7 +568,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "worse",
@@ -599,7 +599,7 @@ describe("Symptom API", () => {
             day2.setDate(day2.getDate() - 2);
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Fatigue"],
                 severity: "moderate",
                 loggedAt: new Date(day1.getTime() - 24 * 60 * 60 * 1000),
@@ -619,7 +619,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "better",
@@ -643,7 +643,7 @@ describe("Symptom API", () => {
             day2.setDate(day2.getDate() - 2);
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Cough"],
                 severity: "mild",
                 loggedAt: new Date(day1.getTime() - 24 * 60 * 60 * 1000),
@@ -663,7 +663,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post(`/api/symptoms/${symptom._id}/check-in`)
+                .post(`/api/v1/symptoms/${symptom._id}/check-in`)
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     status: "better",
@@ -679,18 +679,18 @@ describe("Symptom API", () => {
     });
 
     // DOCTOR FOLLOW-UP
-    describe("POST /api/notifications/doctor-follow-up", () => {
+    describe("POST /api/v1/notifications/doctor-follow-up", () => {
 
         it("should return 400 when professional-care nudge has not been shown", async () => {
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
             });
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: symptom._id.toString(),
@@ -713,7 +713,7 @@ describe("Symptom API", () => {
             );
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
 
@@ -724,7 +724,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: symptom._id.toString(),
@@ -745,7 +745,7 @@ describe("Symptom API", () => {
             );
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
 
@@ -756,7 +756,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: symptom._id.toString(),
@@ -785,7 +785,7 @@ describe("Symptom API", () => {
             );
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Fever"],
                 severity: "severe",
 
@@ -796,7 +796,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: symptom._id.toString(),
@@ -825,7 +825,7 @@ describe("Symptom API", () => {
             );
 
             const symptom = await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Fatigue"],
                 severity: "moderate",
 
@@ -836,7 +836,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: symptom._id.toString(),
@@ -861,7 +861,7 @@ describe("Symptom API", () => {
         it("should reject an invalid doctor follow-up response", async () => {
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: new mongoose.Types.ObjectId().toString(),
@@ -878,7 +878,7 @@ describe("Symptom API", () => {
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: fakeSymptomId.toString(),
@@ -916,7 +916,7 @@ describe("Symptom API", () => {
             });
 
             const response = await request(app)
-                .post("/api/notifications/doctor-follow-up")
+                .post("/api/v1/notifications/doctor-follow-up")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     symptomId: symptom._id.toString(),
