@@ -9,14 +9,14 @@ const generateScheduledOccurrences = require("../utils/medicationLogGenerator");
 
 const getConsultBrief = async (req, res, next) => {
     try {
-        const { profileId } = req.params;
+        const { profile_id } = req.params;
         const { startDate, endDate } = req.query;
 
         // VALIDATE PROFILE ID
-        if (!mongoose.Types.ObjectId.isValid(profileId)) {
+        if (!mongoose.Types.ObjectId.isValid(profile_id)) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid profileId."
+                message: "Invalid profile_id."
             });
         }
 
@@ -55,7 +55,7 @@ const getConsultBrief = async (req, res, next) => {
         }
 
         // FIND PROFILE
-        const profile = await ProfileModel.findById(profileId);
+        const profile = await ProfileModel.findById(profile_id);
 
         if (!profile) {
             return res.status(404).json({
@@ -74,7 +74,7 @@ const getConsultBrief = async (req, res, next) => {
 
         // FIND ALL MEDICATIONS FOR THIS PROFILE
         const medications = await MedicationModel.find({
-            profile: profileId
+            profile: profile_id
         });
 
         // GENERATE MISSING MEDICATION LOGS
@@ -135,7 +135,7 @@ const getConsultBrief = async (req, res, next) => {
             // Find existing logs for these occurrences.
             const existingLogs =
                 await MedicationLogModel.find({
-                    profile: profileId,
+                    profile: profile_id,
                     medication: medication._id,
                     scheduledFor: {
                         $in: occurrences
@@ -165,7 +165,7 @@ const getConsultBrief = async (req, res, next) => {
                 const newLogs =
                     missingOccurrences.map(
                         occurrence => ({
-                            profile: profileId,
+                            profile: profile_id,
                             medication: medication._id,
                             scheduledFor: occurrence,
                             status: "pending"
@@ -182,7 +182,7 @@ const getConsultBrief = async (req, res, next) => {
 
         const currentMedications =
             await MedicationModel.find({
-                profile: profileId,
+                profile: profile_id,
                 status: "active",
                 startDate: {
                     $lte: now
@@ -218,7 +218,7 @@ const getConsultBrief = async (req, res, next) => {
         // GET MEDICATION LOGS
         const medicationLogs =
             await MedicationLogModel.find({
-                profile: profileId,
+                profile: profile_id,
                 scheduledFor: {
                     $gte: start,
                     $lte: end
@@ -271,7 +271,7 @@ const getConsultBrief = async (req, res, next) => {
         // GET SYMPTOMS
         const symptoms =
             await SymptomModel.find({
-                profile: profileId,
+                profile: profile_id,
                 loggedAt: {
                     $gte: start,
                     $lte: end
@@ -315,7 +315,7 @@ const getConsultBrief = async (req, res, next) => {
             success: true,
 
             profile: {
-                profileId: profile._id,
+                profile_id: profile._id,
                 fullName: profile.fullName
             },
 

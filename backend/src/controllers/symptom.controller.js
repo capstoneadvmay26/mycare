@@ -3,10 +3,10 @@ const ProfileModel = require("../models/profile.model");
 
 const createSymptom = async (req, res, next) => {
     try {
-        const { profileId, symptoms, otherSymptom, severity } = req.body;
+        const { profile_id, symptoms, otherSymptom, severity } = req.body;
 
         // Find profile
-        const profile = await ProfileModel.findById(profileId);
+        const profile = await ProfileModel.findById(profile_id);
 
         if (!profile) {
             return res.status(404).json({
@@ -23,7 +23,7 @@ const createSymptom = async (req, res, next) => {
 
         // Create symptom
         const symptom = new SymptomModel({
-            profile: profileId,
+            profile: profile_id,
             symptoms,
             otherSymptom,
             severity,
@@ -406,11 +406,11 @@ const getSymptomHistory = async (req, res, next) => {
             owner: req.user.id
         }).select("_id");
 
-        const profileIds = profiles.map(profile => profile._id);
+        const profile_ids = profiles.map(profile => profile._id);
 
         // Build query
         const query = {
-            profile: { $in: profileIds }
+            profile: { $in: profile_ids }
         };
 
         // Optional symptom filter

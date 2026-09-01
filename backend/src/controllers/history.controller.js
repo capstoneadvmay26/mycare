@@ -5,7 +5,7 @@ const ProfileModel = require("../models/profile.model");
 
 const getHistory = async (req, res, next) => {
     try {
-        const { profileId } = req.params;
+        const { profile_id } = req.params;
 
         const {
             startDate,
@@ -55,7 +55,7 @@ const getHistory = async (req, res, next) => {
         }
 
         // FIND PROFILE
-        const profile = await ProfileModel.findById(profileId);
+        const profile = await ProfileModel.findById(profile_id);
 
         if (!profile) {
             return res.status(404).json({
@@ -79,7 +79,7 @@ const getHistory = async (req, res, next) => {
         if (type === "all" || type === "symptoms") {
 
             const symptoms = await SymptomModel.find({
-                profile: profileId,
+                profile: profile_id,
                 loggedAt: {
                     $gte: start,
                     $lte: end
@@ -111,7 +111,7 @@ const getHistory = async (req, res, next) => {
 
             const symptomsWithCheckIns =
                 await SymptomModel.find({
-                    profile: profileId
+                    profile: profile_id
                 });
 
 
@@ -151,7 +151,7 @@ const getHistory = async (req, res, next) => {
 
             const medicationLogs =
                 await MedicationLogModel.find({
-                    profile: profileId,
+                    profile: profile_id,
                     status: {
                         $in: ["taken", "skipped"]
                     },
@@ -196,7 +196,7 @@ const getHistory = async (req, res, next) => {
         // RESPONSE
         return res.status(200).json({
             success: true,
-            profileId,
+            profile_id,
             startDate: start,
             endDate: end,
             type,

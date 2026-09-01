@@ -31,7 +31,7 @@ afterAll(async () => {
 describe("History API", () => {
 
     let userId;
-    let profileId;
+    let profile_id;
     let token;
 
 
@@ -50,11 +50,11 @@ describe("History API", () => {
             isSelf: true,
         });
 
-        profileId = profile._id;
+        profile_id = profile._id;
     });
 
 
-    describe("GET /api/history/:profileId", () => {
+    describe("GET /api/v1/history/:profile_id", () => {
 
         // BASIC HISTORY
         it("should return all history for the authenticated user", async () => {
@@ -62,14 +62,14 @@ describe("History API", () => {
             const loggedAt = new Date("2026-08-20T08:00:00.000Z");
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt,
             });
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -97,11 +97,11 @@ describe("History API", () => {
         // PROFILE NOT FOUND
         it("should return 404 when the profile does not exist", async () => {
 
-            const fakeProfileId =
+            const fakeprofile_id =
                 new mongoose.Types.ObjectId();
 
             const response = await request(app)
-                .get(`/api/history/${fakeProfileId}`)
+                .get(`/api/v1/history/${fakeprofile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -124,7 +124,7 @@ describe("History API", () => {
             });
 
             const response = await request(app)
-                .get(`/api/history/${anotherProfile._id}`)
+                .get(`/api/v1/history/${anotherProfile._id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -139,7 +139,7 @@ describe("History API", () => {
         it("should return 400 when startDate and endDate are missing", async () => {
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.statusCode).toBe(400);
@@ -152,7 +152,7 @@ describe("History API", () => {
         it("should return 400 when the dates are invalid", async () => {
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "invalid-date",
                     endDate: "2026-08-30",
@@ -169,7 +169,7 @@ describe("History API", () => {
         it("should return 400 when startDate is after endDate", async () => {
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-30",
                     endDate: "2026-08-01",
@@ -187,14 +187,14 @@ describe("History API", () => {
         it("should return only symptoms when type is symptoms", async () => {
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: new Date("2026-08-20T08:00:00.000Z"),
             });
 
             const medication = await MedicationModel.create({
-                profile: profileId,
+                profile: profile_id,
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
@@ -203,7 +203,7 @@ describe("History API", () => {
             });
 
             await MedicationLogModel.create({
-                profile: profileId,
+                profile: profile_id,
                 medication: medication._id,
                 scheduledFor: new Date("2026-08-20T09:00:00.000Z"),
                 status: "taken",
@@ -211,7 +211,7 @@ describe("History API", () => {
             });
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -233,7 +233,7 @@ describe("History API", () => {
         it("should return only check-ins when type is check-ins", async () => {
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Headache"],
                 severity: "moderate",
                 loggedAt: new Date("2026-08-18T08:00:00.000Z"),
@@ -247,7 +247,7 @@ describe("History API", () => {
             });
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -272,7 +272,7 @@ describe("History API", () => {
         it("should return only medications when type is medications", async () => {
 
             const medication = await MedicationModel.create({
-                profile: profileId,
+                profile: profile_id,
                 name: "Amlodipine",
                 dosage: "5mg",
                 frequency: "once_daily",
@@ -281,7 +281,7 @@ describe("History API", () => {
             });
 
             await MedicationLogModel.create({
-                profile: profileId,
+                profile: profile_id,
                 medication: medication._id,
                 scheduledFor: new Date("2026-08-20T08:00:00.000Z"),
                 status: "taken",
@@ -289,14 +289,14 @@ describe("History API", () => {
             });
 
             await SymptomModel.create({
-                profile: profileId,
+                profile: profile_id,
                 symptoms: ["Fatigue"],
                 severity: "mild",
                 loggedAt: new Date("2026-08-20T10:00:00.000Z"),
             });
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -324,7 +324,7 @@ describe("History API", () => {
         it("should return 400 when an invalid type is provided", async () => {
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",
@@ -344,7 +344,7 @@ describe("History API", () => {
         it("should return 401 when no authentication token is provided", async () => {
 
             const response = await request(app)
-                .get(`/api/history/${profileId}`)
+                .get(`/api/v1/history/${profile_id}`)
                 .query({
                     startDate: "2026-08-01",
                     endDate: "2026-08-30",

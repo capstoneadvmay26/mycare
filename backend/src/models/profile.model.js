@@ -12,11 +12,17 @@ const profileSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
-        fullName: {
+        name: {
             type: String,
             required: true,
             trim: true,
-            miniLength: 2,
+            minlength: 2,
+        },
+
+        condition: {
+            type: String,
+            trim: true,
+            default: null,
         },
 
         // true = this profile is the account holder themselves
@@ -42,7 +48,7 @@ const profileSchema = new mongoose.Schema(
         },
         gender: {
             type: String,
-            enum: ["male", "female", "other","prefer_not_to_say"],
+            enum: ["male", "female", "other", "prefer_not_to_say"],
         },
 
         // Soft delete - "deleting" a profile set this to "archived" instead
@@ -53,7 +59,7 @@ const profileSchema = new mongoose.Schema(
             default: "active",
         },
     },
-    { timestamps: true}
+    { timestamps: true }
 );
 
 module.exports = mongoose.model("Profile", profileSchema);

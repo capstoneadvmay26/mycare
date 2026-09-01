@@ -33,7 +33,7 @@ afterAll(async () => {
 describe("Medication Log API", () => {
 
     let userId;
-    let profileId;
+    let profile_id;
     let token;
     let medicationId;
     let medicationLogId;
@@ -57,11 +57,11 @@ describe("Medication Log API", () => {
             isSelf: true,
         });
 
-        profileId = profile._id;
+        profile_id = profile._id;
 
         // Create medication
         const medication = await MedicationModel.create({
-            profile: profileId,
+            profile: profile_id,
             name: "Amlodipine",
             dosage: "5mg",
             frequency: "once_daily",
@@ -75,7 +75,7 @@ describe("Medication Log API", () => {
 
         // Create medication log
         const medicationLog = await MedicationLogModel.create({
-            profile: profileId,
+            profile: profile_id,
             medication: medicationId,
             scheduledFor: new Date("2026-08-20T08:00:00.000Z"),
             status: "pending",
@@ -85,12 +85,12 @@ describe("Medication Log API", () => {
     });
 
     // GET MEDICATION HISTORY
-    describe("GET /api/medication-history/:profileId", () => {
+    describe("GET /api/v1/medication-history/:profile_id", () => {
 
         it("should return medication history for the authenticated owner", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "week",
                 })
@@ -120,7 +120,7 @@ describe("Medication Log API", () => {
         it("should return 401 when no authentication token is provided", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "week",
                 });
@@ -144,7 +144,7 @@ describe("Medication Log API", () => {
 
 
             const response = await request(app)
-                .get(`/api/medication-history/${anotherProfile._id}`)
+                .get(`/api/v1/medication-history/${anotherProfile._id}`)
                 .query({
                     period: "week",
                 })
@@ -160,12 +160,12 @@ describe("Medication Log API", () => {
 
         it("should return 404 when the profile does not exist", async () => {
 
-            const fakeProfileId =
+            const fakeprofile_id =
                 new mongoose.Types.ObjectId();
 
 
             const response = await request(app)
-                .get(`/api/medication-history/${fakeProfileId}`)
+                .get(`/api/v1/medication-history/${fakeprofile_id}`)
                 .query({
                     period: "week",
                 })
@@ -182,7 +182,7 @@ describe("Medication Log API", () => {
         it("should return 400 for an invalid period", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "year",
                 })
@@ -201,7 +201,7 @@ describe("Medication Log API", () => {
         it("should return 400 when period is missing", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .set("Authorization", `Bearer ${token}`);
 
 
@@ -217,7 +217,7 @@ describe("Medication Log API", () => {
         it("should filter history by status", async () => {
 
             await MedicationLogModel.create({
-                profile: profileId,
+                profile: profile_id,
                 medication: medicationId,
                 scheduledFor:
                     new Date("2026-08-21T08:00:00.000Z"),
@@ -228,7 +228,7 @@ describe("Medication Log API", () => {
 
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "2months",
                     status: "taken",
@@ -258,7 +258,7 @@ describe("Medication Log API", () => {
         it("should filter history by medicationId", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "2months",
                     medicationId: medicationId.toString(),
@@ -281,7 +281,7 @@ describe("Medication Log API", () => {
         it("should return 400 for an invalid medicationId", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "week",
                     medicationId: "invalid-id",
@@ -299,7 +299,7 @@ describe("Medication Log API", () => {
         it("should return 400 for an invalid status", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "week",
                     status: "completed",
@@ -320,7 +320,7 @@ describe("Medication Log API", () => {
 
             await MedicationLogModel.create([
                 {
-                    profile: profileId,
+                    profile: profile_id,
                     medication: medicationId,
                     scheduledFor:
                         new Date("2026-08-21T08:00:00.000Z"),
@@ -329,7 +329,7 @@ describe("Medication Log API", () => {
                         new Date("2026-08-21T08:05:00.000Z"),
                 },
                 {
-                    profile: profileId,
+                    profile: profile_id,
                     medication: medicationId,
                     scheduledFor:
                         new Date("2026-08-22T08:00:00.000Z"),
@@ -341,7 +341,7 @@ describe("Medication Log API", () => {
 
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "2months",
                     page: 1,
@@ -366,7 +366,7 @@ describe("Medication Log API", () => {
         it("should return 400 when page is invalid", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "week",
                     page: 0,
@@ -384,7 +384,7 @@ describe("Medication Log API", () => {
         it("should return 400 when limit is greater than 50", async () => {
 
             const response = await request(app)
-                .get(`/api/medication-history/${profileId}`)
+                .get(`/api/v1/medication-history/${profile_id}`)
                 .query({
                     period: "week",
                     limit: 51,
@@ -401,13 +401,13 @@ describe("Medication Log API", () => {
     });
 
     // MARK DOSE AS TAKEN
-    describe("PATCH /api/medication-logs/:id/taken", () => {
+    describe("PATCH /api/v1/medication-logs/:id/taken", () => {
 
         it("should mark a medication as taken for the owner", async () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${medicationLogId}/taken`
+                    `/api/v1/medication-logs/${medicationLogId}/taken`
                 )
                 .set("Authorization", `Bearer ${token}`);
 
@@ -432,7 +432,7 @@ describe("Medication Log API", () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${medicationLogId}/taken`
+                    `/api/v1/medication-logs/${medicationLogId}/taken`
                 );
 
 
@@ -453,7 +453,7 @@ describe("Medication Log API", () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${medicationLogId}/taken`
+                    `/api/v1/medication-logs/${medicationLogId}/taken`
                 )
                 .set(
                     "Authorization",
@@ -478,7 +478,7 @@ describe("Medication Log API", () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${fakeLogId}/taken`
+                    `/api/v1/medication-logs/${fakeLogId}/taken`
                 )
                 .set("Authorization", `Bearer ${token}`);
 
@@ -492,13 +492,13 @@ describe("Medication Log API", () => {
     });
 
     // MARK DOSE AS SKIPPED
-    describe("PATCH /api/medication-logs/:id/skipped", () => {
+    describe("PATCH /api/v1/medication-logs/:id/skipped", () => {
 
         it("should mark a medication as skipped for the owner", async () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${medicationLogId}/skipped`
+                    `/api/v1/medication-logs/${medicationLogId}/skipped`
                 )
                 .set("Authorization", `Bearer ${token}`);
 
@@ -523,7 +523,7 @@ describe("Medication Log API", () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${medicationLogId}/skipped`
+                    `/api/v1/medication-logs/${medicationLogId}/skipped`
                 );
 
 
@@ -544,7 +544,7 @@ describe("Medication Log API", () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${medicationLogId}/skipped`
+                    `/api/v1/medication-logs/${medicationLogId}/skipped`
                 )
                 .set(
                     "Authorization",
@@ -569,7 +569,7 @@ describe("Medication Log API", () => {
 
             const response = await request(app)
                 .patch(
-                    `/api/medication-logs/${fakeLogId}/skipped`
+                    `/api/v1/medication-logs/${fakeLogId}/skipped`
                 )
                 .set("Authorization", `Bearer ${token}`);
 

@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 
 const getMedicationHistory = async (req, res, next) => {
     try {
-        const { profileId } = req.params;
+        const { profile_id } = req.params;
 
         const {
             period,
@@ -71,7 +71,7 @@ const getMedicationHistory = async (req, res, next) => {
         const skip = (pageNumber - 1) * limitNumber;
 
         // Find profile
-        const profile = await ProfileModel.findById(profileId);
+        const profile = await ProfileModel.findById(profile_id);
 
         if (!profile) {
             return res.status(404).json({
@@ -109,7 +109,7 @@ const getMedicationHistory = async (req, res, next) => {
 
         // Find active medications
         const medications = await MedicationModel.find({
-            profile: profileId,
+            profile: profile_id,
             status: "active"
         });
 
@@ -148,7 +148,7 @@ const getMedicationHistory = async (req, res, next) => {
 
             // Find existing logs
             const existingLogs = await MedicationLogModel.find({
-                profile: profileId,
+                profile: profile_id,
                 medication: medication._id,
                 scheduledFor: {
                     $in: occurrences
@@ -170,7 +170,7 @@ const getMedicationHistory = async (req, res, next) => {
 
             // Create pending logs
             const newLogs = missingOccurrences.map(occurrence => ({
-                profile: profileId,
+                profile: profile_id,
                 medication: medication._id,
                 scheduledFor: occurrence,
                 status: "pending"
@@ -183,7 +183,7 @@ const getMedicationHistory = async (req, res, next) => {
 
         // Build history query
         const query = {
-            profile: profileId,
+            profile: profile_id,
             scheduledFor: {
                 $gte: historyStartDate,
                 $lte: historyEndDate

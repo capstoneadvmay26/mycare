@@ -5,6 +5,6 @@ const requireAuth = require("../middlewares/requireAuth");
 
 const router = express.Router();
 
-router.get("/history/:profileId", requireAuth, getHistory);
+router.get("/history", requireAuth, getHistory);
 
 module.exports = router;
