@@ -8,6 +8,8 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 // (For now, we are using inline styles from the Figma, so this can be empty or just resets)
 //import "./styles/mycare.css"; 
 
+import "./index.css"; // Import the index.css file for global styles
+
 import App from "./App.jsx";
 
 createRoot(document.getElementById("root")).render(

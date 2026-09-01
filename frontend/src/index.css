@@ -1,154 +1,143 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-:root {
-  --primary: #0033CC;
-  --danger: #D92D20;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
+/* Base */
 body {
-  background-color: #F8F9FA;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* --- OVERRIDE BOOTSTRAP .form-control --- */
-.form-control {
-  border: 1px solid #000 !important;
-  background-color: #FFFFFF !important;
+/* Dark Mode Variables */
+.theme-dark {
+  --bg-main: #121212;
+  --bg-card: #1e1e1e;
+  --text-main: #ffffff;
+  --text-muted: #a0a0a0;
+  --border-color: rgba(255, 255, 255, 0.15);
+  --brand-color: #4d7cfe; /* Lighter blue for dark mode */
 }
 
-.form-control:focus,
-.form-control:hover,
-.form-control:active {
-  border: 1px solid #000 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  background-color: #FFFFFF !important;
+/* Fix Vertical Alignment across all screens */
+#root, .app-container {
+  height: 100vh;
+  overflow: auto;
 }
 
-/* --- INPUTS --- */
-input:focus, 
-input:hover, 
-input:active, 
-textarea:focus, 
-select:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  border: 1px solid #000 !important;
-  background-color: #FFFFFF !important;
+/* ==========================================
+   Structural & Menu Container Fixes
+   ========================================== */
+/* Force drawer and sidebar containers dark */
+.theme-dark .menu-container,
+.theme-dark .offcanvas,
+.theme-dark .drawer,
+.theme-dark .sidebar,
+.theme-dark .menu-overlay {
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
 }
 
-::placeholder {
-  opacity: 0.5;
-  color: #000;
+/* Bootstrap class background overrides */
+.theme-dark .bg-white,
+.theme-dark .bg-light {
+  background-color: var(--bg-card) !important;
 }
 
-/* --- SOLID BLACK BORDER CONTAINERS --- */
-.black-border-input {
-  border: 1px solid #000 !important;
+/* ==========================================
+   Inline Style Overrides (Targeting Standard HTML Output)
+   ========================================== */
+/* Match common black color hex and RGB values from inline styles */
+.theme-dark *[style*="color: #000"],
+.theme-dark *[style*="color:#000"],
+.theme-dark *[style*="color: black"],
+.theme-dark *[style*="color: rgb(0, 0, 0)"] {
+  color: var(--text-main) !important;
 }
 
-/* --- SAAS BUTTON STYLING --- */
-.btn-saas {
-  width: 100% !important;
-  height: 50px !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
+/* Match muted inline styles (e.g. Email tab in Onboarding) */
+.theme-dark *[style*="rgba(0, 0, 0,"],
+.theme-dark *[style*="rgba(0,0,0,"] {
+  color: var(--text-muted) !important;
 }
 
-.btn-saas-primary {
-  background-color: var(--primary) !important;
-  color: #FFFFFF !important;
-  border: none !important;
-  text-decoration: none !important;
+/* Lighten brand blue inline styles for dark mode visibility */
+.theme-dark *[style*="#0033CC"],
+.theme-dark *[style*="#0044ff"],
+.theme-dark *[style*="rgb(0, 51, 204)"] {
+  color: var(--brand-color) !important;
 }
 
-.btn-saas-primary:hover {
-  background-color: #002699 !important;
+/* Override white inline backgrounds */
+.theme-dark *[style*="background-color: #fff"],
+.theme-dark *[style*="background-color:#fff"],
+.theme-dark *[style*="background-color: #ffffff"],
+.theme-dark *[style*="background-color: rgb(255, 255, 255)"] {
+  background-color: var(--bg-card) !important;
 }
 
-.btn-saas-primary:active {
-  background-color: #001a66 !important;
-  transform: scale(0.98) !important;
+/* ==========================================
+   Typography & Tab Utility Overrides
+   ========================================== */
+.theme-dark .text-dark,
+.theme-dark h1, .theme-dark h2, .theme-dark h3,
+.theme-dark h4, .theme-dark h5, .theme-dark h6,
+.theme-dark p, .theme-dark span, .theme-dark label,
+.theme-dark li, .theme-dark a {
+  color: var(--text-main);
 }
 
-
-
-.mycare-input-box {
-  border: 2px solid #000 !important;
-  background-color: #FFFFFF !important;
+.theme-dark .text-secondary,
+.theme-dark .text-muted {
+  color: var(--text-muted) !important;
 }
 
-.mycare-input-box:focus,
-.mycare-input-box:hover,
-.mycare-input-box:active {
-  border: 2px solid #000 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  background-color: #FFFFFF !important;
+/* Inactive tabs switcher (Onboarding Email option) */
+.theme-dark [role="tab"]:not([aria-selected="true"]),
+.theme-dark .tab-item:not(.active),
+.theme-dark .nav-link:not(.active) {
+  color: var(--text-muted) !important;
 }
 
-.mycare-input-box::placeholder {
-  color: #000 !important;
-  opacity: 0.8 !important; 
+/* ==========================================
+   Icon Visibility Fix (Hamburger & Close 'X')
+   ========================================== */
+/* Safely pass color to SVGs without breaking stroke or fill shapes */
+.theme-dark svg,
+.theme-dark .hamburger-icon svg,
+.theme-dark .menu-overlay svg {
+  color: var(--text-main) !important;
 }
 
-
-
-input.custom-input {
-  border: 2px solid #000 !important;
-  background-color: #FFFFFF !important;
-  border-radius: 8px !important; 
-  padding: 0 12px !important;
+/* Handle stroke-based line icons (hamburger lines, X close button) */
+.theme-dark svg line,
+.theme-dark svg polyline,
+.theme-dark svg path[stroke] {
+  stroke: var(--text-main) !important;
 }
 
-input.custom-input:focus,
-input.custom-input:hover,
-input.custom-input:active {
-  border: 2px solid #000 !important;
-  box-shadow: none !important;
-  outline: none !important;
+/* Handle filled icon shapes */
+.theme-dark svg path[fill]:not([fill="none"]),
+.theme-dark svg circle[fill]:not([fill="none"]) {
+  fill: var(--text-main) !important;
 }
 
-input.custom-input::placeholder {
-  color: #000 !important;
-  opacity: 0.6 !important;
+/* ==========================================
+   Form Inputs & Borders
+   ========================================== */
+.theme-dark .form-control, 
+.theme-dark .form-select,
+.theme-dark input,
+.theme-dark select,
+.theme-dark textarea {
+  background-color: #2a2a2a !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-color) !important;
 }
 
-/* Kill all focus/click outlines on buttons */
-button:focus,
-button:active,
-button:hover {
-  outline: none !important;
-  box-shadow: none !important;
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: var(--text-muted) !important;
 }
 
-/* Force thick borders on inputs */
-input.custom-input {
-  border: 2px solid #000 !important;
-  background-color: #FFF !important;
-  border-radius: 8px !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-
-/* Mobile / Desktop Hide */
-.hide-mobile { display: flex !important; }
-.show-desktop { display: none !important; }
-
-@media (min-width: 768px) {
-  .hide-mobile { display: none !important; }
-  .show-desktop { display: flex !important; }
+.theme-dark .border-bottom,
+.theme-dark .border-top,
+.theme-dark .border,
+.theme-dark .rounded-3 {
+  border-color: var(--border-color) !important;
 }

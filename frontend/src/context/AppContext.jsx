@@ -1,21 +1,26 @@
 // src/context/AppContext.jsx
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react'; // Removed unused useContext
 
-const AppContext = createContext();
-
-export default AppContext;
+// Export AppContext so useApp.js can import it!
+// eslint-disable-next-line react-refresh/only-export-components
+export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [userName, setUserName] = useState(() => localStorage.getItem('mycare_userName') || '');
-  const [dob, setDob] = useState(() => localStorage.getItem('mycare_dob') || ''); 
-  const [gender, setGender] = useState(() => localStorage.getItem('mycare_gender') || ''); 
-  const [isOnboarded, setIsOnboarded] = useState(() => localStorage.getItem('mycare_onboarded') === 'true');
-  const [currentProfile, setCurrentProfile] = useState(() => localStorage.getItem('mycare_currentProfile') || 'Tolu (Me)');
+  const [isOnboarded, setIsOnboarded] = useState(() => {
+    return localStorage.getItem('mycare_onboarded') === 'true';
+  });
+  
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('mycare_userName') || '';
+  });
+
+  const [currentProfile, setCurrentProfile] = useState(() => {
+    return localStorage.getItem('mycare_currentProfile') || 'Tolu (Me)';
+  });
 
   const [currentTab, setCurrentTab] = useState('Home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem('mycare_onboarded', isOnboarded);
   }, [isOnboarded]);
@@ -25,29 +30,16 @@ export const AppProvider = ({ children }) => {
   }, [userName]);
 
   useEffect(() => {
-    localStorage.setItem('mycare_dob', dob);
-  }, [dob]);
-
-  useEffect(() => {
-    localStorage.setItem('mycare_gender', gender);
-  }, [gender]);
-
-  useEffect(() => {
     localStorage.setItem('mycare_currentProfile', currentProfile);
   }, [currentProfile]);
 
   const handleLogout = () => {
     setUserName('');
-    setDob('');
-    setGender('');
     setCurrentTab('Home');
     setIsOnboarded(false);
     setIsMenuOpen(false);
-    
     localStorage.removeItem('mycare_onboarded');
     localStorage.removeItem('mycare_userName');
-    localStorage.removeItem('mycare_dob');
-    localStorage.removeItem('mycare_gender');
     localStorage.removeItem('mycare_currentProfile');
   };
 
@@ -55,8 +47,6 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       isOnboarded, setIsOnboarded,
       userName, setUserName,
-      dob, setDob,
-      gender, setGender,
       currentProfile, setCurrentProfile,
       currentTab, setCurrentTab,
       isMenuOpen, setIsMenuOpen,
