@@ -1,77 +1,233 @@
 const errorHandler = require("../src/middlewares/errorHandler");
 
 describe("Global Error Handler", () => {
-    let req;
-    let res;
-    let next;
+  let req;
+  let res;
+  let next;
 
-    beforeEach(() => {
-        req = {};
-        res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-        };
-        next = jest.fn();
+  beforeEach(() => {
+    req = {
+      method: "GET",
+      originalUrl: "/api/test",
+      requestId: "test-request-id",
+      user: {
+        id: "test-user-id",
+      },
+      get: jest.fn((header) => {
+        if (header === "X-Request-ID") {
+          return "test-request-id";
+        }
 
-        // errorHandler currently logs errors.
-        jest.spyOn(console, "error").mockImplementation(() => {});
+        return undefined;
+      }),
+    };
+
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    next = jest.fn();
+
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("should return 500 for a generic error", () => {
+    const error = new Error("Database exploded");
+
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "An unexpected error occurred.",
+      code: "INTERNAL_SERVER_ERROR",
+      requestId: "test-request-id",
     });
 
-    afterEach(() => {
-        jest.restoreAllMocks();
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it("should not expose the internal error message for a 500 error", () => {
+    const error = new Error(
+      "MongoDB connection string/password leaked"
+    );
+
+    errorHandler(error, req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "An unexpected error occurred.",
+      code: "INTERNAL_SERVER_ERROR",
+      requestId: "test-request-id",
+    });
+  });
+
+  it("should return 400 for a Mongoose CastError", () => {
+    const error = new Error("Cast to ObjectId failed");
+
+    error.name = "CastError";
+
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Invalid ID format",
+      code: "INVALID_ID",
+      requestId: "test-request-id",
     });
 
-    it("should return 500 for a generic error", () => {
-        const error = new Error("Something went wrong");
+    expect(console.warn).toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
+  });
 
-        errorHandler(error, req, res, next);
+  it("should return 409 for a duplicate key error", () => {
+    const error = new Error("Duplicate key");
 
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({
-            success: false,
-            message: "Something went wrong",
-        });
+    error.code = 11000;
+    error.keyValue = {
+      email: "test@example.com",
+    };
+
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "A resource with this email already exists.",
+      code: "DUPLICATE_RESOURCE",
+      requestId: "test-request-id",
     });
+  });
 
-    it("should return 400 for a Mongoose CastError", () => {
-        const error = new Error("Cast to ObjectId failed");
-        error.name = "CastError";
+  it("should return 400 for a Mongoose validation error", () => {
+    const error = new Error("Validation failed");
 
-        errorHandler(error, req, res, next);
+    error.name = "ValidationError";
+    error.errors = {
+      email: {
+        path: "email",
+        message: "Email is required",
+      },
+      fullName: {
+        path: "fullName",
+        message: "Full name is required",
+      },
+    };
 
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({
-            success: false,
-            message: "Invalid ID format",
-        });
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Validation failed",
+      code: "VALIDATION_ERROR",
+      requestId: "test-request-id",
+      errors: [
+        {
+          field: "email",
+          message: "Email is required",
+        },
+        {
+          field: "fullName",
+          message: "Full name is required",
+        },
+      ],
     });
+  });
 
-    it("should return 400 for a duplicate key error", () => {
-        const error = new Error("Duplicate key");
-        error.code = 11000;
-        error.keyValue = {
-            email: "test@example.com",
-        };
+  it("should preserve a custom 403 error", () => {
+    const error = new Error("Forbidden");
 
-        errorHandler(error, req, res, next);
+    error.statusCode = 403;
 
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith({
-            success: false,
-            message: "An account with this email already exists.",
-        });
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Forbidden",
+      code: "FORBIDDEN",
+      requestId: "test-request-id",
     });
+  });
 
-    it("should use a custom statusCode when provided", () => {
-        const error = new Error("Forbidden");
-        error.statusCode = 403;
+  it("should return 401 for an unauthorized error", () => {
+    const error = new Error("Authentication required");
 
-        errorHandler(error, req, res, next);
+    error.statusCode = 401;
 
-        expect(res.status).toHaveBeenCalledWith(403);
-        expect(res.json).toHaveBeenCalledWith({
-            success: false,
-            message: "Forbidden",
-        });
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Authentication required",
+      code: "UNAUTHORIZED",
+      requestId: "test-request-id",
     });
+  });
+
+  it("should return 404 for a not-found error", () => {
+    const error = new Error("Profile not found");
+
+    error.statusCode = 404;
+
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Profile not found",
+      code: "NOT_FOUND",
+      requestId: "test-request-id",
+    });
+  });
+
+  it("should handle invalid JSON bodies", () => {
+    const error = new SyntaxError("Unexpected token");
+
+    error.status = 400;
+    error.body = "{invalid json}";
+
+    errorHandler(error, req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Request body contains invalid JSON.",
+      code: "INVALID_JSON",
+      requestId: "test-request-id",
+    });
+  });
+
+  it("should fall back safely when requestId is unavailable", () => {
+    req.requestId = undefined;
+    req.get = jest.fn(() => undefined);
+
+    const error = new Error("Something went wrong");
+
+    errorHandler(error, req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: "An unexpected error occurred.",
+      code: "INTERNAL_SERVER_ERROR",
+      requestId: "unknown",
+    });
+  });
 });

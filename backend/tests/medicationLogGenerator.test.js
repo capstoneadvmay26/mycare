@@ -97,16 +97,14 @@ describe("generateScheduledOccurrences", () => {
                 ]);
         });
 
-        it("should generate the scheduled occurrence for the requested date", () => {
+        it("should return no occurrences when the scheduled time is outside the range", () => {
             const result = generateScheduledOccurrences(
                 medication("once_daily", ["08:00"]),
                 new Date("2026-08-20T00:00:00.000Z"),
                 new Date("2026-08-20T07:59:59.999Z")
             );
 
-            expect(result).toHaveLength(1);
-            expect(result[0].toISOString())
-                .toBe("2026-08-20T08:00:00.000Z");
+            expect(result).toEqual([]);
         });
     });
 

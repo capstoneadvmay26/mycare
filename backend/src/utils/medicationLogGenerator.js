@@ -61,7 +61,9 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
                 0
             );
 
-            occurrences.push(scheduledDate);
+            if (scheduledDate >= startDate && scheduledDate <= endDate) {
+                occurrences.push(scheduledDate);
+            }
         }
 
         // Keep date iteration in UTC as well.
