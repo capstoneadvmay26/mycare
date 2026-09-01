@@ -44,7 +44,7 @@ describe("Symptom API", () => {
         // Create profile owned by the fake user
         const profile = await ProfileModel.create({
             owner: userId,
-            fullName: "Test User",
+            name: "Test User",
             isSelf: true,
         });
 
@@ -102,7 +102,7 @@ describe("Symptom API", () => {
 
             const anotherProfile = await ProfileModel.create({
                 owner: anotherUserId,
-                fullName: "Another User",
+                name: "Another User",
                 isSelf: true,
             });
 
@@ -197,7 +197,7 @@ describe("Symptom API", () => {
 
             const anotherProfile = await ProfileModel.create({
                 owner: anotherUserId,
-                fullName: "Another User",
+                name: "Another User",
                 isSelf: true,
             });
 
@@ -418,7 +418,7 @@ describe("Symptom API", () => {
 
             const anotherProfile = await ProfileModel.create({
                 owner: anotherUserId,
-                fullName: "Another User",
+                name: "Another User",
                 isSelf: true,
             });
 
@@ -896,7 +896,7 @@ describe("Symptom API", () => {
 
             const anotherProfile = await ProfileModel.create({
                 owner: anotherUserId,
-                fullName: "Another User",
+                name: "Another User",
                 isSelf: true,
             });
 

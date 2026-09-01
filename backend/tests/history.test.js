@@ -46,7 +46,7 @@ describe("History API", () => {
 
         const profile = await ProfileModel.create({
             owner: userId,
-            fullName: "Test User",
+            name: "Test User",
             isSelf: true,
         });
 
@@ -119,7 +119,7 @@ describe("History API", () => {
 
             const anotherProfile = await ProfileModel.create({
                 owner: anotherUserId,
-                fullName: "Another User",
+                name: "Another User",
                 isSelf: true,
             });
 

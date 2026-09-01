@@ -21,7 +21,7 @@ afterAll(async () => {
 
 describe("Authentication Endpoints", () => {
     const testUser = {
-        fullName: "Test User",
+        name: "Test User",
         email: "test@example.com",
         password: "Password123",
     };

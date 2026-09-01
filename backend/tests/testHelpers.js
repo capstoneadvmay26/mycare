@@ -10,7 +10,7 @@ async function createTestUserAndToken(email = "test@example.com") {
   const hashedPassword = await bcrypt.hash("password123", 10);
 
   const user = await User.create({
-    fullName: "Test User",
+    name: "Test User",
     email,
     password: hashedPassword,
   });
