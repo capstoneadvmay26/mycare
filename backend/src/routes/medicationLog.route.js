@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-router.get("/medications/history", getMedicationHistory);
+router.get("/medications/history/:profile_id", getMedicationHistory);
 
 router.post("/medications/:id/taken", markDoseAsTaken);
 
