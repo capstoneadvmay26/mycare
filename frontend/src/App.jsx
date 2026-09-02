@@ -1,31 +1,70 @@
-import Home from './pages/Home';
-import Onboarding from './pages/Onboarding';
-import AppShell from './components/layout/AppShell';
-import Medications from './pages/Medications';
-import Symptoms from './pages/Symptoms';
-import History from './pages/History';
-import Profiles from './pages/Profiles';
-import Settings from './pages/Settings';
-import { AppProvider } from './context/AppContext';
-import { useApp } from './context/useApp'; 
-import { ProfileProvider } from './context/ProfileContext';
-import { ThemeProvider } from './context/ThemeContext';
+// src/App.jsx
+import Home from "./pages/Home";
+import Onboarding from "./pages/Onboarding";
+import AppShell from "./components/layout/AppShell";
+import Medications from "./pages/Medications";
+import Symptoms from "./pages/Symptoms";
+import History from "./pages/History";
+import Profiles from "./pages/Profiles";
+import Settings from "./pages/Settings";
+import { ReminderProvider } from "./context/ReminderContext";
+import GlobalReminderOverlay from "./components/layout/GlobalReminderOverlay";
+
+import { AppProvider } from "./context/AppContext";
+import { useApp } from "./context/useApp";
+import { ProfileProvider } from "./context/ProfileContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+
+// 100% Verified Icons
+import {
+  House,
+  Capsule,
+  HeartPulse,
+  ClockHistory,
+  People,
+  Gear,
+} from "react-bootstrap-icons";
+
+// Define AppWrapper OUTSIDE the App component
+const AppWrapper = ({ children }) => {
+  const { isDark } = useTheme();
+
+  return (
+    <div className={isDark ? "theme-dark" : ""} style={{ height: "100vh" }}>
+      {children}
+    </div>
+  );
+};
 
 const AppContent = () => {
   const { isOnboarded, currentTab, setCurrentTab, userName } = useApp();
-  
-  const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings'];
+
+  // Define navItems with icons here
+  const navItems = [
+    { id: "Home", label: "Home", icon: <House size={24} /> },
+    { id: "Medications", label: "Medications", icon: <Capsule size={24} /> },
+    { id: "Symptoms", label: "Symptoms", icon: <HeartPulse size={24} /> },
+    { id: "History", label: "History", icon: <ClockHistory size={24} /> },
+    { id: "Profiles", label: "Profiles", icon: <People size={24} /> },
+    { id: "Settings", label: "Settings", icon: <Gear size={24} /> },
+  ];
 
   const renderScreen = () => {
     switch (currentTab) {
-      case 'Home': return <Home />;
-      case 'Medications': return <Medications />;
-      case 'Symptoms': return <Symptoms />;
-      case 'History': return <History />;
-      case 'Profiles': return <Profiles />;
-      case 'Settings': return <Settings />;
-
-      default: return <Home />;
+      case "Home":
+        return <Home />;
+      case "Medications":
+        return <Medications />;
+      case "Symptoms":
+        return <Symptoms />;
+      case "History":
+        return <History />;
+      case "Profiles":
+        return <Profiles />;
+      case "Settings":
+        return <Settings />;
+      default:
+        return <Home />;
     }
   };
 
@@ -41,19 +80,24 @@ const AppContent = () => {
       userName={userName}
     >
       {renderScreen()}
+      <GlobalReminderOverlay />
     </AppShell>
   );
 };
 
 const App = () => {
   return (
-    <ThemeProvider>
-      <AppProvider>
-        <ProfileProvider>
-          <AppContent />
-        </ProfileProvider>
-      </AppProvider>
-    </ThemeProvider>
+    <AppProvider>
+      <ThemeProvider>
+        <ReminderProvider>
+          <AppWrapper>
+            <ProfileProvider>
+              <AppContent />
+            </ProfileProvider>
+          </AppWrapper>
+        </ReminderProvider>
+      </ThemeProvider>
+    </AppProvider>
   );
 };
 
