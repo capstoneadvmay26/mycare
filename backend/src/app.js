@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 
 const profileRoutes = require("./routes/profile.route");
 const medicationRoutes = require("./routes/medication.route");
@@ -13,6 +14,9 @@ const logger = require("./middlewares/logger");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
+app.use(cors({
+    origin: "http://localhost:5173"
+}));
 
 // ------------------------------------------------------------
 // Global middleware
