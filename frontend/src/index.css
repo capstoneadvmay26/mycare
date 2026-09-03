@@ -141,3 +141,32 @@ body {
 .theme-dark .rounded-3 {
   border-color: var(--border-color) !important;
 }
+
+
+/* Custom 834px Media Query Rules */
+@media (max-width: 833.98px) {
+  .show-above-834 {
+    display: none !important;
+  }
+}
+
+@media (min-width: 834px) {
+  .hide-above-834 {
+    display: none !important;
+  }
+  .show-above-834 {
+    display: flex !important;
+  }
+}
+
+/* 100% reliable desktop fix */
+/*
+@media (min-width: 768px) {
+  .hamburger-desktop-fix {
+    display: none !important;
+  }
+  .desktop-sidebar-fix {
+    display: flex !important;
+  }
+}
+*/
