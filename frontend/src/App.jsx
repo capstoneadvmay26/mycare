@@ -9,21 +9,12 @@ import Profiles from "./pages/Profiles";
 import Settings from "./pages/Settings";
 import { ReminderProvider } from "./context/ReminderContext";
 import GlobalReminderOverlay from "./components/layout/GlobalReminderOverlay";
-
 import { AppProvider } from "./context/AppContext";
 import { useApp } from "./context/useApp";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
-// 100% Verified Icons
-import {
-  House,
-  Capsule,
-  HeartPulse,
-  ClockHistory,
-  People,
-  Gear,
-} from "react-bootstrap-icons";
+import { House, Capsule, HeartPulse, ClockHistory,  People,  Gear,} from "react-bootstrap-icons";
 
 // Define AppWrapper OUTSIDE the App component
 const AppWrapper = ({ children }) => {
@@ -65,7 +56,10 @@ const AppContent = () => {
         return <Settings />;
       default:
         return <Home />;
+
     }
+
+    
   };
 
   if (!isOnboarded) {
