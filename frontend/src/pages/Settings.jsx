@@ -2,13 +2,14 @@
 import { useState } from 'react';
 import { 
   Bell, ClockHistory, Globe2, MoonStars, MoonStarsFill, BoxSeam, 
-  Lock, Fingerprint, ShieldCheck, InfoCircle, 
+  Lock, Fingerprint, ShieldCheck, InfoCircle, QuestionCircle,
   ChevronRight 
 } from 'react-bootstrap-icons';
 import Notifications from './Notifications';
 import { useTheme } from '../context/ThemeContext';
 import Logo from '../components/ui/Logo'; 
 import Reminders from './Reminders';
+import HelpSupport from './HelpSupport';
 
 // ==========================================
 // GLOBAL REUSABLE TOGGLE COMPONENT (OUTSIDE)
@@ -132,7 +133,6 @@ const PrivacyScreen = ({ onBack }) => {
           <p className="m-0 fw-bold">Share Health Data</p>
           <p className="m-0 text-secondary" style={{ fontSize: '12px' }}>Allow us to use anonymous data to improve features</p>
         </div>
-        {/* Use Global Toggle */}
         <Toggle isOn={shareData} onClick={() => setShareData(!shareData)} />
       </div>
       <p className="text-secondary">We take your privacy seriously. You can contact us at any time to delete your data.</p>
@@ -140,13 +140,12 @@ const PrivacyScreen = ({ onBack }) => {
   );
 };
 
-// Professional About Screen
 const AboutScreen = ({ onBack }) => {
   return (
     <SimpleScreen title="About MyCare" onBack={onBack}>
       <div className="d-flex flex-column align-items-center text-center mb-4">
         <Logo />
-         <p className="m-0 text-secondary" style={{ fontSize: '14px' }}>Your Health, Our Priority</p>
+        <p className="m-0 text-secondary" style={{ fontSize: '14px' }}>Your Health, Our Priority</p>
       </div>
 
       <div className="border rounded-3 overflow-hidden mb-4">
@@ -176,7 +175,6 @@ const AboutScreen = ({ onBack }) => {
   );
 };
 
-// NEW: Biometric Screen (Quick toggle)
 const BiometricScreen = ({ onBack }) => {
   const [biometric, setBiometric] = useState(true);
   
@@ -188,7 +186,6 @@ const BiometricScreen = ({ onBack }) => {
           <p className="m-0 fw-bold" style={{ fontSize: '16px' }}>Enable Biometrics</p>
           <p className="m-0 text-secondary" style={{ fontSize: '12px' }}>Use Face ID or Fingerprint to unlock the app</p>
         </div>
-        {/* Use Global Toggle */}
         <Toggle isOn={biometric} onClick={() => setBiometric(!biometric)} />
       </div>
       
@@ -205,7 +202,6 @@ const BiometricScreen = ({ onBack }) => {
   );
 };
 
-// NEW: App Version Screen (Quick info page)
 const AppVersionScreen = ({ onBack }) => {
   return (
     <SimpleScreen title="App Version" onBack={onBack}>
@@ -236,9 +232,7 @@ const Settings = () => {
   const [currentScreen, setCurrentScreen] = useState('menu');
   const { isDark, toggleTheme } = useTheme();
 
-  if (currentScreen === 'notifications') {
-    return <Notifications onBack={() => setCurrentScreen('menu')} />;
-  }
+  if (currentScreen === 'notifications') return <Notifications onBack={() => setCurrentScreen('menu')} />;
   if (currentScreen === 'language') return <LanguageScreen onBack={() => setCurrentScreen('menu')} />;
   if (currentScreen === 'units') return <UnitsScreen onBack={() => setCurrentScreen('menu')} />;
   if (currentScreen === 'password') return <ChangePasswordScreen onBack={() => setCurrentScreen('menu')} />;
@@ -246,9 +240,8 @@ const Settings = () => {
   if (currentScreen === 'about') return <AboutScreen onBack={() => setCurrentScreen('menu')} />;
   if (currentScreen === 'biometric') return <BiometricScreen onBack={() => setCurrentScreen('menu')} />;
   if (currentScreen === 'version') return <AppVersionScreen onBack={() => setCurrentScreen('menu')} />;
-  
-  // Reminders is now its own screen!
   if (currentScreen === 'reminders') return <Reminders onBack={() => setCurrentScreen('menu')} />;
+  if (currentScreen === 'help') return <HelpSupport onBack={() => setCurrentScreen('menu')} />;
 
   const rowStyle = { 
     cursor: 'pointer', 
@@ -349,6 +342,14 @@ const Settings = () => {
             <InfoCircle size={24} />
             <div className="flex-grow-1 ms-3">
               <p className="m-0 fw-bold" style={{ fontSize: '16px' }}>About MyCare</p>
+            </div>
+            <ChevronRight size={20} className="text-secondary" />
+          </div>
+
+          <div className="d-flex align-items-center p-3" style={rowStyle} onClick={() => setCurrentScreen('help')}>
+            <QuestionCircle size={24} />
+            <div className="flex-grow-1 ms-3">
+              <p className="m-0 fw-bold" style={{ fontSize: '16px' }}>Help & Support</p>
             </div>
             <ChevronRight size={20} className="text-secondary" />
           </div>
