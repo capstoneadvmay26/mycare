@@ -2,21 +2,50 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
 
+// In-memory OTP storage (or integrate your SMS/Email provider here)
+const otpStore = new Map();
+
 // Generates a signed JWT token valid for 1 day
 const generateToken = (userId, role) => {
-  return jwt.sign(
-    { id: userId, role },
-    process.env.JWT_SECRET || "fallback_secret",
-    {
-      expiresIn: "1d",
-    }
-  );
+  return jwt.sign({ id: userId, role }, process.env.JWT_SECRET || 'fallback_secret', {
+    expiresIn: '1d',
+  });
 };
 
-// Handles user registration//
+// Generates and sends a 6-digit OTP //
+const sendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required to send OTP.' });
+    }
+
+    // Generate 6-digit code and store temporarily
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore.set(email, otp);
+
+    // Simulated SMS/Email sending step
+    console.log(`[OTP Sent] Code for ${email} is ${otp}`);
+
+    res.status(200).json({
+      message: 'OTP sent successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Handles user registration with OTP verification//
+ 
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, otp } = req.body;
+
+    // Verify OTP
+    const validOtp = otpStore.get(email);
+    if (!validOtp || validOtp !== otp) {
+      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -31,6 +60,9 @@ const registerUser = async (req, res, next) => {
       email,
       password: hashedPassword,
     });
+
+    // Clear OTP after successful registration
+    otpStore.delete(email);
 
     const token = generateToken(user._id, user.role);
 
@@ -49,18 +81,17 @@ const registerUser = async (req, res, next) => {
   }
 };
 
-// Handles user login//
+// Handles user login 
+ 
 const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Fetch user with explicitly selected password field
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    // Verify password against stored hash
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
@@ -84,6 +115,7 @@ const loginUser = async (req, res, next) => {
 };
 
 module.exports = {
+  sendOtp,
   registerUser,
   loginUser,
 };
