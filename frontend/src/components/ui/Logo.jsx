@@ -3,7 +3,7 @@ const Logo = ({ height = '40px', className }) => {
     <div>
       {/* Render Image */}
       <img 
-        src="/images/mycare-logo.svg" 
+        src="images/mycare-logo.svg" 
         alt="MyCare" 
         className={className}
         style={{ height, objectFit: 'contain' }} 
