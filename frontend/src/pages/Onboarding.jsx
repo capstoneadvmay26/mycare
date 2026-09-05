@@ -72,7 +72,9 @@ const Onboarding = () => {
     requestOtp(method.toLowerCase(), identifier)
       .then((response) => {
         console.log("OTP sent (background):", response.data);
-        setSuccessMessage("✓ OTP sent successfully under Normal Mode! This is Testing Mode!  Please any any 6 digits for now!");
+        setSuccessMessage(
+          "✓ OTP sent successfully under Normal Mode! This is Testing Mode!  Please any any 6 digits for now!",
+        );
         setTimeout(() => setSuccessMessage(""), 10000);
       })
       .catch((err) => {
