@@ -342,7 +342,6 @@ const Onboarding = () => {
           </div>
 
           <div className="my-auto py-3">
-            {/* AFTER */}
             <div
               className="d-flex rounded-3 overflow-hidden mb-4"
               style={{ height: "50px", borderRadius: "8px" }}
@@ -360,7 +359,6 @@ const Onboarding = () => {
                 Email
               </button>
             </div>
-
             {method === "Phone" ? (
               <input
                 type="tel"
