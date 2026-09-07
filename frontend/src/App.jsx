@@ -1,34 +1,65 @@
-//import { useState } from 'react';
-import Home from './pages/Home';
-import Onboarding from './pages/Onboarding';
-import Placeholder from './pages/Placeholder';
-import AppShell from './components/layout/AppShell';
-import Symptoms from './pages/Symptoms';
-import Medications from './pages/Medications';
-import History from './pages/History';
-import Profiles from './pages/Profiles';
+// src/App.jsx
+import Home from "./pages/Home";
+import Onboarding from "./pages/Onboarding";
+import AppShell from "./components/layout/AppShell";
+import Medications from "./pages/Medications";
+import Symptoms from "./pages/Symptoms";
+import History from "./pages/History";
+import Profiles from "./pages/Profiles";
+import Settings from "./pages/Settings";
+import { ReminderProvider } from "./context/ReminderContext";
+import GlobalReminderOverlay from "./components/layout/GlobalReminderOverlay";
+import { AppProvider } from "./context/AppContext";
+import { useApp } from "./context/useApp";
+import { ProfileProvider } from "./context/ProfileContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
-// Fixed: useApp is imported from useApp.js, not AppContext.jsx!
-import { AppProvider } from './context/AppContext';
-import { ProfileProvider } from './context/ProfileContext';
-import { useApp } from './context/useApp';
+import { House, Capsule, HeartPulse, ClockHistory,  People,  Gear,} from "react-bootstrap-icons";
+
+// Define AppWrapper OUTSIDE the App component
+const AppWrapper = ({ children }) => {
+  const { isDark } = useTheme();
+
+  return (
+    <div className={isDark ? "theme-dark" : ""} style={{ height: "100vh" }}>
+      {children}
+    </div>
+  );
+};
 
 const AppContent = () => {
   const { isOnboarded, currentTab, setCurrentTab, userName } = useApp();
 
-  const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings', 'Help & Support'];
+  // Define navItems with icons here
+  const navItems = [
+    { id: "Home", label: "Home", icon: <House size={24} /> },
+    { id: "Medications", label: "Medications", icon: <Capsule size={24} /> },
+    { id: "Symptoms", label: "Symptoms", icon: <HeartPulse size={24} /> },
+    { id: "History", label: "History", icon: <ClockHistory size={24} /> },
+    { id: "Profiles", label: "Profiles", icon: <People size={24} /> },
+    { id: "Settings", label: "Settings", icon: <Gear size={24} /> },
+  ];
 
   const renderScreen = () => {
     switch (currentTab) {
-      case 'Home': return <Home />;
-      case 'Medications': return <Medications />;
-      case 'Symptoms': return <Symptoms />;
-      case 'History': return <History />;
-      case 'Profiles': return <Profiles />;
-      case 'Settings': return <Placeholder title="Settings" />;
-      case 'Help & Support': return <Placeholder title="Help & Support" />;
-      default: return <Home />;
+      case "Home":
+        return <Home />;
+      case "Medications":
+        return <Medications />;
+      case "Symptoms":
+        return <Symptoms />;
+      case "History":
+        return <History />;
+      case "Profiles":
+        return <Profiles />;
+      case "Settings":
+        return <Settings />;
+      default:
+        return <Home />;
+
     }
+
+    
   };
 
   if (!isOnboarded) {
@@ -36,26 +67,32 @@ const AppContent = () => {
   }
 
   return (
-    <AppShell 
+    <AppShell
       navItems={navItems}
       currentTab={currentTab}
       setCurrentTab={setCurrentTab}
       userName={userName}
     >
       {renderScreen()}
+      <GlobalReminderOverlay />
     </AppShell>
   );
 };
 
 const App = () => {
   return (
-  <AppProvider>        {/* AppProvider stays on the outside */}
-    <ProfileProvider>  {/* ProfileProvider goes inside */}
-      {/* AppShell and page content goes here */}
-      <AppContent />
-    </ProfileProvider>
-  </AppProvider>
-);
+    <AppProvider>
+      <ThemeProvider>
+        <ReminderProvider>
+          <AppWrapper>
+            <ProfileProvider>
+              <AppContent />
+            </ProfileProvider>
+          </AppWrapper>
+        </ReminderProvider>
+      </ThemeProvider>
+    </AppProvider>
+  );
 };
 
 export default App;

@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 
 const profileRoutes = require("./routes/profile.route");
 const medicationRoutes = require("./routes/medication.route");
@@ -13,6 +14,12 @@ const logger = require("./middlewares/logger");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
+app.use(cors({
+    origin: [
+      "http://localhost:5173",
+      "https://capstoneadvmay26.github.io"
+    ]
+}));
 
 // ------------------------------------------------------------
 // Global middleware
@@ -26,7 +33,7 @@ app.use(express.json());
 // Routes
 // ------------------------------------------------------------
 
-app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profiles", profileRoutes);
 
 app.use("/api/v1", medicationLogRoutes);
