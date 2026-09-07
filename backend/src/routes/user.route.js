@@ -3,22 +3,47 @@
 const express = require("express");
 
 const {
+    requestOtp,
+    verifyOtp,
     registerUser,
     loginUser,
+    forgotPassword,
+    resetPassword,
 } = require("../controllers/user.controller");
 
-const requireAuth = require("../middlewares/requireAuth");
 const validate = require("../middlewares/validate");
 
 const {
+    requestOtpSchema,
+    verifyOtpSchema,
     registerUserSchema,
     loginUserSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
 } = require("../validations/user.validation");
+
+const requireAuth = require("../middlewares/requireAuth");
 
 const router = express.Router();
 
 // ------------------------------------------------------------
-// Public authentication endpoints
+// OTP
+// ------------------------------------------------------------
+
+router.post(
+    "/request-otp",
+    validate(requestOtpSchema),
+    requestOtp
+);
+
+router.post(
+    "/verify-otp",
+    validate(verifyOtpSchema),
+    verifyOtp
+);
+
+// ------------------------------------------------------------
+// Registration / Login
 // ------------------------------------------------------------
 
 router.post(
@@ -34,7 +59,23 @@ router.post(
 );
 
 // ------------------------------------------------------------
-// Protected authentication endpoint
+// Password recovery
+// ------------------------------------------------------------
+
+router.post(
+    "/forgot-password",
+    validate(forgotPasswordSchema),
+    forgotPassword
+);
+
+router.post(
+    "/reset-password",
+    validate(resetPasswordSchema),
+    resetPassword
+);
+
+// ------------------------------------------------------------
+// Authenticated user
 // ------------------------------------------------------------
 
 router.get(
@@ -43,7 +84,8 @@ router.get(
     (req, res) => {
         return res.status(200).json({
             success: true,
-            message: "Authorized user access granted.",
+            message:
+                "Authorized user access granted.",
             data: {
                 user: req.user,
             },
