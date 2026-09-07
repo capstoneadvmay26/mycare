@@ -1,88 +1,40 @@
-// Validates registration payload fields.
-const validateRegister = (req, res, next) => {
-    const { name, email, phone, password } = req.body;
+// src/validations/user.validation.js
 
-    if (!name || !password) {
-        return res.status(400).json({
-            message: "Name and password are required.",
-        });
-    }
+const Joi = require("joi");
 
-    if (!email && !phone) {
-        return res.status(400).json({
-            message: "Either email or phone number is required.",
-        });
-    }
+const registerUserSchema = Joi.object({
+    name: Joi.string()
+        .trim()
+        .min(2)
+        .max(100)
+        .required(),
 
-    if (email && phone) {
-        return res.status(400).json({
-            message: "Provide either email or phone number, not both.",
-        });
-    }
+    email: Joi.string()
+        .trim()
+        .lowercase()
+        .email()
+        .required(),
 
-    if (password.length < 6) {
-        return res.status(400).json({
-            message: "Password must be at least 6 characters long.",
-        });
-    }
+    password: Joi.string()
+        .min(8)
+        .max(128)
+        .required(),
+}).required();
 
-    if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) {
-        return res.status(400).json({
-            message: "Phone number must be in international format, e.g. +2348012345678.",
-        });
-    }
+const loginUserSchema = Joi.object({
+    email: Joi.string()
+        .trim()
+        .lowercase()
+        .email()
+        .required(),
 
-    next();
-};
-
-// Validates login payload fields.
-const validateLogin = (req, res, next) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({
-            message: "Email and password are required.",
-        });
-    }
-
-    next();
-};
-
-// Validates OTP verification.
-const validateVerifyOtp = (req, res, next) => {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-        return res.status(400).json({
-            message: "Email and OTP are required.",
-        });
-    }
-
-    if (!/^\d{6}$/.test(otp)) {
-        return res.status(400).json({
-            message: "OTP must be a 6-digit number.",
-        });
-    }
-
-    next();
-};
-
-// Validates OTP resend.
-const validateResendOtp = (req, res, next) => {
-    const { email } = req.body;
-
-    if (!email) {
-        return res.status(400).json({
-            message: "Email or phone number is required.",
-        });
-    }
-
-    next();
-};
+    password: Joi.string()
+        .min(8)
+        .max(128)
+        .required(),
+}).required();
 
 module.exports = {
-    validateRegister,
-    validateLogin,
-    validateVerifyOtp,
-    validateResendOtp,
+    registerUserSchema,
+    loginUserSchema,
 };
