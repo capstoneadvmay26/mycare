@@ -1,8 +1,3 @@
-// MINIMAl bootstrap User model - only what's needed for Profiles/Medicatiions
-// to reference an owner and for tests to create real accounts. The
-// feature/auth branch may build this out further (e.g. phone, roles);
-// reconcile fiels names with that branch before merging to main.
-
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -12,16 +7,58 @@ const userSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
+
         email: {
             type: String,
-            required: true,
             unique: true,
+            sparse: true,
             lowercase: true,
             trim: true,
         },
+
+        phone: {
+            type: String,
+            unique: true,
+            sparse: true,
+            trim: true,
+        },
+
         password: {
             type: String,
-            required: true, // stored as a bcrypt hash, never a plain text
+            required: true,
+            select: false,
+        },
+
+        contactMethod: {
+            type: String,
+            enum: ["email", "phone"],
+            required: true,
+        },
+
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+
+        otpHash: {
+            type: String,
+            select: false,
+        },
+
+        otpExpiresAt: {
+            type: Date,
+            select: false,
+        },
+
+        otpAttempts: {
+            type: Number,
+            default: 0,
+            select: false,
+        },
+
+        otpLastSentAt: {
+            type: Date,
+            select: false,
         },
     },
     { timestamps: true }
