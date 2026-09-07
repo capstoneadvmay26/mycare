@@ -751,23 +751,19 @@ The user's selected contact method determines which service is used.
 
 # Email OTP
 
-The project uses the **Resend API** for email delivery.
+The project uses **Nodemailer with SMTP** for email delivery.
 
 The email utility uses:
 
-```text
-RESEND_API_KEY
+```env
+EMAIL_HOST=...
+EMAIL_PORT=587
+EMAIL_USER=...
+EMAIL_PASSWORD=...
+EMAIL_FROM=...
 ```
 
-The email sender is configured through the Resend account.
-
-Example:
-
-```javascript
-const { Resend } = require("resend");
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-```
+The `EMAIL_FROM` value is optional and defaults to `EMAIL_USER` when it is not set.
 
 OTP emails contain the verification code and its expiration information.
 
