@@ -11,9 +11,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
-  
-  "homepage": "https://capstoneadvmay26.github.io/mycare/",  
-  
+  "homepage": "https://capstoneadvmay26.github.io/mycare/",
   "dependencies": {
     "axios": "^1.19.0",
     "bootstrap": "^5.3.8",
