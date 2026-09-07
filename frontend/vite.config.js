@@ -45,7 +45,7 @@ export default defineConfig({
     })
   ],
 
-  // ✅ FIX: Set base to the subdirectory where files will be served
-  base: '/mycare/frontend/',
+ // ✅ THIS: Set base to the repository name
+  base: '/mycare/',  // <-- THIS IS THE KEY FIX
 
 })
