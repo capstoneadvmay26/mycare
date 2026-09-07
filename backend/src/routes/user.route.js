@@ -1,21 +1,54 @@
-const express = require('express');
+// src/routes/user.route.js
+
+const express = require("express");
+
+const {
+    registerUser,
+    loginUser,
+} = require("../controllers/user.controller");
+
+const requireAuth = require("../middlewares/requireAuth");
+const validate = require("../middlewares/validate");
+
+const {
+    registerUserSchema,
+    loginUserSchema,
+} = require("../validations/user.validation");
+
 const router = express.Router();
-const { registerUser, loginUser, verifyRegistrationOtp, resendRegistrationOtp, } = require('../controllers/user.controller');
-const { validateRegister, validateLogin, validateVerifyOtp, validateResendOtp } = require('../validations/user.validation');
-const requireAuth = require('../middlewares/requireAuth');
 
-// Public endpoints
-router.post('/register', validateRegister, registerUser);
-router.post('/login', validateLogin, loginUser);
-router.post("/verify-otp", validateVerifyOtp, verifyRegistrationOtp);
-router.post("/resend-otp", validateResendOtp, resendRegistrationOtp);
+// ------------------------------------------------------------
+// Public authentication endpoints
+// ------------------------------------------------------------
 
-// Protected endpoint sample (verifies auth middleware)
-router.get('/me', requireAuth, (req, res) => {
-  res.status(200).json({
-    message: 'Authorized user access granted.',
-    user: req.user,
-  });
-});
+router.post(
+    "/register",
+    validate(registerUserSchema),
+    registerUser
+);
+
+router.post(
+    "/login",
+    validate(loginUserSchema),
+    loginUser
+);
+
+// ------------------------------------------------------------
+// Protected authentication endpoint
+// ------------------------------------------------------------
+
+router.get(
+    "/me",
+    requireAuth,
+    (req, res) => {
+        return res.status(200).json({
+            success: true,
+            message: "Authorized user access granted.",
+            data: {
+                user: req.user,
+            },
+        });
+    }
+);
 
 module.exports = router;
