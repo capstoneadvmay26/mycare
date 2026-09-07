@@ -1,14 +1,19 @@
 const crypto = require("crypto");
 
 /**
- * Generates a random 6-digit OTP.
+ * Generate a cryptographically secure six-digit OTP.
+ *
+ * @returns {string}
  */
 const generateOtp = () => {
     return crypto.randomInt(100000, 1000000).toString();
 };
 
 /**
- * Creates a SHA-256 hash of the OTP.
+ * Hash an OTP before persistence.
+ *
+ * @param {string} otp
+ * @returns {string}
  */
 const hashOtp = (otp) => {
     return crypto
@@ -18,14 +23,39 @@ const hashOtp = (otp) => {
 };
 
 /**
- * Checks whether an OTP matches its stored hash.
+ * Compare an OTP against its stored SHA-256 hash.
+ *
+ * @param {string} otp
+ * @param {string} storedHash
+ * @returns {boolean}
  */
 const verifyOtp = (otp, storedHash) => {
-    const otpHash = hashOtp(otp);
+    if (
+        typeof otp !== "string" ||
+        typeof storedHash !== "string"
+    ) {
+        return false;
+    }
+
+    const calculatedHash = hashOtp(otp);
+
+    const calculatedBuffer = Buffer.from(
+        calculatedHash,
+        "utf8"
+    );
+
+    const storedBuffer = Buffer.from(
+        storedHash,
+        "utf8"
+    );
+
+    if (calculatedBuffer.length !== storedBuffer.length) {
+        return false;
+    }
 
     return crypto.timingSafeEqual(
-        Buffer.from(otpHash),
-        Buffer.from(storedHash)
+        calculatedBuffer,
+        storedBuffer
     );
 };
 
