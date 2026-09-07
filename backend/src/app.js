@@ -33,7 +33,7 @@ app.use(express.json());
 // Routes
 // ------------------------------------------------------------
 
-app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profiles", profileRoutes);
 
 app.use("/api/v1", medicationLogRoutes);
