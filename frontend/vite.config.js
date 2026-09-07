@@ -1,4 +1,5 @@
 /*
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -10,7 +11,7 @@ export default defineConfig({
 })
 */
 
-// frontend/vite.config.js
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -43,6 +44,8 @@ export default defineConfig({
       }
     })
   ],
+
   // ✅ FIX: Set base to the subdirectory where files will be served
   base: '/mycare/frontend/',
+
 })
