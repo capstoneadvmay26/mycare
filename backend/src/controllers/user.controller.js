@@ -10,7 +10,6 @@ const {
     hashPassword,
     comparePassword,
 } = require("../utils/bcrypt");
-const OtpVerification = require("../models/otpVerification.model");
 
 const {
     hashPassword,
