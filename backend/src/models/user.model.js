@@ -1,6 +1,7 @@
 // src/models/user.model.js
 
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema(
     {
@@ -12,18 +13,17 @@ const userSchema = new mongoose.Schema(
             maxlength: 100,
         },
 
-        email: {
+        full_name: {
             type: String,
-            unique: true,
-            sparse: true,
-            lowercase: true,
+            required: true,
             trim: true,
         },
 
-        phone: {
+        email: {
             type: String,
+            required: true,
             unique: true,
-            sparse: true,
+            lowercase: true,
             trim: true,
         },
 
@@ -67,4 +67,6 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports =
+    mongoose.models.User ||
+    mongoose.model("User", userSchema);

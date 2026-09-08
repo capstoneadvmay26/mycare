@@ -124,11 +124,13 @@ const resetPasswordSchema = Joi.object({
         .trim()
         .required(),
 
-    new_password: Joi.string()
-        .min(8)
-        .max(128)
-        .required(),
-}).required();
+  new_password: Joi.string()
+    .min(8)
+    .max(128)
+    .required(),
+})
+  .required()
+  .unknown(false);
 
 module.exports = {
     registerUserSchema,
