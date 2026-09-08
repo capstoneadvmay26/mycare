@@ -3,28 +3,27 @@
 /**
  * OTP delivery utilities.
  *
- * Email delivery uses Resend's HTTP API instead of SMTP.
- * This avoids SMTP connection timeouts on Render Free.
+ * Email delivery uses Brevo's HTTP API.
+ * SMS delivery uses Brevo's HTTP API.
  *
  * Required email environment variables:
- * - RESEND_API_KEY
- * - EMAIL_FROM
+ * - BREVO_API_KEY
+ * - BREVO_FROM_EMAIL
+ * - BREVO_FROM_NAME
  *
- * Required SMS environment variables:
- * - TWILIO_ACCOUNT_SID
- * - TWILIO_AUTH_TOKEN
- * - TWILIO_PHONE_NUMBER
+ * Required SMS environment variable:
+ * - BREVO_SMS_SENDER
  */
 
-const RESEND_API_URL = "https://api.resend.com/emails";
+const BREVO_EMAIL_API_URL =
+    "https://api.brevo.com/v3/smtp/email";
+
+const BREVO_SMS_API_URL =
+    "https://api.brevo.com/v3/transactionalSMS/send";
+
 
 /**
  * Creates a standard application error.
- *
- * @param {string} message
- * @param {number} statusCode
- * @param {string} code
- * @returns {Error}
  */
 const createOtpError = (
     message,
@@ -39,24 +38,28 @@ const createOtpError = (
     return error;
 };
 
+
 /**
- * Sends an OTP email through the Resend HTTP API.
- *
- * @param {string} email - Recipient email address.
- * @param {string} otp - Six-digit OTP.
- * @returns {Promise<void>}
+ * Sends OTP by email using Brevo's HTTP API.
  */
 const sendEmailOtp = async (
     email,
     otp
 ) => {
     const apiKey =
-        process.env.RESEND_API_KEY;
+        process.env.BREVO_API_KEY;
 
-    const from =
-        process.env.EMAIL_FROM;
+    const fromEmail =
+        process.env.BREVO_FROM_EMAIL;
 
-    if (!apiKey || !from) {
+    const fromName =
+        process.env.BREVO_FROM_NAME;
+
+    if (
+        !apiKey ||
+        !fromEmail ||
+        !fromName
+    ) {
         throw createOtpError(
             "Email OTP service is not configured.",
             503,
@@ -83,24 +86,44 @@ const sendEmailOtp = async (
     try {
         const response =
             await fetch(
-                RESEND_API_URL,
+                BREVO_EMAIL_API_URL,
                 {
                     method: "POST",
+
                     headers: {
-                        Authorization:
-                            `Bearer ${apiKey}`,
+                        accept:
+                            "application/json",
+
+                        "api-key":
+                            apiKey,
+
                         "Content-Type":
                             "application/json",
                     },
+
                     body: JSON.stringify({
-                        from,
-                        to: [email],
+                        sender: {
+                            name:
+                                fromName,
+
+                            email:
+                                fromEmail,
+                        },
+
+                        to: [
+                            {
+                                email,
+                            },
+                        ],
+
                         subject:
-                            "Your MY CARE verification code",
-                        text:
+                            "MY CARE - Verification Code",
+
+                        textContent:
                             `Your MY CARE verification code is ${otp}. ` +
                             "It expires in 10 minutes.",
-                        html: `
+
+                        htmlContent: `
                             <div style="font-family: Arial, sans-serif; line-height: 1.6;">
                                 <h2>MY CARE Verification Code</h2>
 
@@ -129,6 +152,7 @@ const sendEmailOtp = async (
                             </div>
                         `,
                     }),
+
                     signal:
                         controller.signal,
                 }
@@ -151,7 +175,7 @@ const sendEmailOtp = async (
         if (!response.ok) {
             const providerMessage =
                 responseBody?.message ||
-                responseBody?.error ||
+                responseBody?.code ||
                 responseText ||
                 "Unknown email provider error.";
 
@@ -162,13 +186,19 @@ const sendEmailOtp = async (
             );
         }
 
-        if (!responseBody?.id) {
+        if (!responseBody?.messageId) {
             throw createOtpError(
-                "Email provider accepted the request without returning a message ID.",
+                "Brevo accepted the request without returning a message ID.",
                 503,
                 "OTP_DELIVERY_FAILED"
             );
         }
+
+        console.log(
+            "OTP email accepted by Brevo:",
+            responseBody.messageId
+        );
+
     } catch (error) {
         if (
             error?.name ===
@@ -193,35 +223,29 @@ const sendEmailOtp = async (
             503,
             "OTP_DELIVERY_FAILED"
         );
+
     } finally {
         clearTimeout(timeout);
     }
 };
 
+
 /**
- * Sends an OTP SMS through Twilio's HTTP API.
- *
- * @param {string} phone - Recipient phone number.
- * @param {string} otp - Six-digit OTP.
- * @returns {Promise<void>}
+ * Sends OTP by SMS using Brevo's HTTP API.
  */
 const sendSmsOtp = async (
     phone,
     otp
 ) => {
-    const accountSid =
-        process.env.TWILIO_ACCOUNT_SID;
+    const apiKey =
+        process.env.BREVO_API_KEY;
 
-    const authToken =
-        process.env.TWILIO_AUTH_TOKEN;
-
-    const fromNumber =
-        process.env.TWILIO_PHONE_NUMBER;
+    const sender =
+        process.env.BREVO_SMS_SENDER;
 
     if (
-        !accountSid ||
-        !authToken ||
-        !fromNumber
+        !apiKey ||
+        !sender
     ) {
         throw createOtpError(
             "SMS OTP service is not configured.",
@@ -238,22 +262,6 @@ const sendSmsOtp = async (
         );
     }
 
-    const credentials =
-        Buffer
-            .from(
-                `${accountSid}:${authToken}`
-            )
-            .toString("base64");
-
-    const body =
-        new URLSearchParams({
-            From: fromNumber,
-            To: phone,
-            Body:
-                `Your MY CARE verification code is ${otp}. ` +
-                "It expires in 10 minutes.",
-        });
-
     const controller =
         new AbortController();
 
@@ -265,16 +273,35 @@ const sendSmsOtp = async (
     try {
         const response =
             await fetch(
-                `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+                BREVO_SMS_API_URL,
                 {
                     method: "POST",
+
                     headers: {
-                        Authorization:
-                            `Basic ${credentials}`,
+                        accept:
+                            "application/json",
+
+                        "api-key":
+                            apiKey,
+
                         "Content-Type":
-                            "application/x-www-form-urlencoded",
+                            "application/json",
                     },
-                    body,
+
+                    body: JSON.stringify({
+                        sender,
+
+                        recipient:
+                            phone,
+
+                        content:
+                            `Your MY CARE verification code is ${otp}. ` +
+                            "It expires in 10 minutes.",
+
+                        type:
+                            "transactional",
+                    }),
+
                     signal:
                         controller.signal,
                 }
@@ -283,13 +310,44 @@ const sendSmsOtp = async (
         const responseText =
             await response.text();
 
+        let responseBody = null;
+
+        try {
+            responseBody =
+                responseText
+                    ? JSON.parse(responseText)
+                    : null;
+        } catch {
+            responseBody = null;
+        }
+
         if (!response.ok) {
+            const providerMessage =
+                responseBody?.message ||
+                responseBody?.code ||
+                responseText ||
+                "Unknown SMS provider error.";
+
             throw createOtpError(
-                `SMS OTP delivery failed: ${responseText}`,
+                `SMS OTP delivery failed: ${providerMessage}`,
                 503,
                 "OTP_DELIVERY_FAILED"
             );
         }
+
+        if (!responseBody?.messageId) {
+            throw createOtpError(
+                "Brevo accepted the SMS request without returning a message ID.",
+                503,
+                "OTP_DELIVERY_FAILED"
+            );
+        }
+
+        console.log(
+            "OTP SMS accepted by Brevo:",
+            responseBody.messageId
+        );
+
     } catch (error) {
         if (
             error?.name ===
@@ -314,19 +372,24 @@ const sendSmsOtp = async (
             503,
             "OTP_DELIVERY_FAILED"
         );
+
     } finally {
         clearTimeout(timeout);
     }
 };
 
+
 /**
- * Sends an OTP using the requested delivery method.
+ * Sends OTP using the method and identifier
+ * supplied by the authentication controller.
  *
- * @param {Object} params
- * @param {"email"|"phone"} params.method
- * @param {string} params.identifier
- * @param {string} params.otp
- * @returns {Promise<void>}
+ * Email:
+ * method = "email"
+ * identifier = email address
+ *
+ * Phone:
+ * method = "phone"
+ * identifier = phone number
  */
 const sendOtp = async ({
     method,
@@ -357,6 +420,7 @@ const sendOtp = async ({
         "INVALID_OTP_METHOD"
     );
 };
+
 
 module.exports = {
     sendEmailOtp,

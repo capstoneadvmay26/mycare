@@ -2,12 +2,14 @@
 
 const Joi = require("joi");
 
+// Email or phone identifier.
 const identifierSchema = Joi.string()
     .trim()
     .min(3)
     .max(254)
     .required();
 
+// Registration validation.
 const registerUserSchema = Joi.object({
     full_name: Joi.string()
         .trim()
@@ -38,8 +40,11 @@ const registerUserSchema = Joi.object({
         .required(),
 }).required();
 
+// Login validation.
 const loginUserSchema = Joi.object({
-    identifier: identifierSchema,
+
+    identifier:
+        identifierSchema,
 
     password: Joi.string()
         .min(8)
@@ -47,9 +52,13 @@ const loginUserSchema = Joi.object({
         .required(),
 }).required();
 
+// Request OTP validation.
 const requestOtpSchema = Joi.object({
     method: Joi.string()
-        .valid("email", "phone")
+        .valid(
+            "email",
+            "phone"
+        )
         .required(),
 
     email: Joi.when("method", {
@@ -59,36 +68,58 @@ const requestOtpSchema = Joi.object({
             .lowercase()
             .email()
             .required(),
-        otherwise: Joi.forbidden(),
+        otherwise:
+            Joi.forbidden(),
+
     }),
 
     phone: Joi.when("method", {
         is: "phone",
         then: Joi.string()
             .trim()
-            .pattern(/^\+[1-9]\d{7,14}$/)
+            .pattern(
+                /^\+[1-9]\d{7,14}$/
+            )
             .required(),
-        otherwise: Joi.forbidden(),
+
+        otherwise:
+            Joi.forbidden(),
+
     }),
 }).required();
 
+// Verify OTP validation.
 const verifyOtpSchema = Joi.object({
+
     method: Joi.string()
-        .valid("email", "phone")
+        .valid(
+            "email",
+            "phone"
+        )
         .required(),
 
-    identifier: identifierSchema,
+    identifier:
+        identifierSchema,
 
     otp: Joi.string()
-        .pattern(/^\d{6}$/)
+        .pattern(
+            /^\d{6}$/
+        )
         .required(),
+
 }).required();
 
+// Forgot password validation.
 const forgotPasswordSchema = Joi.object({
-    identifier: identifierSchema,
+
+    identifier:
+        identifierSchema,
+
 }).required();
 
+// Reset password validation.
 const resetPasswordSchema = Joi.object({
+
     token: Joi.string()
         .trim()
         .required(),

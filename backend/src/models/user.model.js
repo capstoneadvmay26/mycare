@@ -1,11 +1,15 @@
+// src/models/user.model.js
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
     {
-        name: {
+        full_name: {
             type: String,
             required: true,
             trim: true,
+            minlength: 2,
+            maxlength: 100,
         },
 
         email: {
@@ -40,28 +44,27 @@ const userSchema = new mongoose.Schema(
             default: false,
         },
 
-        otpHash: {
+        date_of_birth: {
+            type: Date,
+        },
+
+        gender: {
             type: String,
-            select: false,
-        },
-
-        otpExpiresAt: {
-            type: Date,
-            select: false,
-        },
-
-        otpAttempts: {
-            type: Number,
-            default: 0,
-            select: false,
-        },
-
-        otpLastSentAt: {
-            type: Date,
-            select: false,
+            enum: [
+                "Male",
+                "Female",
+                "Other",
+                "Prefer not to say",
+                "male",
+                "female",
+                "other",
+                "prefer_not_to_say",
+            ],
         },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
 
 module.exports = mongoose.model("User", userSchema);
