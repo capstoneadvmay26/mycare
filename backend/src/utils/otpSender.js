@@ -1,91 +1,365 @@
 // src/utils/otpSender.js
 
-const nodemailer = require("nodemailer");
+/**
+ * OTP delivery utilities.
+ *
+ * Email delivery uses Resend's HTTP API instead of SMTP.
+ * This avoids SMTP connection timeouts on Render Free.
+ *
+ * Required email environment variables:
+ * - RESEND_API_KEY
+ * - EMAIL_FROM
+ *
+ * Required SMS environment variables:
+ * - TWILIO_ACCOUNT_SID
+ * - TWILIO_AUTH_TOKEN
+ * - TWILIO_PHONE_NUMBER
+ */
 
-const getEmailTransporter = () => {
-    const {
-        EMAIL_HOST,
-        EMAIL_PORT,
-        EMAIL_USER,
-        EMAIL_PASSWORD,
-    } = process.env;
+const RESEND_API_URL = "https://api.resend.com/emails";
 
-    if (
-        !EMAIL_HOST ||
-        !EMAIL_USER ||
-        !EMAIL_PASSWORD
-    ) {
-        throw new Error(
-            "Email OTP delivery is not configured. Set EMAIL_HOST, EMAIL_PORT, EMAIL_USER and EMAIL_PASSWORD."
-        );
-    }
+/**
+ * Creates a standard application error.
+ *
+ * @param {string} message
+ * @param {number} statusCode
+ * @param {string} code
+ * @returns {Error}
+ */
+const createOtpError = (
+    message,
+    statusCode,
+    code
+) => {
+    const error = new Error(message);
 
-    return nodemailer.createTransport({
-        host: EMAIL_HOST,
-        port: Number(EMAIL_PORT || 587),
-        secure: Number(EMAIL_PORT || 587) === 465,
-        auth: {
-            user: EMAIL_USER,
-            pass: EMAIL_PASSWORD,
-        },
-    });
+    error.statusCode = statusCode;
+    error.code = code;
+
+    return error;
 };
 
 /**
- * Send an OTP through the configured channel.
+ * Sends an OTP email through the Resend HTTP API.
  *
- * Phone delivery is intentionally rejected until an SMS provider
- * is configured. We must not claim an OTP was sent when no
- * delivery mechanism exists.
+ * @param {string} email - Recipient email address.
+ * @param {string} otp - Six-digit OTP.
+ * @returns {Promise<void>}
+ */
+const sendEmailOtp = async (
+    email,
+    otp
+) => {
+    const apiKey =
+        process.env.RESEND_API_KEY;
+
+    const from =
+        process.env.EMAIL_FROM;
+
+    if (!apiKey || !from) {
+        throw createOtpError(
+            "Email OTP service is not configured.",
+            503,
+            "OTP_DELIVERY_NOT_CONFIGURED"
+        );
+    }
+
+    if (!email || !otp) {
+        throw createOtpError(
+            "Email OTP recipient and code are required.",
+            400,
+            "INVALID_OTP_DELIVERY_REQUEST"
+        );
+    }
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(() => {
+            controller.abort();
+        }, 10000);
+
+    try {
+        const response =
+            await fetch(
+                RESEND_API_URL,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization:
+                            `Bearer ${apiKey}`,
+                        "Content-Type":
+                            "application/json",
+                    },
+                    body: JSON.stringify({
+                        from,
+                        to: [email],
+                        subject:
+                            "Your MY CARE verification code",
+                        text:
+                            `Your MY CARE verification code is ${otp}. ` +
+                            "It expires in 10 minutes.",
+                        html: `
+                            <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                                <h2>MY CARE Verification Code</h2>
+
+                                <p>
+                                    Your verification code is:
+                                </p>
+
+                                <p
+                                    style="
+                                        font-size: 32px;
+                                        font-weight: bold;
+                                        letter-spacing: 8px;
+                                    "
+                                >
+                                    ${otp}
+                                </p>
+
+                                <p>
+                                    This code expires in 10 minutes.
+                                </p>
+
+                                <p>
+                                    If you did not request this code,
+                                    you can safely ignore this email.
+                                </p>
+                            </div>
+                        `,
+                    }),
+                    signal:
+                        controller.signal,
+                }
+            );
+
+        const responseText =
+            await response.text();
+
+        let responseBody = null;
+
+        try {
+            responseBody =
+                responseText
+                    ? JSON.parse(responseText)
+                    : null;
+        } catch {
+            responseBody = null;
+        }
+
+        if (!response.ok) {
+            const providerMessage =
+                responseBody?.message ||
+                responseBody?.error ||
+                responseText ||
+                "Unknown email provider error.";
+
+            throw createOtpError(
+                `Email OTP delivery failed: ${providerMessage}`,
+                503,
+                "OTP_DELIVERY_FAILED"
+            );
+        }
+
+        if (!responseBody?.id) {
+            throw createOtpError(
+                "Email provider accepted the request without returning a message ID.",
+                503,
+                "OTP_DELIVERY_FAILED"
+            );
+        }
+    } catch (error) {
+        if (
+            error?.name ===
+            "AbortError"
+        ) {
+            throw createOtpError(
+                "Email OTP provider request timed out.",
+                503,
+                "OTP_DELIVERY_TIMEOUT"
+            );
+        }
+
+        if (
+            error?.code &&
+            error.code.startsWith("OTP_")
+        ) {
+            throw error;
+        }
+
+        throw createOtpError(
+            `Email OTP delivery failed: ${error.message}`,
+            503,
+            "OTP_DELIVERY_FAILED"
+        );
+    } finally {
+        clearTimeout(timeout);
+    }
+};
+
+/**
+ * Sends an OTP SMS through Twilio's HTTP API.
  *
- * @param {{
- *   method: string,
- *   identifier: string,
- *   otp: string
- * }} params
+ * @param {string} phone - Recipient phone number.
+ * @param {string} otp - Six-digit OTP.
+ * @returns {Promise<void>}
+ */
+const sendSmsOtp = async (
+    phone,
+    otp
+) => {
+    const accountSid =
+        process.env.TWILIO_ACCOUNT_SID;
+
+    const authToken =
+        process.env.TWILIO_AUTH_TOKEN;
+
+    const fromNumber =
+        process.env.TWILIO_PHONE_NUMBER;
+
+    if (
+        !accountSid ||
+        !authToken ||
+        !fromNumber
+    ) {
+        throw createOtpError(
+            "SMS OTP service is not configured.",
+            503,
+            "OTP_DELIVERY_NOT_CONFIGURED"
+        );
+    }
+
+    if (!phone || !otp) {
+        throw createOtpError(
+            "SMS OTP recipient and code are required.",
+            400,
+            "INVALID_OTP_DELIVERY_REQUEST"
+        );
+    }
+
+    const credentials =
+        Buffer
+            .from(
+                `${accountSid}:${authToken}`
+            )
+            .toString("base64");
+
+    const body =
+        new URLSearchParams({
+            From: fromNumber,
+            To: phone,
+            Body:
+                `Your MY CARE verification code is ${otp}. ` +
+                "It expires in 10 minutes.",
+        });
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(() => {
+            controller.abort();
+        }, 10000);
+
+    try {
+        const response =
+            await fetch(
+                `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization:
+                            `Basic ${credentials}`,
+                        "Content-Type":
+                            "application/x-www-form-urlencoded",
+                    },
+                    body,
+                    signal:
+                        controller.signal,
+                }
+            );
+
+        const responseText =
+            await response.text();
+
+        if (!response.ok) {
+            throw createOtpError(
+                `SMS OTP delivery failed: ${responseText}`,
+                503,
+                "OTP_DELIVERY_FAILED"
+            );
+        }
+    } catch (error) {
+        if (
+            error?.name ===
+            "AbortError"
+        ) {
+            throw createOtpError(
+                "SMS OTP provider request timed out.",
+                503,
+                "OTP_DELIVERY_TIMEOUT"
+            );
+        }
+
+        if (
+            error?.code &&
+            error.code.startsWith("OTP_")
+        ) {
+            throw error;
+        }
+
+        throw createOtpError(
+            `SMS OTP delivery failed: ${error.message}`,
+            503,
+            "OTP_DELIVERY_FAILED"
+        );
+    } finally {
+        clearTimeout(timeout);
+    }
+};
+
+/**
+ * Sends an OTP using the requested delivery method.
+ *
+ * @param {Object} params
+ * @param {"email"|"phone"} params.method
+ * @param {string} params.identifier
+ * @param {string} params.otp
+ * @returns {Promise<void>}
  */
 const sendOtp = async ({
     method,
     identifier,
     otp,
 }) => {
+    if (method === "email") {
+        await sendEmailOtp(
+            identifier,
+            otp
+        );
+
+        return;
+    }
+
     if (method === "phone") {
-        throw new Error(
-            "Phone OTP delivery is not configured."
+        await sendSmsOtp(
+            identifier,
+            otp
         );
+
+        return;
     }
 
-    if (method !== "email") {
-        throw new Error(
-            "Unsupported OTP delivery method."
-        );
-    }
-
-    const transporter = getEmailTransporter();
-
-    await transporter.sendMail({
-        from:
-            process.env.EMAIL_FROM ||
-            process.env.EMAIL_USER,
-        to: identifier,
-        subject: "MYCARE verification code",
-        text: [
-            "Your MYCARE verification code is:",
-            "",
-            otp,
-            "",
-            "This code expires in 10 minutes.",
-            "If you did not request this code, ignore this email.",
-        ].join("\n"),
-        html: `
-            <p>Your MYCARE verification code is:</p>
-            <h2>${otp}</h2>
-            <p>This code expires in 10 minutes.</p>
-            <p>If you did not request this code, ignore this email.</p>
-        `,
-    });
+    throw createOtpError(
+        "Invalid OTP delivery method.",
+        400,
+        "INVALID_OTP_METHOD"
+    );
 };
 
 module.exports = {
+    sendEmailOtp,
+    sendSmsOtp,
     sendOtp,
 };

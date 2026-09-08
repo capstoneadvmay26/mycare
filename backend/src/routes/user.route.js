@@ -3,94 +3,78 @@
 const express = require("express");
 
 const {
-    requestOtp,
-    verifyOtp,
-    registerUser,
-    loginUser,
-    forgotPassword,
-    resetPassword,
+  requestOtp,
+  verifyOtp,
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
 } = require("../controllers/user.controller");
 
 const validate = require("../middlewares/validate");
 
 const {
-    requestOtpSchema,
-    verifyOtpSchema,
-    registerUserSchema,
-    loginUserSchema,
-    forgotPasswordSchema,
-    resetPasswordSchema,
+  requestOtpSchema,
+  verifyOtpSchema,
+  registerUserSchema,
+  loginUserSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } = require("../validations/user.validation");
-
-const requireAuth = require("../middlewares/requireAuth");
 
 const router = express.Router();
 
-// ------------------------------------------------------------
-// OTP
-// ------------------------------------------------------------
-
+/**
+ * OTP
+ *
+ * Public onboarding endpoints.
+ */
 router.post(
-    "/request-otp",
-    validate(requestOtpSchema),
-    requestOtp
+  "/request-otp",
+  validate(requestOtpSchema),
+  requestOtp
 );
 
 router.post(
-    "/verify-otp",
-    validate(verifyOtpSchema),
-    verifyOtp
+  "/verify-otp",
+  validate(verifyOtpSchema),
+  verifyOtp
 );
 
-// ------------------------------------------------------------
-// Registration / Login
-// ------------------------------------------------------------
+/**
+ * Registration
+ *
+ * Requires the temporary registration JWT returned
+ * by successful OTP verification.
+ */
+router.post(
+  "/register",
+  validate(registerUserSchema),
+  registerUser
+);
+
+/**
+ * Standard login.
+ */
+router.post(
+  "/login",
+  validate(loginUserSchema),
+  loginUser
+);
+
+/**
+ * Password recovery.
+ */
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema),
+  forgotPassword
+);
 
 router.post(
-    "/register",
-    validate(registerUserSchema),
-    registerUser
-);
-
-router.post(
-    "/login",
-    validate(loginUserSchema),
-    loginUser
-);
-
-// ------------------------------------------------------------
-// Password recovery
-// ------------------------------------------------------------
-
-router.post(
-    "/forgot-password",
-    validate(forgotPasswordSchema),
-    forgotPassword
-);
-
-router.post(
-    "/reset-password",
-    validate(resetPasswordSchema),
-    resetPassword
-);
-
-// ------------------------------------------------------------
-// Authenticated user
-// ------------------------------------------------------------
-
-router.get(
-    "/me",
-    requireAuth,
-    (req, res) => {
-        return res.status(200).json({
-            success: true,
-            message:
-                "Authorized user access granted.",
-            data: {
-                user: req.user,
-            },
-        });
-    }
+  "/reset-password",
+  validate(resetPasswordSchema),
+  resetPassword
 );
 
 module.exports = router;
