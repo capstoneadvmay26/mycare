@@ -14,7 +14,7 @@ const {
 const {
     generateOtp,
     hashOtp,
-    verifyOtp,
+    verifyOtp: verifyOtpCode,
 } = require("../utils/otp");
 
 const {
@@ -381,7 +381,7 @@ const verifyOtp = async (
         }
 
         const valid =
-            verifyOtp(
+            verifyOtpCode(
                 otp,
                 verification.otp_hash
             );
