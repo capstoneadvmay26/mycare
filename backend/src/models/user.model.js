@@ -5,9 +5,12 @@ const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema(
     {
-        _id: {
+        full_name: {
             type: String,
-            default: () => crypto.randomUUID(),
+            required: true,
+            trim: true,
+            minlength: 2,
+            maxlength: 100,
         },
 
         full_name: {
@@ -29,10 +32,38 @@ const userSchema = new mongoose.Schema(
             required: true,
             select: false,
         },
+
+        contactMethod: {
+            type: String,
+            enum: ["email", "phone"],
+            required: true,
+        },
+
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+
+        date_of_birth: {
+            type: Date,
+        },
+
+        gender: {
+            type: String,
+            enum: [
+                "Male",
+                "Female",
+                "Other",
+                "Prefer not to say",
+                "male",
+                "female",
+                "other",
+                "prefer_not_to_say",
+            ],
+        },
     },
     {
         timestamps: true,
-        versionKey: false,
     }
 );
 
