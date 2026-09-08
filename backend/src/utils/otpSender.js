@@ -1,7 +1,5 @@
 // src/utils/otpSender.js
 
-// src/utils/otpSender.js
-
 const nodemailer = require("nodemailer");
 
 const createEmailTransporter = () => {
@@ -175,6 +173,7 @@ const sendOtp = async ({
 };
 
 module.exports = {
+    sendEmailOtp,
+    sendSmsOtp,
     sendOtp,
 };
-

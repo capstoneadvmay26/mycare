@@ -187,11 +187,11 @@ const requestOtp = async (
             existingVerification &&
             existingVerification.last_sent_at &&
             Date.now() -
-            existingVerification
-                .last_sent_at
-                .getTime() <
-            OTP_RESEND_COOLDOWN_SECONDS *
-            1000
+                existingVerification
+                    .last_sent_at
+                    .getTime() <
+                OTP_RESEND_COOLDOWN_SECONDS *
+                    1000
         ) {
             return res.status(429).json({
                 success: false,
@@ -207,9 +207,9 @@ const requestOtp = async (
         const expiresAt =
             new Date(
                 Date.now() +
-                OTP_EXPIRY_MINUTES *
-                60 *
-                1000
+                    OTP_EXPIRY_MINUTES *
+                    60 *
+                    1000
             );
 
         if (
@@ -502,7 +502,7 @@ const registerUser = async (
 
         if (
             decoded.purpose !==
-            "registration" ||
+                "registration" ||
             !decoded.method ||
             !decoded.identifier ||
             !decoded.verification_token_id
