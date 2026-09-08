@@ -14,7 +14,7 @@ const {
 const {
     generateOtp,
     hashOtp,
-    verifyOtp,
+    verifyOtp: verifyOtpCode,
 } = require("../utils/otp");
 
 const {
