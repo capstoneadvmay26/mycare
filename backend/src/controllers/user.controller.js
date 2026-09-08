@@ -10,6 +10,12 @@ const {
     hashPassword,
     comparePassword,
 } = require("../utils/bcrypt");
+const OtpVerification = require("../models/otpVerification.model");
+
+const {
+    hashPassword,
+    comparePassword,
+} = require("../utils/bcrypt");
 
 const {
     generateOtp,
@@ -33,7 +39,13 @@ const getJwtSecret = () => {
             "JWT_SECRET is not configured."
         );
     }
+    if (!process.env.JWT_SECRET) {
+        throw new Error(
+            "JWT_SECRET is not configured."
+        );
+    }
 
+    return process.env.JWT_SECRET;
     return process.env.JWT_SECRET;
 };
 
@@ -298,6 +310,12 @@ const requestOtp = async (
     } catch (error) {
         return next(error);
     }
+        return res.status(200).json({
+            success: true,
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 /**
@@ -352,6 +370,33 @@ const verifyOtp = async (
             });
         }
 
+        if (
+            verification.expires_at <=
+            new Date()
+        ) {
+            await OtpVerification.deleteOne({
+                _id: verification._id,
+            });
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "OTP has expired. Please request a new OTP.",
+                errors: {},
+            });
+        }
+
+        if (
+            verification.attempts >=
+            MAX_OTP_ATTEMPTS
+        ) {
+            return res.status(429).json({
+                success: false,
+                message:
+                    "Too many incorrect OTP attempts. Please request a new OTP.",
+                errors: {},
+            });
+        }
         if (
             verification.expires_at <=
             new Date()
@@ -568,6 +613,14 @@ const registerUser = async (
                 errors: {},
             });
         }
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "An account already exists with this identifier.",
+                errors: {},
+            });
+        }
 
         const user =
             await User.create({
@@ -612,6 +665,16 @@ const loginUser = async (
             identifier,
             password,
         } = req.body;
+const loginUser = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
+            identifier,
+            password,
+        } = req.body;
 
         const normalizedIdentifier =
             identifier
@@ -626,6 +689,14 @@ const loginUser = async (
                 "+password"
             );
 
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid credentials.",
+                errors: {},
+            });
+        }
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -682,6 +753,10 @@ const forgotPassword = async (
             identifier
                 .trim()
                 .toLowerCase();
+        const normalizedIdentifier =
+            identifier
+                .trim()
+                .toLowerCase();
 
         const user =
             await User.findOne({
@@ -721,6 +796,12 @@ const forgotPassword = async (
     } catch (error) {
         return next(error);
     }
+        return res.status(200).json({
+            success: true,
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 /**
@@ -736,7 +817,18 @@ const resetPassword = async (
             token,
             new_password,
         } = req.body;
+const resetPassword = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
+            token,
+            new_password,
+        } = req.body;
 
+        let decoded;
         let decoded;
 
         try {
@@ -770,7 +862,19 @@ const resetPassword = async (
             await User.findById(
                 decoded.id
             );
+        const user =
+            await User.findById(
+                decoded.id
+            );
 
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "User not found.",
+                errors: {},
+            });
+        }
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -784,9 +888,20 @@ const resetPassword = async (
             await hashPassword(
                 new_password
             );
+        user.password =
+            await hashPassword(
+                new_password
+            );
 
         await user.save();
+        await user.save();
 
+        return res.status(200).json({
+            success: true,
+        });
+    } catch (error) {
+        return next(error);
+    }
         return res.status(200).json({
             success: true,
         });
