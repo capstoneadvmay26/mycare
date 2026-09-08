@@ -1,8 +1,16 @@
+// src/models/user.model.js
+
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema(
     {
-        name: {
+        _id: {
+            type: String,
+            default: () => crypto.randomUUID(),
+        },
+
+        full_name: {
             type: String,
             required: true,
             trim: true,
@@ -10,16 +18,9 @@ const userSchema = new mongoose.Schema(
 
         email: {
             type: String,
+            required: true,
             unique: true,
-            sparse: true,
             lowercase: true,
-            trim: true,
-        },
-
-        phone: {
-            type: String,
-            unique: true,
-            sparse: true,
             trim: true,
         },
 
@@ -28,40 +29,13 @@ const userSchema = new mongoose.Schema(
             required: true,
             select: false,
         },
-
-        contactMethod: {
-            type: String,
-            enum: ["email", "phone"],
-            required: true,
-        },
-
-        isVerified: {
-            type: Boolean,
-            default: false,
-        },
-
-        otpHash: {
-            type: String,
-            select: false,
-        },
-
-        otpExpiresAt: {
-            type: Date,
-            select: false,
-        },
-
-        otpAttempts: {
-            type: Number,
-            default: 0,
-            select: false,
-        },
-
-        otpLastSentAt: {
-            type: Date,
-            select: false,
-        },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+        versionKey: false,
+    }
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports =
+    mongoose.models.User ||
+    mongoose.model("User", userSchema);
