@@ -231,7 +231,7 @@ https://mycare-backend-23oc.onrender.com/api/v1
 For example, the registration endpoint is:
 
 ```text
-POST https://mycare-backend-23oc.onrender.com/api/v1/users/register
+POST https://mycare-backend-23oc.onrender.com/api/v1/auth/register
 ```
 
 ---
@@ -285,19 +285,19 @@ User can log in
 ### Endpoint
 
 ```http
-POST /users/register
+POST /auth/register
 ```
 
 ### Full URL
 
 ```text
-http://localhost:5000/api/v1/users/register
+http://localhost:5000/api/v1/auth/register
 ```
 
 or:
 
 ```text
-https://mycare-backend-23oc.onrender.com/api/v1/users/register
+https://mycare-backend-23oc.onrender.com/api/v1/auth/register
 ```
 
 ### Request Body
@@ -333,7 +333,7 @@ The OTP is then submitted to the verification endpoint.
 ### Example
 
 ```http
-POST /users/verify-otp
+POST /auth/verify-otp
 ```
 
 The request body will contain the user's identifier and OTP according to the current authentication implementation.
@@ -363,7 +363,7 @@ If valid, the user is verified.
 ### Endpoint
 
 ```http
-POST /users/login
+POST /auth/login
 ```
 
 ### Example
@@ -396,7 +396,7 @@ The token should be used for protected endpoints.
 The API is organized into resources.
 
 ```text
-/api/v1/users
+/api/v1/auth
 /api/v1/profiles
 /api/v1/medications
 /api/v1/medication-logs
@@ -833,7 +833,7 @@ Example:
   "type": "http_request",
   "requestId": "REQUEST_ID",
   "method": "POST",
-  "path": "/api/v1/users/register",
+  "path": "/api/v1/auth/register",
   "statusCode": 200,
   "durationMs": 150
 }
@@ -872,7 +872,7 @@ A successful response indicates that the server is running.
 ## 3. Register
 
 ```http
-POST http://localhost:5000/api/v1/users/register
+POST http://localhost:5000/api/v1/auth/register
 ```
 
 Body:
@@ -892,7 +892,7 @@ Body:
 Use the OTP received by email or SMS.
 
 ```http
-POST http://localhost:5000/api/v1/users/verify-otp
+POST http://localhost:5000/api/v1/auth/verify-otp
 ```
 
 Use the request format implemented by the authentication controller.
@@ -902,7 +902,7 @@ Use the request format implemented by the authentication controller.
 ## 5. Login
 
 ```http
-POST http://localhost:5000/api/v1/users/login
+POST http://localhost:5000/api/v1/auth/login
 ```
 
 Example:
@@ -1022,7 +1022,7 @@ https://mycare-backend-23oc.onrender.com/api/v1
 Registration:
 
 ```text
-https://mycare-backend-23oc.onrender.com/api/v1/users/register
+https://mycare-backend-23oc.onrender.com/api/v1/auth/register
 ```
 
 ---
@@ -1042,13 +1042,13 @@ The frontend should then append the appropriate endpoint.
 For example:
 
 ```text
-/api/v1/users/register
+/api/v1/auth/register
 ```
 
 becomes:
 
 ```text
-https://mycare-backend-23oc.onrender.com/api/v1/users/register
+https://mycare-backend-23oc.onrender.com/api/v1/auth/register
 ```
 
 ---

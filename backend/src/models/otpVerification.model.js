@@ -1,9 +1,15 @@
 // src/models/otpVerification.model.js
 
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 const otpVerificationSchema = new mongoose.Schema(
     {
+        _id: {
+            type: String,
+            default: () => crypto.randomUUID(),
+        },
+
         method: {
             type: String,
             enum: ["email", "phone"],
@@ -53,7 +59,6 @@ const otpVerificationSchema = new mongoose.Schema(
     }
 );
 
-// Automatically remove expired OTP records.
 otpVerificationSchema.index(
     { expires_at: 1 },
     { expireAfterSeconds: 0 }

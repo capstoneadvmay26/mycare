@@ -11,7 +11,8 @@ const {
     resetPassword,
 } = require("../controllers/user.controller");
 
-const validate = require("../middlewares/validate");
+const validate =
+    require("../middlewares/validate");
 
 const {
     requestOtpSchema,
@@ -22,9 +23,11 @@ const {
     resetPasswordSchema,
 } = require("../validations/user.validation");
 
-const requireAuth = require("../middlewares/requireAuth");
+const requireAuth =
+    require("../middlewares/requireAuth");
 
-const router = express.Router();
+const router =
+    express.Router();
 
 // ------------------------------------------------------------
 // OTP
@@ -74,6 +77,28 @@ router.post(
     resetPassword
 );
 
+router.post(
+    "/login",
+    validate(loginUserSchema),
+    loginUser
+);
+
+// ------------------------------------------------------------
+// Password recovery
+// ------------------------------------------------------------
+
+router.post(
+    "/forgot-password",
+    validate(forgotPasswordSchema),
+    forgotPassword
+);
+
+router.post(
+    "/reset-password",
+    validate(resetPasswordSchema),
+    resetPassword
+);
+
 // ------------------------------------------------------------
 // Authenticated user
 // ------------------------------------------------------------
@@ -84,11 +109,7 @@ router.get(
     (req, res) => {
         return res.status(200).json({
             success: true,
-            message:
-                "Authorized user access granted.",
-            data: {
-                user: req.user,
-            },
+            user: req.user,
         });
     }
 );
