@@ -34,7 +34,6 @@ const otpVerificationSchema =
       expires_at: {
         type: Date,
         required: true,
-        index: true,
       },
 
       attempts: {
@@ -67,6 +66,9 @@ const otpVerificationSchema =
     }
   );
 
+/**
+ * One active OTP per method/identifier.
+ */
 otpVerificationSchema.index(
   {
     method: 1,
@@ -77,6 +79,13 @@ otpVerificationSchema.index(
   }
 );
 
+/**
+ * Automatically remove expired OTP records.
+ *
+ * expires_at is intentionally NOT declared with
+ * index: true above because this TTL index already
+ * creates the required MongoDB index.
+ */
 otpVerificationSchema.index(
   {
     expires_at: 1,
