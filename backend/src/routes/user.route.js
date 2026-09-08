@@ -77,28 +77,6 @@ router.post(
     resetPassword
 );
 
-router.post(
-    "/login",
-    validate(loginUserSchema),
-    loginUser
-);
-
-// ------------------------------------------------------------
-// Password recovery
-// ------------------------------------------------------------
-
-router.post(
-    "/forgot-password",
-    validate(forgotPasswordSchema),
-    forgotPassword
-);
-
-router.post(
-    "/reset-password",
-    validate(resetPasswordSchema),
-    resetPassword
-);
-
 // ------------------------------------------------------------
 // Authenticated user
 // ------------------------------------------------------------
