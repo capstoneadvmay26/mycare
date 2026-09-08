@@ -1,26 +1,96 @@
-const express = require('express');
-const router = express.Router();
-const { registerUser, loginUser, verifyRegistrationOtp, resendRegistrationOtp, } = require('../controllers/user.controller');
-const { validateRegister, validateLogin, validateVerifyOtp, validateResendOtp, loginUserSchema, registerUserSchema } = require('../validations/user.validation');
-const requireAuth = require('../middlewares/requireAuth');
-const { validate } = require('../models/otpVerification.model');
+// src/routes/user.route.js
 
-// Public endpoints
+const express = require("express");
+
+const {
+    requestOtp,
+    verifyOtp,
+    registerUser,
+    loginUser,
+    forgotPassword,
+    resetPassword,
+} = require("../controllers/user.controller");
+
+const validate = require("../middlewares/validate");
+
+const {
+    requestOtpSchema,
+    verifyOtpSchema,
+    registerUserSchema,
+    loginUserSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
+} = require("../validations/user.validation");
+
+const requireAuth = require("../middlewares/requireAuth");
+
+const router = express.Router();
+
+// ------------------------------------------------------------
+// OTP
+// ------------------------------------------------------------
+
+router.post(
+    "/request-otp",
+    validate(requestOtpSchema),
+    requestOtp
+);
+
+router.post(
+    "/verify-otp",
+    validate(verifyOtpSchema),
+    verifyOtp
+);
+
+// ------------------------------------------------------------
+// Registration / Login
+// ------------------------------------------------------------
+
 router.post(
     "/register",
     validate(registerUserSchema),
     registerUser
 );
-router.post('/login', validate(loginUserSchema), loginUser);
-router.post("/verify-otp", validateVerifyOtp, verifyRegistrationOtp);
-router.post("/resend-otp", validateResendOtp, resendRegistrationOtp);
 
-// Protected endpoint sample (verifies auth middleware)
-router.get('/me', requireAuth, (req, res) => {
-  res.status(200).json({
-    message: 'Authorized user access granted.',
-    user: req.user,
-  });
-});
+router.post(
+    "/login",
+    validate(loginUserSchema),
+    loginUser
+);
+
+// ------------------------------------------------------------
+// Password recovery
+// ------------------------------------------------------------
+
+router.post(
+    "/forgot-password",
+    validate(forgotPasswordSchema),
+    forgotPassword
+);
+
+router.post(
+    "/reset-password",
+    validate(resetPasswordSchema),
+    resetPassword
+);
+
+// ------------------------------------------------------------
+// Authenticated user
+// ------------------------------------------------------------
+
+router.get(
+    "/me",
+    requireAuth,
+    (req, res) => {
+        return res.status(200).json({
+            success: true,
+            message:
+                "Authorized user access granted.",
+            data: {
+                user: req.user,
+            },
+        });
+    }
+);
 
 module.exports = router;
