@@ -1,49 +1,112 @@
+// src/utils/otpSender.js
+
 const nodemailer = require("nodemailer");
 
-/**
- * Creates the email transporter.
- */
-const emailTransporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT || 587),
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-    },
-});
-/**
- * Sends OTP by email.
- */
-const sendEmailOtp = async (email, otp) => {
-    await emailTransporter.sendMail({
-        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-        to: email,
-        subject: "MY CARE - Verification Code",
-        text: `Your MY CARE verification code is ${otp}. It expires in 10 minutes.`,
+const createEmailTransporter = () => {
+    const {
+        EMAIL_HOST,
+        EMAIL_PORT,
+        EMAIL_USER,
+        EMAIL_PASSWORD,
+    } = process.env;
+
+    if (
+        !EMAIL_HOST ||
+        !EMAIL_USER ||
+        !EMAIL_PASSWORD
+    ) {
+        const error = new Error(
+            "Email OTP service is not configured."
+        );
+
+        error.statusCode = 503;
+        error.code = "OTP_DELIVERY_NOT_CONFIGURED";
+
+        throw error;
+    }
+
+    return nodemailer.createTransport({
+        host: EMAIL_HOST,
+        port: Number(EMAIL_PORT || 587),
+        secure:
+            Number(EMAIL_PORT || 587) === 465,
+        auth: {
+            user: EMAIL_USER,
+            pass: EMAIL_PASSWORD,
+        },
     });
 };
 
-/**
- * Sends OTP by SMS using Twilio.
- */
-const sendSmsOtp = async (phone, otp) => {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+const sendEmailOtp = async (
+    email,
+    otp
+) => {
+    const transporter =
+        createEmailTransporter();
 
-    if (!accountSid || !authToken || !fromNumber) {
-        throw new Error("SMS service is not configured.");
+    await transporter.sendMail({
+        from:
+            process.env.EMAIL_FROM ||
+            process.env.EMAIL_USER,
+
+        to: email,
+
+        subject:
+            "MY CARE - Verification Code",
+
+        text: [
+            "Your MY CARE verification code is:",
+            "",
+            otp,
+            "",
+            "This code expires in 10 minutes.",
+            "",
+            "If you did not request this code, ignore this email.",
+        ].join("\n"),
+    });
+};
+
+const sendSmsOtp = async (
+    phone,
+    otp
+) => {
+    const accountSid =
+        process.env.TWILIO_ACCOUNT_SID;
+
+    const authToken =
+        process.env.TWILIO_AUTH_TOKEN;
+
+    const fromNumber =
+        process.env.TWILIO_PHONE_NUMBER;
+
+    if (
+        !accountSid ||
+        !authToken ||
+        !fromNumber
+    ) {
+        const error = new Error(
+            "SMS OTP service is not configured."
+        );
+
+        error.statusCode = 503;
+        error.code =
+            "OTP_DELIVERY_NOT_CONFIGURED";
+
+        throw error;
     }
 
     const credentials = Buffer
-        .from(`${accountSid}:${authToken}`)
+        .from(
+            `${accountSid}:${authToken}`
+        )
         .toString("base64");
 
     const body = new URLSearchParams({
         From: fromNumber,
         To: phone,
-        Body: `Your MY CARE verification code is ${otp}. It expires in 10 minutes.`,
+        Body:
+            `Your MY CARE verification code is ${otp}. ` +
+            "It expires in 10 minutes.",
     });
 
     const response = await fetch(
@@ -51,34 +114,62 @@ const sendSmsOtp = async (phone, otp) => {
         {
             method: "POST",
             headers: {
-                Authorization: `Basic ${credentials}`,
-                "Content-Type": "application/x-www-form-urlencoded",
+                Authorization:
+                    `Basic ${credentials}`,
+                "Content-Type":
+                    "application/x-www-form-urlencoded",
             },
             body,
         }
     );
 
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`SMS service failed: ${errorText}`);
+        const responseText =
+            await response.text();
+
+        const error = new Error(
+            `SMS OTP delivery failed: ${responseText}`
+        );
+
+        error.statusCode = 503;
+        error.code =
+            "OTP_DELIVERY_FAILED";
+
+        throw error;
     }
 };
 
-/**
- * Sends OTP using the user's selected contact method.
- */
-const sendOtp = async ({ email, phone, contactMethod, otp }) => {
-    if (contactMethod === "email") {
-        await sendEmailOtp(email, otp);
+const sendOtp = async ({
+    method,
+    identifier,
+    otp,
+}) => {
+    if (method === "email") {
+        await sendEmailOtp(
+            identifier,
+            otp
+        );
+
         return;
     }
 
-    if (contactMethod === "phone") {
-        await sendSmsOtp(phone, otp);
+    if (method === "phone") {
+        await sendSmsOtp(
+            identifier,
+            otp
+        );
+
         return;
     }
 
-    throw new Error("Invalid OTP delivery method.");
+    const error = new Error(
+        "Invalid OTP delivery method."
+    );
+
+    error.statusCode = 400;
+    error.code = "INVALID_OTP_METHOD";
+
+    throw error;
 };
 
 module.exports = {

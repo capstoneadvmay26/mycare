@@ -4,561 +4,802 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/user.model");
-const { hashPassword, comparePassword } = require("../utils/bcrypt");
+const OtpVerification = require("../models/otpVerification.model");
 
-/**
- * Returns the configured JWT secret.
- *
- * Authentication must never fall back to a hard-coded secret.
- *
- * @returns {string}
- */
+const {
+    hashPassword,
+    comparePassword,
+} = require("../utils/bcrypt");
+
+const {
+    generateOtp,
+    hashOtp,
+    verifyOtp,
+} = require("../utils/otp");
+
+const {
+    sendOtp,
+} = require("../utils/otpSender");
+
+const OTP_EXPIRY_MINUTES = 10;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const MAX_OTP_ATTEMPTS = 5;
+const REGISTRATION_TOKEN_MINUTES = 15;
+const PASSWORD_RESET_TOKEN_MINUTES = 15;
+
 const getJwtSecret = () => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not configured");
-  }
+    if (!process.env.JWT_SECRET) {
+        throw new Error(
+            "JWT_SECRET is not configured."
+        );
+    }
 
-  return process.env.JWT_SECRET;
+    return process.env.JWT_SECRET;
 };
 
-/**
- * Generates a signed access token.
- *
- * @param {string} userId
- * @returns {string}
- */
 const generateToken = (userId) => {
-  return jwt.sign(
-    {
-      id: userId,
-    },
-    getJwtSecret(),
-    {
-      expiresIn: "1d",
-    }
-  );
+    return jwt.sign(
+        {
+            id: userId,
+        },
+        getJwtSecret(),
+        {
+            expiresIn: "1d",
+        }
+    );
 };
 
-/**
- * Generates a short-lived OTP verification token.
- *
- * @param {string} method
- * @param {string} identifier
- * @param {string} otp
- * @returns {string}
- */
-const generateOtpToken = (method, identifier, otp) => {
-  return jwt.sign(
-    {
-      purpose: "otp_verification",
-      method,
-      identifier,
-      otp,
-    },
-    getJwtSecret(),
-    {
-      expiresIn: "10m",
-    }
-  );
+const generateRegistrationToken = ({
+    method,
+    identifier,
+    verificationTokenId,
+}) => {
+    return jwt.sign(
+        {
+            purpose: "registration",
+            method,
+            identifier,
+            verification_token_id:
+                verificationTokenId,
+        },
+        getJwtSecret(),
+        {
+            expiresIn:
+                `${REGISTRATION_TOKEN_MINUTES}m`,
+        }
+    );
 };
 
-/**
- * Generates a short-lived password-reset token.
- *
- * @param {string} userId
- * @returns {string}
- */
-const generatePasswordResetToken = (userId) => {
-  return jwt.sign(
-    {
-      purpose: "password_reset",
-      id: userId,
-    },
-    getJwtSecret(),
-    {
-      expiresIn: "15m",
-    }
-  );
+const generatePasswordResetToken = (
+    userId
+) => {
+    return jwt.sign(
+        {
+            purpose: "password_reset",
+            id: userId,
+        },
+        getJwtSecret(),
+        {
+            expiresIn:
+                `${PASSWORD_RESET_TOKEN_MINUTES}m`,
+        }
+    );
 };
 
-/**
- * Generates a cryptographically secure six-digit OTP.
- *
- * @returns {string}
- */
-const generateOtp = () => {
-  return crypto.randomInt(100000, 1000000).toString();
-};
-
-/**
- * Returns the public representation of a user.
- *
- * The User model uses full_name, not name.
- *
- * @param {object} user
- * @returns {{id: string, full_name: string, email: string}}
- */
 const sanitizeUser = (user) => ({
-  id: user._id,
-  full_name: user.full_name,
-  email: user.email,
+    id: user._id,
+    full_name: user.full_name,
+    email: user.email,
 });
 
-/**
- * Finds a user using the contract identifier.
- *
- * The current User model stores email as the authentication identifier.
- *
- * @param {string} identifier
- * @returns {Promise<object|null>}
- */
-const findUserByIdentifier = async (identifier) => {
-  const normalizedIdentifier = identifier.trim().toLowerCase();
+const normalizeIdentifier = (
+    method,
+    identifier
+) => {
+    const value =
+        identifier.trim();
 
-  return User.findOne({
-    email: normalizedIdentifier,
-  }).select("+password");
+    return method === "email"
+        ? value.toLowerCase()
+        : value;
 };
 
-/**
- * Extracts a Bearer token from the request.
- *
- * @param {object} req
- * @returns {string|null}
- */
 const getBearerToken = (req) => {
-  const authorization = req.headers.authorization;
+    const authorization =
+        req.headers.authorization;
 
-  if (!authorization || !authorization.startsWith("Bearer ")) {
-    return null;
-  }
+    if (
+        !authorization ||
+        !authorization.startsWith(
+            "Bearer "
+        )
+    ) {
+        return null;
+    }
 
-  const token = authorization.slice("Bearer ".length).trim();
+    const token =
+        authorization
+            .slice("Bearer ".length)
+            .trim();
 
-  return token || null;
+    return token || null;
 };
 
 /**
  * POST /api/v1/auth/request-otp
- *
- * Requests an OTP for phone or email authentication.
  */
-const requestOtp = async (req, res, next) => {
-  try {
-    const { method, phone, email } = req.body;
+const requestOtp = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
+            method,
+            email,
+            phone,
+        } = req.body;
 
-    if (!["phone", "email"].includes(method)) {
-      return res.status(400).json({
-        success: false,
-        message: "Authentication method must be phone or email.",
-        errors: {},
-      });
+        const identifier =
+            normalizeIdentifier(
+                method,
+                method === "email"
+                    ? email
+                    : phone
+            );
+
+        /*
+         * Do not allow OTP registration for
+         * an already verified account.
+         */
+        const existingUser =
+            method === "email"
+                ? await User.findOne({
+                    email: identifier,
+                })
+                : null;
+
+        if (
+            existingUser
+        ) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "An account already exists with this identifier. Please log in.",
+                errors: {},
+            });
+        }
+
+        const existingVerification =
+            await OtpVerification
+                .findOne({
+                    method,
+                    identifier,
+                })
+                .select(
+                    "+otp_hash"
+                );
+
+        /*
+         * Prevent OTP spam.
+         */
+        if (
+            existingVerification &&
+            existingVerification.last_sent_at &&
+            Date.now() -
+                existingVerification
+                    .last_sent_at
+                    .getTime() <
+                OTP_RESEND_COOLDOWN_SECONDS *
+                    1000
+        ) {
+            return res.status(429).json({
+                success: false,
+                message:
+                    "Please wait before requesting another OTP.",
+                errors: {},
+            });
+        }
+
+        const otp =
+            generateOtp();
+
+        const expiresAt =
+            new Date(
+                Date.now() +
+                    OTP_EXPIRY_MINUTES *
+                    60 *
+                    1000
+            );
+
+        if (
+            existingVerification
+        ) {
+            existingVerification.otp_hash =
+                hashOtp(otp);
+
+            existingVerification.expires_at =
+                expiresAt;
+
+            existingVerification.attempts =
+                0;
+
+            existingVerification.last_sent_at =
+                new Date();
+
+            existingVerification.verified =
+                false;
+
+            existingVerification.verification_token_id =
+                null;
+
+            await existingVerification.save();
+        } else {
+            await OtpVerification.create({
+                method,
+                identifier,
+                otp_hash:
+                    hashOtp(otp),
+                expires_at:
+                    expiresAt,
+                attempts: 0,
+                last_sent_at:
+                    new Date(),
+                verified: false,
+            });
+        }
+
+        /*
+         * Delivery is part of the request flow.
+         * If delivery fails, remove the pending
+         * verification record so the user can retry.
+         */
+        try {
+            await sendOtp({
+                method,
+                identifier,
+                otp,
+            });
+        } catch (error) {
+            await OtpVerification.deleteOne({
+                method,
+                identifier,
+            });
+
+            throw error;
+        }
+
+        /*
+         * Never expose the OTP through the HTTP
+         * response.
+         *
+         * Local development logging is useful for
+         * testing when an email provider is configured.
+         */
+        if (
+            process.env.NODE_ENV !==
+            "production"
+        ) {
+            console.log(
+                JSON.stringify({
+                    type:
+                        "auth_otp_generated",
+                    method,
+                    identifier,
+                    expires_at:
+                        expiresAt.toISOString(),
+                })
+            );
+        }
+
+        return res.status(200).json({
+            success: true,
+        });
+    } catch (error) {
+        return next(error);
     }
-
-    const identifier =
-      method === "phone"
-        ? phone?.trim()
-        : email?.trim().toLowerCase();
-
-    if (!identifier) {
-      return res.status(400).json({
-        success: false,
-        message:
-          method === "phone"
-            ? "Phone is required."
-            : "Email is required.",
-        errors: {},
-      });
-    }
-
-    const otp = generateOtp();
-
-    /*
-     * OTP delivery will be connected to the SMS/email provider.
-     *
-     * Never expose the OTP in production responses.
-     */
-    if (process.env.NODE_ENV !== "production") {
-      console.log(
-        JSON.stringify({
-          type: "auth_otp_generated",
-          method,
-          identifier,
-          otp,
-        })
-      );
-    }
-
-    /*
-     * Keep generation centralized for the eventual persistence/
-     * delivery layer.
-     */
-    generateOtpToken(method, identifier, otp);
-
-    return res.status(200).json({
-      success: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 /**
  * POST /api/v1/auth/verify-otp
- *
- * Verifies an OTP and returns either:
- *
- * - an access token for an existing user
- * - a short-lived registration token for a new user
  */
-const verifyOtp = async (req, res, next) => {
-  try {
-    const { method, identifier, otp } = req.body;
-
-    if (!["phone", "email"].includes(method)) {
-      return res.status(400).json({
-        success: false,
-        message: "Authentication method must be phone or email.",
-        errors: {},
-      });
-    }
-
-    if (!identifier || !identifier.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Identifier is required.",
-        errors: {},
-      });
-    }
-
-    if (!/^\d{6}$/.test(otp)) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP must be a 6-digit code.",
-        errors: {},
-      });
-    }
-
-    const normalizedIdentifier =
-      method === "email"
-        ? identifier.trim().toLowerCase()
-        : identifier.trim();
-
-    /*
-     * Current User model only supports email identifiers.
-     * Phone authentication will require a phone field before
-     * an account can be persisted using phone authentication.
-     */
-    const user =
-      method === "email"
-        ? await User.findOne({
-            email: normalizedIdentifier,
-          })
-        : null;
-
-    const isNewUser = !user;
-
-    /*
-     * This token represents successful OTP verification for a
-     * new-user registration flow.
-     *
-     * The actual OTP delivery/persistence integration must replace
-     * the temporary verification implementation before production.
-     */
-    const token = isNewUser
-      ? jwt.sign(
-          {
-            purpose: "registration",
+const verifyOtp = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
             method,
-            identifier: normalizedIdentifier,
-          },
-          getJwtSecret(),
-          {
-            expiresIn: "15m",
-          }
-        )
-      : generateToken(user._id);
+            identifier,
+            otp,
+        } = req.body;
 
-    return res.status(200).json({
-      token,
-      is_new_user: isNewUser,
-    });
-  } catch (error) {
-    return next(error);
-  }
+        const normalizedIdentifier =
+            normalizeIdentifier(
+                method,
+                identifier
+            );
+
+        const verification =
+            await OtpVerification
+                .findOne({
+                    method,
+                    identifier:
+                        normalizedIdentifier,
+                })
+                .select(
+                    "+otp_hash"
+                );
+
+        if (!verification) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "No active OTP found. Please request a new OTP.",
+                errors: {},
+            });
+        }
+
+        if (
+            verification.verified
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "OTP has already been used.",
+                errors: {},
+            });
+        }
+
+        if (
+            verification.expires_at <=
+            new Date()
+        ) {
+            await OtpVerification.deleteOne({
+                _id: verification._id,
+            });
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "OTP has expired. Please request a new OTP.",
+                errors: {},
+            });
+        }
+
+        if (
+            verification.attempts >=
+            MAX_OTP_ATTEMPTS
+        ) {
+            return res.status(429).json({
+                success: false,
+                message:
+                    "Too many incorrect OTP attempts. Please request a new OTP.",
+                errors: {},
+            });
+        }
+
+        const valid =
+            verifyOtp(
+                otp,
+                verification.otp_hash
+            );
+
+        if (!valid) {
+            verification.attempts += 1;
+
+            await verification.save();
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Invalid OTP.",
+                errors: {},
+            });
+        }
+
+        const verificationTokenId =
+            crypto.randomUUID();
+
+        verification.verified =
+            true;
+
+        verification.attempts = 0;
+
+        verification.verification_token_id =
+            verificationTokenId;
+
+        await verification.save();
+
+        /*
+         * Existing email account:
+         * successful OTP verification produces
+         * an access token.
+         */
+        const existingUser =
+            method === "email"
+                ? await User.findOne({
+                    email:
+                        normalizedIdentifier,
+                })
+                : null;
+
+        if (
+            existingUser
+        ) {
+            return res.status(200).json({
+                token:
+                    generateToken(
+                        existingUser._id
+                    ),
+                is_new_user: false,
+            });
+        }
+
+        /*
+         * New account:
+         * OTP verification produces a temporary
+         * registration token.
+         */
+        return res.status(200).json({
+            token:
+                generateRegistrationToken({
+                    method,
+                    identifier:
+                        normalizedIdentifier,
+                    verificationTokenId,
+                }),
+            is_new_user: true,
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 /**
  * POST /api/v1/auth/register
- *
- * Completes account onboarding after OTP verification.
- *
- * The verified registration token is supplied through:
- *
- * Authorization: Bearer <registration-token>
  */
-const registerUser = async (req, res, next) => {
-  try {
-    const {
-      full_name,
-      date_of_birth,
-      gender,
-      password,
-    } = req.body;
-
-    const registrationToken = getBearerToken(req);
-
-    if (!registrationToken) {
-      return res.status(401).json({
-        success: false,
-        message: "OTP verification is required before registration.",
-        errors: {},
-      });
-    }
-
-    let decoded;
-
+const registerUser = async (
+    req,
+    res,
+    next
+) => {
     try {
-      decoded = jwt.verify(
-        registrationToken,
-        getJwtSecret()
-      );
+        const {
+            full_name,
+            password,
+        } = req.body;
+
+        const registrationToken =
+            getBearerToken(req);
+
+        if (!registrationToken) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "OTP verification is required before registration.",
+                errors: {},
+            });
+        }
+
+        let decoded;
+
+        try {
+            decoded =
+                jwt.verify(
+                    registrationToken,
+                    getJwtSecret()
+                );
+        } catch {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid or expired registration token.",
+                errors: {},
+            });
+        }
+
+        if (
+            decoded.purpose !==
+                "registration" ||
+            !decoded.method ||
+            !decoded.identifier ||
+            !decoded.verification_token_id
+        ) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid registration token.",
+                errors: {},
+            });
+        }
+
+        const identifier =
+            normalizeIdentifier(
+                decoded.method,
+                decoded.identifier
+            );
+
+        const verification =
+            await OtpVerification.findOne({
+                method:
+                    decoded.method,
+
+                identifier,
+
+                verified: true,
+
+                verification_token_id:
+                    decoded.verification_token_id,
+            });
+
+        if (!verification) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "OTP verification is required before registration.",
+                errors: {},
+            });
+        }
+
+        if (
+            decoded.method !==
+            "email"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Phone registration is not yet supported.",
+                errors: {},
+            });
+        }
+
+        const existingUser =
+            await User.findOne({
+                email: identifier,
+            });
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message:
+                    "An account already exists with this identifier.",
+                errors: {},
+            });
+        }
+
+        const user =
+            await User.create({
+                full_name:
+                    full_name.trim(),
+                email: identifier,
+                password:
+                    await hashPassword(
+                        password
+                    ),
+            });
+
+        /*
+         * Registration token is one-time use.
+         */
+        await OtpVerification.deleteOne({
+            _id:
+                verification._id,
+        });
+
+        return res.status(201).json({
+            user:
+                sanitizeUser(
+                    user
+                ),
+        });
     } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired registration token.",
-        errors: {},
-      });
+        return next(error);
     }
-
-    if (
-      decoded.purpose !== "registration" ||
-      !decoded.identifier ||
-      !decoded.method
-    ) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid registration token.",
-        errors: {},
-      });
-    }
-
-    const identifier =
-      decoded.method === "email"
-        ? decoded.identifier.trim().toLowerCase()
-        : decoded.identifier.trim();
-
-    /*
-     * The current User model persists email as the account identifier.
-     * Phone registration cannot be persisted until the model supports
-     * a phone field.
-     */
-    if (decoded.method !== "email") {
-      return res.status(400).json({
-        success: false,
-        message: "Phone registration is not yet supported.",
-        errors: {},
-      });
-    }
-
-    const existingUser = await User.findOne({
-      email: identifier,
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "User already exists with this identifier.",
-        errors: {},
-      });
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    /*
-     * IMPORTANT:
-     * User model uses full_name.
-     *
-     * date_of_birth and gender are validated by the request contract,
-     * but the current User model does not contain those fields.
-     * They must not be written here until the model contract explicitly
-     * supports them.
-     */
-    const user = await User.create({
-      full_name: full_name.trim(),
-      email: identifier,
-      password: hashedPassword,
-    });
-
-    return res.status(201).json({
-      user: sanitizeUser(user),
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 /**
  * POST /api/v1/auth/login
- *
- * Authenticates an existing user using the contract identifier.
  */
-const loginUser = async (req, res, next) => {
-  try {
-    const {
-      identifier,
-      password,
-    } = req.body;
+const loginUser = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
+            identifier,
+            password,
+        } = req.body;
 
-    const normalizedIdentifier =
-      identifier.trim().toLowerCase();
+        const normalizedIdentifier =
+            identifier
+                .trim()
+                .toLowerCase();
 
-    const user = await findUserByIdentifier(
-      normalizedIdentifier
-    );
+        const user =
+            await User.findOne({
+                email:
+                    normalizedIdentifier,
+            }).select(
+                "+password"
+            );
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials.",
-        errors: {},
-      });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid credentials.",
+                errors: {},
+            });
+        }
+
+        const passwordValid =
+            await comparePassword(
+                password,
+                user.password
+            );
+
+        if (!passwordValid) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Invalid credentials.",
+                errors: {},
+            });
+        }
+
+        return res.status(200).json({
+            token:
+                generateToken(
+                    user._id
+                ),
+            user:
+                sanitizeUser(
+                    user
+                ),
+        });
+    } catch (error) {
+        return next(error);
     }
-
-    const validPassword = await comparePassword(
-      password,
-      user.password
-    );
-
-    if (!validPassword) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials.",
-        errors: {},
-      });
-    }
-
-    const token = generateToken(user._id);
-
-    return res.status(200).json({
-      token,
-      user: sanitizeUser(user),
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 /**
  * POST /api/v1/auth/forgot-password
- *
- * Requests a password reset.
- *
- * The response deliberately does not reveal whether an account exists.
  */
-const forgotPassword = async (req, res, next) => {
-  try {
-    const { identifier } = req.body;
+const forgotPassword = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
+            identifier,
+        } = req.body;
 
-    const normalizedIdentifier =
-      identifier.trim().toLowerCase();
+        const normalizedIdentifier =
+            identifier
+                .trim()
+                .toLowerCase();
 
-    const user = await User.findOne({
-      email: normalizedIdentifier,
-    });
+        const user =
+            await User.findOne({
+                email:
+                    normalizedIdentifier,
+            });
 
-    if (user) {
-      const resetToken = generatePasswordResetToken(
-        user._id
-      );
+        /*
+         * Never disclose whether the account
+         * exists.
+         */
+        if (user) {
+            const token =
+                generatePasswordResetToken(
+                    user._id
+                );
 
-      /*
-       * Deliver resetToken through the configured provider.
-       * Never expose it in production responses.
-       */
-      if (process.env.NODE_ENV !== "production") {
-        console.log(
-          JSON.stringify({
-            type: "password_reset_requested",
-            identifier: normalizedIdentifier,
-            token: resetToken,
-          })
-        );
-      }
+            if (
+                process.env.NODE_ENV !==
+                "production"
+            ) {
+                console.log(
+                    JSON.stringify({
+                        type:
+                            "password_reset_requested",
+                        identifier:
+                            normalizedIdentifier,
+                        token,
+                    })
+                );
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+        });
+    } catch (error) {
+        return next(error);
     }
-
-    return res.status(200).json({
-      success: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 /**
  * POST /api/v1/auth/reset-password
- *
- * Resets a user's password using a valid short-lived reset token.
  */
-const resetPassword = async (req, res, next) => {
-  try {
-    const {
-      token,
-      new_password,
-    } = req.body;
-
-    let decoded;
-
+const resetPassword = async (
+    req,
+    res,
+    next
+) => {
     try {
-      decoded = jwt.verify(
-        token,
-        getJwtSecret()
-      );
+        const {
+            token,
+            new_password,
+        } = req.body;
+
+        let decoded;
+
+        try {
+            decoded =
+                jwt.verify(
+                    token,
+                    getJwtSecret()
+                );
+        } catch {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Invalid or expired reset token.",
+                errors: {},
+            });
+        }
+
+        if (
+            decoded.purpose !==
+            "password_reset"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Invalid password reset token.",
+                errors: {},
+            });
+        }
+
+        const user =
+            await User.findById(
+                decoded.id
+            );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "User not found.",
+                errors: {},
+            });
+        }
+
+        user.password =
+            await hashPassword(
+                new_password
+            );
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+        });
     } catch (error) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired reset token.",
-        errors: {},
-      });
+        return next(error);
     }
-
-    if (decoded.purpose !== "password_reset") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid password reset token.",
-        errors: {},
-      });
-    }
-
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found.",
-        errors: {},
-      });
-    }
-
-    user.password = await hashPassword(
-      new_password
-    );
-
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 module.exports = {
-  requestOtp,
-  verifyOtp,
-  registerUser,
-  loginUser,
-  forgotPassword,
-  resetPassword,
+    requestOtp,
+    verifyOtp,
+    registerUser,
+    loginUser,
+    forgotPassword,
+    resetPassword,
 };
