@@ -12,11 +12,6 @@ const {
 } = require("../utils/bcrypt");
 
 const {
-    hashPassword,
-    comparePassword,
-} = require("../utils/bcrypt");
-
-const {
     generateOtp,
     hashOtp,
     verifyOtp: verifyOtpCode,
