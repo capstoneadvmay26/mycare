@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { registerUser, loginUser, verifyRegistrationOtp, resendRegistrationOtp, } = require('../controllers/user.controller');
-const { validateRegister, validateLogin, validateVerifyOtp, validateResendOtp } = require('../validations/user.validation');
+const { validateRegister, validateLogin, validateVerifyOtp, validateResendOtp, loginUserSchema, registerUserSchema } = require('../validations/user.validation');
 const requireAuth = require('../middlewares/requireAuth');
+const { validate } = require('../models/otpVerification.model');
 
 // Public endpoints
-router.post('/register', validateRegister, registerUser);
-router.post('/login', validateLogin, loginUser);
+router.post(
+    "/register",
+    validate(registerUserSchema),
+    registerUser
+);
+router.post('/login', validate(loginUserSchema), loginUser);
 router.post("/verify-otp", validateVerifyOtp, verifyRegistrationOtp);
 router.post("/resend-otp", validateResendOtp, resendRegistrationOtp);
 

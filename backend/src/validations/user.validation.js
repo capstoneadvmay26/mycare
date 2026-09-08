@@ -1,88 +1,141 @@
-// Validates registration payload fields.
-const validateRegister = (req, res, next) => {
-    const { name, email, phone, password } = req.body;
+// src/validations/user.validation.js
 
-    if (!name || !password) {
-        return res.status(400).json({
-            message: "Name and password are required.",
-        });
-    }
+const Joi = require("joi");
 
-    if (!email && !phone) {
-        return res.status(400).json({
-            message: "Either email or phone number is required.",
-        });
-    }
+/**
+ * OTP request validation.
+ *
+ * The API accepts either:
+ * - email + method=email
+ * - phone + method=phone
+ */
+const requestOtpSchema = Joi.object({
+    method: Joi.string()
+        .valid("email", "phone")
+        .required(),
 
-    if (email && phone) {
-        return res.status(400).json({
-            message: "Provide either email or phone number, not both.",
-        });
-    }
+    email: Joi.when("method", {
+        is: "email",
+        then: Joi.string()
+            .trim()
+            .lowercase()
+            .email()
+            .required(),
+        otherwise: Joi.forbidden(),
+    }),
 
-    if (password.length < 6) {
-        return res.status(400).json({
-            message: "Password must be at least 6 characters long.",
-        });
-    }
+    phone: Joi.when("method", {
+        is: "phone",
+        then: Joi.string()
+            .trim()
+            .pattern(/^\+[1-9]\d{7,14}$/)
+            .required(),
+        otherwise: Joi.forbidden(),
+    }),
+}).required();
 
-    if (phone && !/^\+[1-9]\d{7,14}$/.test(phone)) {
-        return res.status(400).json({
-            message: "Phone number must be in international format, e.g. +2348012345678.",
-        });
-    }
+/**
+ * OTP verification validation.
+ */
+const verifyOtpSchema = Joi.object({
+    method: Joi.string()
+        .valid("email", "phone")
+        .required(),
 
-    next();
-};
+    identifier: Joi.string()
+        .trim()
+        .min(3)
+        .max(254)
+        .required(),
 
-// Validates login payload fields.
-const validateLogin = (req, res, next) => {
-    const { email, password } = req.body;
+    otp: Joi.string()
+        .pattern(/^\d{6}$/)
+        .required(),
+}).required();
 
-    if (!email || !password) {
-        return res.status(400).json({
-            message: "Email and password are required.",
-        });
-    }
+/**
+ * Registration happens AFTER OTP verification.
+ *
+ * The verified identifier is deliberately NOT accepted
+ * from the request body. It comes from the OTP-issued
+ * registration token.
+ */
+const registerUserSchema = Joi.object({
+    full_name: Joi.string()
+        .trim()
+        .min(2)
+        .max(100)
+        .required(),
 
-    next();
-};
+    date_of_birth: Joi.date()
+        .iso()
+        .optional(),
 
-// Validates OTP verification.
-const validateVerifyOtp = (req, res, next) => {
-    const { email, otp } = req.body;
+    gender: Joi.string()
+        .valid(
+            "Male",
+            "Female",
+            "Other",
+            "Prefer not to say",
+            "male",
+            "female",
+            "other",
+            "prefer_not_to_say"
+        )
+        .optional(),
 
-    if (!email || !otp) {
-        return res.status(400).json({
-            message: "Email and OTP are required.",
-        });
-    }
+    password: Joi.string()
+        .min(8)
+        .max(128)
+        .required(),
+}).required();
 
-    if (!/^\d{6}$/.test(otp)) {
-        return res.status(400).json({
-            message: "OTP must be a 6-digit number.",
-        });
-    }
+/**
+ * Login accepts an email or phone identifier.
+ */
+const loginUserSchema = Joi.object({
+    identifier: Joi.string()
+        .trim()
+        .min(3)
+        .max(254)
+        .required(),
 
-    next();
-};
+    password: Joi.string()
+        .min(8)
+        .max(128)
+        .required(),
+}).required();
 
-// Validates OTP resend.
-const validateResendOtp = (req, res, next) => {
-    const { email } = req.body;
+/**
+ * Password recovery.
+ */
+const forgotPasswordSchema = Joi.object({
+    identifier: Joi.string()
+        .trim()
+        .min(3)
+        .max(254)
+        .required(),
+}).required();
 
-    if (!email) {
-        return res.status(400).json({
-            message: "Email or phone number is required.",
-        });
-    }
+/**
+ * Password reset.
+ */
+const resetPasswordSchema = Joi.object({
+    token: Joi.string()
+        .trim()
+        .required(),
 
-    next();
-};
+    new_password: Joi.string()
+        .min(8)
+        .max(128)
+        .required(),
+}).required();
 
 module.exports = {
-    validateRegister,
-    validateLogin,
-    validateVerifyOtp,
-    validateResendOtp,
+    requestOtpSchema,
+    verifyOtpSchema,
+    registerUserSchema,
+    loginUserSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
 };
