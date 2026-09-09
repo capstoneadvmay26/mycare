@@ -421,9 +421,211 @@ const sendOtp = async ({
     );
 };
 
+/**
+ * Sends password reset link by email using Brevo's HTTP API.
+ */
+const sendPasswordResetEmail = async (
+    email,
+    resetUrl
+) => {
+    const apiKey =
+        process.env.BREVO_API_KEY;
+
+    const fromEmail =
+        process.env.BREVO_FROM_EMAIL;
+
+    const fromName =
+        process.env.BREVO_FROM_NAME;
+
+    if (
+        !apiKey ||
+        !fromEmail ||
+        !fromName
+    ) {
+        throw createOtpError(
+            "Password reset email service is not configured.",
+            503,
+            "RESET_EMAIL_NOT_CONFIGURED"
+        );
+    }
+
+    if (!email || !resetUrl) {
+        throw createOtpError(
+            "Password reset email recipient and reset link are required.",
+            400,
+            "INVALID_RESET_EMAIL_REQUEST"
+        );
+    }
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(() => {
+            controller.abort();
+        }, 10000);
+
+    try {
+        const response =
+            await fetch(
+                BREVO_EMAIL_API_URL,
+                {
+                    method: "POST",
+
+                    headers: {
+                        accept:
+                            "application/json",
+
+                        "api-key":
+                            apiKey,
+
+                        "Content-Type":
+                            "application/json",
+                    },
+
+                    body: JSON.stringify({
+                        sender: {
+                            name:
+                                fromName,
+
+                            email:
+                                fromEmail,
+                        },
+
+                        to: [
+                            {
+                                email,
+                            },
+                        ],
+
+                        subject:
+                            "MY CARE - Password Reset",
+
+                        textContent:
+                            "You requested to reset your MY CARE password. " +
+                            `Use this link to create a new password: ${resetUrl} ` +
+                            "This link expires in 15 minutes. " +
+                            "If you did not request a password reset, you can safely ignore this email.",
+
+                        htmlContent: `
+                            <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                                <h2>MY CARE Password Reset</h2>
+
+                                <p>
+                                    You requested to reset your MY CARE password.
+                                </p>
+
+                                <p>
+                                    Click the button below to create a new password:
+                                </p>
+
+                                <p>
+                                    <a
+                                        href="${resetUrl}"
+                                        style="
+                                            display: inline-block;
+                                            padding: 12px 20px;
+                                            background-color: #2563eb;
+                                            color: white;
+                                            text-decoration: none;
+                                            border-radius: 6px;
+                                        "
+                                    >
+                                        Reset Password
+                                    </a>
+                                </p>
+
+                                <p>
+                                    This link expires in 15 minutes.
+                                </p>
+
+                                <p>
+                                    If you did not request a password reset,
+                                    you can safely ignore this email.
+                                </p>
+                            </div>
+                        `,
+                    }),
+
+                    signal:
+                        controller.signal,
+                }
+            );
+
+        const responseText =
+            await response.text();
+
+        let responseBody = null;
+
+        try {
+            responseBody =
+                responseText
+                    ? JSON.parse(responseText)
+                    : null;
+        } catch {
+            responseBody = null;
+        }
+
+        if (!response.ok) {
+            const providerMessage =
+                responseBody?.message ||
+                responseBody?.code ||
+                responseText ||
+                "Unknown email provider error.";
+
+            throw createOtpError(
+                `Password reset email delivery failed: ${providerMessage}`,
+                503,
+                "RESET_EMAIL_DELIVERY_FAILED"
+            );
+        }
+
+        if (!responseBody?.messageId) {
+            throw createOtpError(
+                "Brevo accepted the request without returning a message ID.",
+                503,
+                "RESET_EMAIL_DELIVERY_FAILED"
+            );
+        }
+
+        console.log(
+            "Password reset email accepted by Brevo:",
+            responseBody.messageId
+        );
+
+    } catch (error) {
+        if (
+            error?.name ===
+            "AbortError"
+        ) {
+            throw createOtpError(
+                "Password reset email provider request timed out.",
+                503,
+                "RESET_EMAIL_DELIVERY_TIMEOUT"
+            );
+        }
+
+        if (
+            error?.code &&
+            error.code.startsWith("RESET_")
+        ) {
+            throw error;
+        }
+
+        throw createOtpError(
+            `Password reset email delivery failed: ${error.message}`,
+            503,
+            "RESET_EMAIL_DELIVERY_FAILED"
+        );
+
+    } finally {
+        clearTimeout(timeout);
+    }
+};
 
 module.exports = {
     sendEmailOtp,
     sendSmsOtp,
     sendOtp,
+    sendPasswordResetEmail
 };

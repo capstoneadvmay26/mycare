@@ -19,6 +19,7 @@ const {
 
 const {
     sendOtp,
+    sendPasswordResetEmail
 } = require("../utils/otpSender");
 
 
@@ -882,8 +883,8 @@ const loginUser = async (
 /**
  * POST /api/v1/auth/forgot-password
  *
- * Current implementation keeps the existing
- * reset-token behavior.
+ * Generates a password reset token and
+ * sends the reset link to the user's email.
  */
 const forgotPassword = async (
     req,
@@ -915,29 +916,18 @@ const forgotPassword = async (
          */
         if (user) {
             const token =
-                generatePasswordResetToken(
-                    user._id
-                );
-
-
-            if (
-                process.env.NODE_ENV !==
-                "production"
-            ) {
-                console.log(
-                    JSON.stringify({
-                        type:
-                            "password_reset_requested",
-
-                        identifier:
-                            normalizedIdentifier,
-
-                        token,
-                    })
-                );
-            }
+            generatePasswordResetToken(
+                user._id
+            );
+            
+            const resetUrl =
+            `https://capstoneadvmay26.github.io/mycare/reset-password?token=${encodeURIComponent(token)}`;
+            
+            await sendPasswordResetEmail(
+                user.email,
+                resetUrl
+            );
         }
-
 
         return res.status(200).json({
             success: true,
