@@ -1,7 +1,4 @@
-// src/models/user.model.js
-
 const mongoose = require("mongoose");
-const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema(
     {
@@ -13,17 +10,18 @@ const userSchema = new mongoose.Schema(
             maxlength: 100,
         },
 
-        full_name: {
+        email: {
             type: String,
-            required: true,
+            unique: true,
+            sparse: true,
+            lowercase: true,
             trim: true,
         },
 
-        email: {
+        phone: {
             type: String,
-            required: true,
             unique: true,
-            lowercase: true,
+            sparse: true,
             trim: true,
         },
 
