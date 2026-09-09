@@ -7,18 +7,18 @@ const User = require("../models/user.model");
 const OtpVerification = require("../models/otpVerification.model");
 
 const {
-  hashPassword,
-  comparePassword,
+    hashPassword,
+    comparePassword,
 } = require("../utils/bcrypt");
 
 const {
-  generateOtp,
-  hashOtp,
-  verifyOtp: verifyOtpCode,
+    generateOtp,
+    hashOtp,
+    verifyOtp: verifyOtpCode,
 } = require("../utils/otp");
 
 const {
-  sendOtp,
+    sendOtp,
 } = require("../utils/otpSender");
 
 
@@ -33,13 +33,13 @@ const PASSWORD_RESET_TOKEN_MINUTES = 15;
  * Get JWT secret.
  */
 const getJwtSecret = () => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error(
-      "JWT_SECRET is not configured."
-    );
-  }
+    if (!process.env.JWT_SECRET) {
+        throw new Error(
+            "JWT_SECRET is not configured."
+        );
+    }
 
-  return process.env.JWT_SECRET;
+    return process.env.JWT_SECRET;
 };
 
 
@@ -47,15 +47,15 @@ const getJwtSecret = () => {
  * Generate normal login JWT.
  */
 const generateToken = (userId) => {
-  return jwt.sign(
-    {
-      id: userId,
-    },
-    getJwtSecret(),
-    {
-      expiresIn: "1d",
-    }
-  );
+    return jwt.sign(
+        {
+            id: userId,
+        },
+        getJwtSecret(),
+        {
+            expiresIn: "1d",
+        }
+    );
 };
 
 
@@ -66,24 +66,24 @@ const generateToken = (userId) => {
  * verified the OTP before completing registration.
  */
 const generateRegistrationToken = ({
-  method,
-  identifier,
-  verificationTokenId,
+    method,
+    identifier,
+    verificationTokenId,
 }) => {
-  return jwt.sign(
-    {
-      purpose: "registration",
-      method,
-      identifier,
-      verification_token_id:
-        verificationTokenId,
-    },
-    getJwtSecret(),
-    {
-      expiresIn:
-        `${REGISTRATION_TOKEN_MINUTES}m`,
-    }
-  );
+    return jwt.sign(
+        {
+            purpose: "registration",
+            method,
+            identifier,
+            verification_token_id:
+                verificationTokenId,
+        },
+        getJwtSecret(),
+        {
+            expiresIn:
+                `${REGISTRATION_TOKEN_MINUTES}m`,
+        }
+    );
 };
 
 
@@ -91,19 +91,19 @@ const generateRegistrationToken = ({
  * Generate password reset JWT.
  */
 const generatePasswordResetToken = (
-  userId
+    userId
 ) => {
-  return jwt.sign(
-    {
-      purpose: "password_reset",
-      id: userId,
-    },
-    getJwtSecret(),
-    {
-      expiresIn:
-        `${PASSWORD_RESET_TOKEN_MINUTES}m`,
-    }
-  );
+    return jwt.sign(
+        {
+            purpose: "password_reset",
+            id: userId,
+        },
+        getJwtSecret(),
+        {
+            expiresIn:
+                `${PASSWORD_RESET_TOKEN_MINUTES}m`,
+        }
+    );
 };
 
 
@@ -115,7 +115,7 @@ const sanitizeUser = (user) => ({
     full_name: user.full_name,
     email: user.email,
     phone: user.phone,
-    contactMethod: user.contactMethod,
+    method: user.contactMethod,
     date_of_birth: user.date_of_birth,
     gender: user.gender,
     isVerified: user.isVerified,
@@ -126,14 +126,15 @@ const sanitizeUser = (user) => ({
  * Normalize email or phone identifier.
  */
 const normalizeIdentifier = (
-  method,
-  identifier
+    method,
+    identifier
 ) => {
-  const value = identifier.trim();
+    const value =
+        identifier.trim();
 
-  return method === "email"
-    ? value.toLowerCase()
-    : value;
+    return method === "email"
+        ? value.toLowerCase()
+        : value;
 };
 
 
@@ -141,24 +142,24 @@ const normalizeIdentifier = (
  * Extract Bearer token from request headers.
  */
 const getBearerToken = (req) => {
-  const authorization =
-    req.headers.authorization;
+    const authorization =
+        req.headers.authorization;
 
-  if (
-    !authorization ||
-    !authorization.startsWith(
-      "Bearer "
-    )
-  ) {
-    return null;
-  }
+    if (
+        !authorization ||
+        !authorization.startsWith(
+            "Bearer "
+        )
+    ) {
+        return null;
+    }
 
-  const token =
-    authorization
-      .slice("Bearer ".length)
-      .trim();
+    const token =
+        authorization
+            .slice("Bearer ".length)
+            .trim();
 
-  return token || null;
+    return token || null;
 };
 
 
@@ -168,9 +169,9 @@ const getBearerToken = (req) => {
  * Sends an OTP to email or phone.
  */
 const requestOtp = async (
-  req,
-  res,
-  next
+    req,
+    res,
+    next
 ) => {
     try {
         const {
@@ -367,23 +368,8 @@ const requestOtp = async (
         });
 
     } catch (error) {
-      await OtpVerification.deleteOne({
-        method,
-        identifier,
-      });
-
-      return next(error);
+        return next(error);
     }
-
-    /*
-     * Never return the OTP through HTTP.
-     */
-    return res.status(200).json({
-      success: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 
@@ -399,9 +385,9 @@ const requestOtp = async (
  *     returns normal login token.
  */
 const verifyOtp = async (
-  req,
-  res,
-  next
+    req,
+    res,
+    next
 ) => {
     try {
         const {
@@ -588,25 +574,6 @@ const verifyOtp = async (
     } catch (error) {
         return next(error);
     }
-
-    /*
-     * New user:
-     *
-     * Return a temporary registration JWT.
-     */
-    return res.status(200).json({
-      token:
-        generateRegistrationToken({
-          method,
-          identifier:
-            normalizedIdentifier,
-          verificationTokenId,
-        }),
-      is_new_user: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 
@@ -616,32 +583,10 @@ const verifyOtp = async (
  * Completes registration after successful OTP verification.
  */
 const registerUser = async (
-  req,
-  res,
-  next
+    req,
+    res,
+    next
 ) => {
-  try {
-    const {
-      full_name,
-      date_of_birth,
-      gender,
-      password,
-    } = req.body;
-
-    const registrationToken =
-      getBearerToken(req);
-
-    if (!registrationToken) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "OTP verification is required before registration.",
-        errors: {},
-      });
-    }
-
-    let decoded;
-
     try {
         const {
             full_name,
@@ -824,104 +769,6 @@ const registerUser = async (
     } catch (error) {
         return next(error);
     }
-
-    const identifier =
-      normalizeIdentifier(
-        decoded.method,
-        decoded.identifier
-      );
-
-    /*
-     * Registration currently persists email because
-     * the UUID User model does not contain a phone field.
-     */
-    if (
-      decoded.method !==
-      "email"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Phone registration is not yet supported.",
-        errors: {},
-      });
-    }
-
-    const verification =
-      await OtpVerification.findOne({
-        method:
-          decoded.method,
-        identifier,
-        verified: true,
-        verification_token_id:
-          decoded.verification_token_id,
-      });
-
-    if (!verification) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "OTP verification is required before registration.",
-        errors: {},
-      });
-    }
-
-    const existingUser =
-      await User.findOne({
-        email: identifier,
-      });
-
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message:
-          "An account already exists with this identifier.",
-        errors: {},
-      });
-    }
-
-    const userData = {
-      full_name:
-        full_name.trim(),
-
-      email:
-        identifier,
-
-      password:
-        await hashPassword(
-          password
-        ),
-    };
-
-    /*
-     * Only persist optional profile attributes if the
-     * current User model supports them.
-     *
-     * The updated contract does not require DOB/gender
-     * to be stored directly on User.
-     */
-    const user =
-      await User.create(
-        userData
-      );
-
-    /*
-     * Registration token is one-time use.
-     */
-    await OtpVerification.deleteOne({
-      _id:
-        verification._id,
-    });
-
-    return res.status(201).json({
-      user:
-        sanitizeUser(
-          user
-        ),
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 
@@ -932,9 +779,9 @@ const registerUser = async (
  * the frontend's "identifier" field.
  */
 const loginUser = async (
-  req,
-  res,
-  next
+    req,
+    res,
+    next
 ) => {
     try {
         const {
@@ -1029,20 +876,6 @@ const loginUser = async (
     } catch (error) {
         return next(error);
     }
-
-    return res.status(200).json({
-      token:
-        generateToken(
-          user._id
-        ),
-      user:
-        sanitizeUser(
-          user
-        ),
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 
@@ -1053,9 +886,9 @@ const loginUser = async (
  * reset-token behavior.
  */
 const forgotPassword = async (
-  req,
-  res,
-  next
+    req,
+    res,
+    next
 ) => {
     try {
         const {
@@ -1113,13 +946,6 @@ const forgotPassword = async (
     } catch (error) {
         return next(error);
     }
-
-    return res.status(200).json({
-      success: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 
@@ -1127,18 +953,10 @@ const forgotPassword = async (
  * POST /api/v1/auth/reset-password
  */
 const resetPassword = async (
-  req,
-  res,
-  next
+    req,
+    res,
+    next
 ) => {
-  try {
-    const {
-      token,
-      new_password,
-    } = req.body;
-
-    let decoded;
-
     try {
         const {
             token,
@@ -1209,20 +1027,6 @@ const resetPassword = async (
     } catch (error) {
         return next(error);
     }
-
-    user.password =
-      await hashPassword(
-        new_password
-      );
-
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-    });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 
