@@ -896,12 +896,10 @@ const forgotPassword = async (
             identifier,
         } = req.body;
 
-
         const normalizedIdentifier =
             identifier
                 .trim()
                 .toLowerCase();
-
 
         const user =
             await User.findOne({
@@ -909,25 +907,31 @@ const forgotPassword = async (
                     normalizedIdentifier,
             });
 
-
         /**
-         * Never disclose whether
-         * an account exists.
+         * Check if the email belongs
+         * to an existing user.
          */
-        if (user) {
-            const token =
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message:
+                    "User does not exist.",
+                errors: {},
+            });
+        }
+
+        const token =
             generatePasswordResetToken(
                 user._id
             );
-            
-            const resetUrl =
+
+        const resetUrl =
             `https://capstoneadvmay26.github.io/mycare/reset-password?token=${encodeURIComponent(token)}`;
-            
-            await sendPasswordResetEmail(
-                user.email,
-                resetUrl
-            );
-        }
+
+        await sendPasswordResetEmail(
+            user.email,
+            resetUrl
+        );
 
         return res.status(200).json({
             success: true,
