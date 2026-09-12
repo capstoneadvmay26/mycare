@@ -2,44 +2,38 @@
 import axios from 'axios';
 
 // ============================================================
-// ✅ API SERVICE - COMPLETE REPLACEMENT
+// ✅ API SERVICE — COMPLETE WORKING VERSION
 // ============================================================
 
-// --- Base URL Configuration ---
-// Use environment variable or fallback to production URL
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://mycare-backend-23oc.onrender.com/api/v1';
+const BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://mycare-backend-23oc.onrender.com/api/v1';
 
-// --- Create Axios Instance ---
+// --- Axios Instance ---
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
-  timeout: 30000, // 30 seconds timeout
+  timeout: 30000,
 });
 
 // ============================================================
-// ✅ REQUEST INTERCEPTOR - Add Token to Every Request
+// REQUEST INTERCEPTOR — Attach Bearer token to every request
 // ============================================================
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
     const token = localStorage.getItem('mycare_token');
-    
-    // If token exists, add it to headers
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Log request for debugging
     console.log('[API] Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
-      headers: config.headers,
+      params: config.params,
       data: config.data,
     });
-    
     return config;
   },
   (error) => {
@@ -49,89 +43,91 @@ api.interceptors.request.use(
 );
 
 // ============================================================
-// ✅ RESPONSE INTERCEPTOR - Handle Errors Globally
+// RESPONSE INTERCEPTOR — Global error handling
 // ============================================================
 api.interceptors.response.use(
   (response) => {
-    // Log response for debugging
     console.log('[API] Response:', {
       status: response.status,
       url: response.config.url,
       data: response.data,
     });
-    
     return response;
   },
   (error) => {
-    // Handle specific error statuses
     if (error.response) {
-      // The request was made and the server responded with a status code
       console.error('[API] Response Error:', {
         status: error.response.status,
         statusText: error.response.statusText,
         data: error.response.data,
         url: error.config?.url,
       });
-      
-      // Handle 401 Unauthorized
+
+      // Auto-logout on 401 (except for auth endpoints)
       if (error.response.status === 401) {
-        console.warn('[API] Unauthorized - Token may be expired');
-        
-        // Don't redirect for login/register endpoints
         const isAuthEndpoint = error.config?.url?.includes('/auth/');
         if (!isAuthEndpoint) {
-          // Clear token and redirect to onboarding
           localStorage.removeItem('mycare_token');
           localStorage.removeItem('mycare_user');
-          
-          // Redirect to onboarding
           if (window.location.pathname !== '/onboarding') {
             window.location.href = '/onboarding';
           }
         }
       }
-      
-      // Handle 429 Too Many Requests
+
       if (error.response.status === 429) {
         console.warn('[API] Rate limit exceeded. Please wait a moment.');
       }
-      
-      // Handle 500 Server Error
+
       if (error.response.status >= 500) {
         console.error('[API] Server error. Please try again later.');
       }
-      
     } else if (error.request) {
-      // The request was made but no response was received
       console.error('[API] No Response Error:', {
         message: error.message,
         url: error.config?.url,
       });
     } else {
-      // Something happened in setting up the request
       console.error('[API] Setup Error:', error.message);
     }
-    
+
     return Promise.reject(error);
   }
 );
 
 // ============================================================
-// ✅ AUTH ENDPOINTS
+// AUTH ENDPOINTS
 // ============================================================
 
+/**
+ * Request OTP for email or phone
+ * Body: { method: "email" | "phone", identifier: "user@example.com" }
+ */
 export const requestOtp = async (method, identifier) => {
-  return api.post('/auth/request-otp', { method, [method]: identifier });
+  return api.post('/auth/request-otp', { method, identifier });
 };
 
+/**
+ * Verify OTP
+ * Body: { method: "email" | "phone", identifier: "user@example.com", otp: "123456" }
+ */
 export const verifyOtp = async (method, identifier, otp) => {
   return api.post('/auth/verify-otp', { method, identifier, otp });
 };
 
+/**
+ * Register new user
+ * Body: { full_name, date_of_birth, gender, password }
+ * ⚠️ Requires Bearer token from verify-otp
+ */
 export const register = async (userData) => {
   return api.post('/auth/register', userData);
 };
 
+/**
+ * Login with password
+ * Body: { identifier, password }
+ */
 export const login = async (identifier, password) => {
   return api.post('/auth/login', { identifier, password });
 };
@@ -141,11 +137,14 @@ export const forgotPassword = async (identifier) => {
 };
 
 export const resetPassword = async (token, newPassword) => {
-  return api.post('/auth/reset-password', { token, new_password: newPassword });
+  return api.post('/auth/reset-password', {
+    token,
+    new_password: newPassword,
+  });
 };
 
 // ============================================================
-// ✅ PROFILE ENDPOINTS
+// PROFILE ENDPOINTS
 // ============================================================
 
 export const getProfiles = async () => {
@@ -173,7 +172,7 @@ export const switchProfile = async (profileId) => {
 };
 
 // ============================================================
-// ✅ MEDICATION ENDPOINTS
+// MEDICATION ENDPOINTS
 // ============================================================
 
 export const getMedications = async (profileId) => {
@@ -201,11 +200,14 @@ export const markMedicationTaken = async (medicationId, timestamp) => {
 };
 
 export const markMedicationSkipped = async (medicationId, timestamp, reason) => {
-  return api.post(`/medications/${medicationId}/skipped`, { timestamp, reason });
+  return api.post(`/medications/${medicationId}/skipped`, {
+    timestamp,
+    reason,
+  });
 };
 
 // ============================================================
-// ✅ ADHERENCE ENDPOINTS
+// ADHERENCE ENDPOINTS
 // ============================================================
 
 export const getAdherenceSummary = async (profileId) => {
@@ -213,11 +215,13 @@ export const getAdherenceSummary = async (profileId) => {
 };
 
 export const getAdherenceHistory = async (profileId, period = 'week') => {
-  return api.get('/adherence/history', { params: { profile_id: profileId, period } });
+  return api.get('/adherence/history', {
+    params: { profile_id: profileId, period },
+  });
 };
 
 // ============================================================
-// ✅ SYMPTOM ENDPOINTS
+// SYMPTOM ENDPOINTS
 // ============================================================
 
 export const getSymptoms = async (profileId) => {
@@ -236,30 +240,52 @@ export const submitCheckIn = async (symptomId, status) => {
   return api.post(`/symptoms/${symptomId}/check-in`, { status });
 };
 
-export const getSymptomHistory = async (profileId) => {
-  return api.get('/symptoms/history', { params: { profile_id: profileId } });
-};
-
 // ============================================================
-// ✅ HISTORY ENDPOINTS
+// HISTORY ENDPOINTS — ✅ Updated to match backend contract
 // ============================================================
 
-export const getHistory = async (profileId, type = 'all', dateFrom = null) => {
-  return api.get('/history', { 
-    params: { 
-      profile_id: profileId, 
-      type, 
-      date_from: dateFrom 
-    } 
+/**
+ * Get all history events (symptoms, medications, check-ins)
+ * Params: { profile_id, type: "all" | "symptoms" | "medications" | "check-ins" }
+ */
+export const getHistory = async (profileId, type = 'all') => {
+  return api.get('/history', {
+    params: { profile_id: profileId, type },
   });
 };
 
+/**
+ * Get medication adherence history
+ * Params: { profile_id, period: "week" | "month" | ... }
+ */
+export const getMedicationHistory = async (profileId, period = 'week') => {
+  return api.get('/medications/history', {
+    params: { profile_id: profileId, period },
+  });
+};
+
+/**
+ * Get symptom logs history
+ * Params: { profile_id, period: "week" | "month" | ... }
+ */
+export const getSymptomHistory = async (profileId, period = 'month') => {
+  return api.get('/symptoms/history', {
+    params: { profile_id: profileId, period },
+  });
+};
+
+/**
+ * Generate consult brief JSON for a profile
+ * Params: { profile_id }
+ */
 export const getConsultBrief = async (profileId) => {
-  return api.get('/reports/consult-brief', { params: { profile_id: profileId } });
+  return api.get('/reports/consult-brief', {
+    params: { profile_id: profileId },
+  });
 };
 
 // ============================================================
-// ✅ SETTINGS ENDPOINTS
+// SETTINGS ENDPOINTS
 // ============================================================
 
 export const getNotificationSettings = async () => {
@@ -275,27 +301,25 @@ export const getSubscriptionStatus = async () => {
 };
 
 export const initializePayment = async (profileId) => {
-  return api.post('/billing/paystack/initialize', { profile_id: profileId });
+  return api.post('/billing/paystack/initialize', {
+    profile_id: profileId,
+  });
 };
 
 // ============================================================
-// ✅ DATA EXPORT
+// DATA EXPORT & ACCOUNT MANAGEMENT
 // ============================================================
 
 export const exportData = async () => {
   return api.get('/data/export');
 };
 
-// ============================================================
-// ✅ ACCOUNT MANAGEMENT
-// ============================================================
-
 export const deleteAccount = async () => {
   return api.delete('/account');
 };
 
 // ============================================================
-// ✅ DEFAULT EXPORT
+// DEFAULT EXPORT
 // ============================================================
 
 export default api;

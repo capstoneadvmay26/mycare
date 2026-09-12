@@ -1,5 +1,5 @@
 // src/pages/MedicationWizard.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "../context/useApp";
 import { addMedication, getProfiles, createProfile } from "../services/api";
 import WizardProgress from "../components/medications/WizardProgress";
@@ -8,8 +8,29 @@ import WizardStepDosage from "../components/medications/WizardStepDosage";
 import WizardStepFrequency from "../components/medications/WizardStepFrequency";
 import WizardStepSchedule from "../components/medications/WizardStepSchedule";
 
+// Helper: default times for each frequency
+const getDefaultTimes = (freq) => {
+  switch (freq) {
+    case "once_daily":
+      return ["08:00"];
+    case "twice_daily":
+      return ["08:00", "20:00"];
+    case "three_times_daily":
+      return ["08:00", "13:00", "20:00"];
+    case "weekly":
+      return ["08:00"];
+    case "as_needed":
+      return [];
+    default:
+      return ["08:00"];
+  }
+};
+
 const MedicationWizard = () => {
   const { setOnboardingStage, userName } = useApp();
+
+  // 🛡️ Bootstrap guard — prevents double execution in React StrictMode
+  const bootstrapRanRef = useRef(false);
 
   // === Profile bootstrap state ===
   const [profileId, setProfileId] = useState(null);
@@ -26,7 +47,7 @@ const MedicationWizard = () => {
   const [frequency, setFrequency] = useState("");
   const [times, setTimes] = useState([]);
 
-  // Default start date = today
+  // Default start date = today (YYYY-MM-DD)
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return d.toISOString().split("T")[0];
@@ -34,124 +55,110 @@ const MedicationWizard = () => {
   const [endDate, setEndDate] = useState("");
 
   // ============================================================
-  // PROFILE BOOTSTRAP — runs once on mount
+  // PROFILE BOOTSTRAP — runs ONCE on mount
   // ============================================================
- useEffect(() => {
-  const bootstrap = async () => {
-    setProfileLoading(true);
-    setProfileError("");
+  useEffect(() => {
+    if (bootstrapRanRef.current) {
+      console.log("[Wizard] Bootstrap already ran — skipping");
+      return;
+    }
+    bootstrapRanRef.current = true;
 
-    try {
-      // 1. Check localStorage cache first
-      const cached = localStorage.getItem("mycare_currentProfileId");
-      if (cached) {
-        setProfileId(cached);
-        setProfileLoading(false);
-        return;
-      }
-
-      // 2. Try fetching existing profiles
-      const listResponse = await getProfiles();
-      const profiles =
-        listResponse.data?.profiles ||
-        listResponse.data?.data ||
-        [];
-
-      if (profiles.length > 0) {
-        const first = profiles[0];
-        const id = first.id || first._id;
-        localStorage.setItem("mycare_currentProfileId", id);
-        setProfileId(id);
-        setProfileLoading(false);
-        return;
-      }
-
-      // 3. No profiles — create the "Me" profile
-      const fullName = (userName || "").trim();
-      const profileName = fullName.length >= 2 ? fullName : "Me";
+    const bootstrap = async () => {
+      setProfileLoading(true);
+      setProfileError("");
 
       try {
-        const createResponse = await createProfile({
-          name: profileName,
-          relationship: "Self",
-        });
-
-        const newProfile =
-          createResponse.data?.data ||
-          createResponse.data?.profile ||
-          createResponse.data;
-
-        const id = newProfile?.id || newProfile?._id;
-        if (!id) {
-          throw new Error("Profile created but no ID was returned.");
+        // 1. Check cached profile id
+        const cached = localStorage.getItem("mycare_currentProfileId");
+        if (cached) {
+          console.log("[Wizard] Using cached profile:", cached);
+          setProfileId(cached);
+          setProfileLoading(false);
+          return;
         }
 
-        localStorage.setItem("mycare_currentProfileId", id);
-        setProfileId(id);
-        setProfileLoading(false);
-      } catch (createErr) {
-        // 🔥 HANDLE THE "already exists" CASE
-        // This happens in React StrictMode (double-invoke) or if a profile
-        // was created in a previous session that didn't get cached.
-        const message =
-          createErr.response?.data?.message?.toLowerCase() || "";
+        // 2. Fetch existing profiles
+        console.log("[Wizard] No cache — fetching profiles...");
+        const listResponse = await getProfiles();
+        const profiles =
+          listResponse.data?.profiles || listResponse.data?.data || [];
 
-        if (message.includes("already exists")) {
-          // Re-fetch — the profile exists, we just don't have its ID
-          const retryResponse = await getProfiles();
-          const retryProfiles =
-            retryResponse.data?.profiles ||
-            retryResponse.data?.data ||
-            [];
+        if (profiles.length > 0) {
+          const first = profiles[0];
+          const id = first.id || first._id;
+          console.log("[Wizard] Found existing profile:", id);
+          localStorage.setItem("mycare_currentProfileId", id);
+          setProfileId(id);
+          setProfileLoading(false);
+          return;
+        }
 
-          if (retryProfiles.length > 0) {
-            const first = retryProfiles[0];
-            const id = first.id || first._id;
-            localStorage.setItem("mycare_currentProfileId", id);
-            setProfileId(id);
-            setProfileLoading(false);
-            return;
+        // 3. No profile exists — create "Me"
+        console.log("[Wizard] No profiles — creating 'Me'...");
+        const fullName = (userName || "").trim();
+        const profileName = fullName.length >= 2 ? fullName : "Me";
+
+        try {
+          const createResponse = await createProfile({
+            name: profileName,
+            relationship: "Self",
+          });
+
+          const newProfile =
+            createResponse.data?.data ||
+            createResponse.data?.profile ||
+            createResponse.data;
+
+          const id = newProfile?.id || newProfile?._id;
+          if (!id) {
+            throw new Error("Profile created but no ID was returned.");
           }
+
+          console.log("[Wizard] Profile created:", id);
+          localStorage.setItem("mycare_currentProfileId", id);
+          setProfileId(id);
+          setProfileLoading(false);
+        } catch (createErr) {
+          // Handle race: "already exists" → refetch and use existing
+          const message =
+            createErr.response?.data?.message?.toLowerCase() || "";
+
+          if (message.includes("already exists")) {
+            console.log("[Wizard] Profile already exists — refetching...");
+            const retry = await getProfiles();
+            const retryProfiles =
+              retry.data?.profiles || retry.data?.data || [];
+
+            if (retryProfiles.length > 0) {
+              const first = retryProfiles[0];
+              const id = first.id || first._id;
+              localStorage.setItem("mycare_currentProfileId", id);
+              setProfileId(id);
+              setProfileLoading(false);
+              return;
+            }
+          }
+
+          throw createErr;
         }
-
-        // Not an "already exists" error — rethrow
-        throw createErr;
+      } catch (err) {
+        console.error("[Wizard] Bootstrap error:", err);
+        setProfileError(
+          err.response?.data?.message ||
+            err.message ||
+            "Could not prepare your profile. Please reload."
+        );
+        setProfileLoading(false);
       }
-    } catch (err) {
-      console.error("[Wizard] Profile bootstrap error:", err);
-      setProfileError(
-        err.response?.data?.message ||
-          err.message ||
-          "Could not prepare your profile. Please reload."
-      );
-      setProfileLoading(false);
-    }
-  };
+    };
 
-  bootstrap();
-  
-}, [userName]);
+    bootstrap();
+  }, [userName]);
 
-
-// ✅ ADD this function
-// In MedicationWizard.jsx
-const getDefaultTimes = (freq) => {
-  switch (freq) {
-    case "once_daily": return ["08:00"];
-    case "twice_daily": return ["08:00", "20:00"];
-    case "three_times_daily": return ["08:00", "13:00", "20:00"];
-    case "weekly": return ["08:00"];
-    case "as_needed": return [];
-    default: return ["08:00"];
-  }
-};
-
-const handleFrequencyChange = (newFrequency) => {
-  setFrequency(newFrequency);
-  setTimes(getDefaultTimes(newFrequency));
-};
-
-
+  // ============================================================
+  // STEP HANDLERS
+  // ============================================================
   const goBack = () => {
     setError("");
     setStep((s) => Math.max(1, s - 1));
@@ -166,6 +173,14 @@ const handleFrequencyChange = (newFrequency) => {
     setOnboardingStage("trial");
   };
 
+  const handleFrequencyChange = (newFrequency) => {
+    setFrequency(newFrequency);
+    setTimes(getDefaultTimes(newFrequency));
+  };
+
+  // ============================================================
+  // SUBMIT
+  // ============================================================
   const handleSubmit = async () => {
     if (!profileId) {
       setError("Profile not ready. Please reload.");
@@ -192,7 +207,7 @@ const handleFrequencyChange = (newFrequency) => {
       console.log("[Wizard] Medication created:", response.data);
       setOnboardingStage("trial");
     } catch (err) {
-      console.error("[Wizard] Error:", err);
+      console.error("[Wizard] Submit error:", err);
       setError(
         err.response?.data?.message ||
           err.message ||
@@ -207,7 +222,6 @@ const handleFrequencyChange = (newFrequency) => {
   // RENDER
   // ============================================================
 
-  // Loading profile
   if (profileLoading) {
     return (
       <div
@@ -222,7 +236,6 @@ const handleFrequencyChange = (newFrequency) => {
     );
   }
 
-  // Profile bootstrap failed
   if (profileError) {
     return (
       <div
@@ -251,18 +264,17 @@ const handleFrequencyChange = (newFrequency) => {
     );
   }
 
-  // Normal wizard
   return (
     <div
       className="d-flex flex-column vh-100 bg-white px-3 px-sm-4 py-4 overflow-hidden mx-auto"
       style={{ maxWidth: "480px" }}
     >
-      {(error || profileError) && (
+      {error && (
         <div
           className="alert alert-danger py-2 mb-3"
           style={{ fontSize: "14px" }}
         >
-          {error || profileError}
+          {error}
         </div>
       )}
 
@@ -288,15 +300,15 @@ const handleFrequencyChange = (newFrequency) => {
         />
       )}
 
-     {step === 3 && (
-  <WizardStepFrequency
-    value={frequency}
-    onChange={handleFrequencyChange}   // 👈 changed from setFrequency
-    onBack={goBack}
-    onNext={next}
-    loading={loading}
-  />
-)}
+      {step === 3 && (
+        <WizardStepFrequency
+          value={frequency}
+          onChange={handleFrequencyChange}
+          onBack={goBack}
+          onNext={next}
+          loading={loading}
+        />
+      )}
 
       {step === 4 && (
         <WizardStepSchedule
