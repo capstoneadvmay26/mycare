@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // --- Base URL Configuration ---
 // Use environment variable or fallback to production URL
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://mycare-b8tr.onrender.com/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://mycare-backend-23oc.onrender.com/api/v1';
 
 // --- Create Axios Instance ---
 const api = axios.create({

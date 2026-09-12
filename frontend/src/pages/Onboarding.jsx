@@ -2,16 +2,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useApp } from "../context/useApp";
 import Logo from "../components/ui/Logo";
-import { requestOtp, verifyOtp, register } from "../services/api";
+import { requestOtp, verifyOtp, register, login } from "../services/api";
 
 const Onboarding = () => {
-  const { setUserName, setIsOnboarded } = useApp();
+  const {
+    setUserName,
+    setIsOnboarded,
+    setAuthScreen,
+    setOnboardingStage, 
+  } = useApp();
 
   // ============================================================
-  // STATE MANAGEMENT
+  // STATE
   // ============================================================
   const [step, setStep] = useState("signup");
-  const [method, setMethod] = useState("Phone");
+  const [method, setMethod] = useState("Email"); // default to Email (backend supports both)
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -42,7 +47,7 @@ const Onboarding = () => {
   }, [step]);
 
   // ============================================================
-  // TIMER FUNCTIONS
+  // TIMER
   // ============================================================
   const startTimer = () => {
     setTimer(50);
@@ -61,7 +66,7 @@ const Onboarding = () => {
   };
 
   // ============================================================
-  // OTP HANDLERS
+  // OTP
   // ============================================================
   const handleSendOTP = async () => {
     const identifier = method === "Phone" ? phone : email;
@@ -82,13 +87,19 @@ const Onboarding = () => {
       startTimer();
       setStep("otp");
       setSuccessMessage("✓ OTP sent successfully!");
-
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
       console.error("[Onboarding] OTP error:", err);
-      setError(
-        err.response?.data?.message || "Failed to send OTP. Please try again.",
-      );
+
+      const message = err.response?.data?.message || "";
+      if (err.response?.status === 409) {
+        // Account exists → offer sign in
+        setError(
+          "An account already exists with this identifier. Please sign in instead.",
+        );
+      } else {
+        setError(message || "Failed to send OTP. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -115,23 +126,22 @@ const Onboarding = () => {
       console.log("[Onboarding] OTP verified:", response.data);
 
       if (response.data.token) {
-        // ✅ Store token in localStorage
+        // ✅ This is the REGISTRATION token — used only for /register
         localStorage.setItem("mycare_token", response.data.token);
+      }
 
-        if (response.data.user) {
-          localStorage.setItem(
-            "mycare_user",
-            JSON.stringify(response.data.user),
-          );
-        }
-
-        if (response.data.is_new_user) {
-          setStep("details");
-          setError("");
-        } else {
-          setUserName(response.data.user?.full_name || "User");
-          setIsOnboarded(true);
-        }
+      // Both new and existing users can reach here
+      // But signup flow is designed for NEW users
+      if (response.data.is_new_user) {
+        setStep("details");
+        setError("");
+      } else {
+        // Already registered — send them to sign in
+        localStorage.removeItem("mycare_token");
+        setError(
+          "This account already exists. Please sign in with your password.",
+        );
+        setAuthScreen("signin");
       }
     } catch (err) {
       console.error("[Onboarding] Verification error:", err);
@@ -146,7 +156,7 @@ const Onboarding = () => {
   };
 
   // ============================================================
-  // OTP INPUT HANDLERS
+  // OTP INPUT
   // ============================================================
   const handleOtpChange = (index, value) => {
     const cleanValue = value.replace(/[^0-9]/g, "");
@@ -188,7 +198,7 @@ const Onboarding = () => {
   };
 
   // ============================================================
-  // REGISTRATION HANDLERS
+  // DETAILS + REGISTER
   // ============================================================
   const handleSubmitDetails = () => {
     if (!name) {
@@ -217,39 +227,81 @@ const Onboarding = () => {
     setLoading(true);
     setError("");
 
+    const payload = {
+      full_name: name.trim(),
+      date_of_birth: dob,
+      gender: gender || "Prefer not to say",
+      password: password,
+    };
+
+    console.log("[Onboarding] Registration payload:", payload);
+
     try {
-      const response = await register({
-        full_name: name,
-        date_of_birth: dob,
-        gender: gender || "Prefer not to say",
-        password: password,
-        // Include email/phone if available
-        email: method === "Email" ? email : "",
-        phone: method === "Phone" ? phone : "",
-      });
+      // 1️⃣ REGISTER (uses the registration token in localStorage)
+      const response = await register(payload);
       console.log("[Onboarding] Registration successful:", response.data);
 
-      if (response.data.token) {
-        localStorage.setItem("mycare_token", response.data.token);
+      const identifier = method === "Phone" ? phone : email;
+
+      // 2️⃣ AUTO-LOGIN with the same credentials
+      try {
+        const loginResponse = await login(identifier, password);
+        console.log("[Onboarding] Auto-login successful:", loginResponse.data);
+
+        // Overwrite the registration token with the full login token
+        if (loginResponse.data.token) {
+          localStorage.setItem("mycare_token", loginResponse.data.token);
+        }
+        if (loginResponse.data.user) {
+          localStorage.setItem(
+            "mycare_user",
+            JSON.stringify(loginResponse.data.user),
+          );
+        }
+        setUserName(loginResponse.data.user?.full_name || name);
+      } catch (loginErr) {
+        console.warn(
+          "[Onboarding] Auto-login failed, user will need to sign in:",
+          loginErr,
+        );
+        // Registration succeeded, but auto-login failed.
+        // Send them to sign-in screen.
+        localStorage.removeItem("mycare_token");
+        setAuthScreen("signin");
+        return;
       }
 
-      if (response.data.user) {
-        localStorage.setItem("mycare_user", JSON.stringify(response.data.user));
-        setUserName(response.data.user.full_name);
-      }
-
+      // Set the post-signup onboarding stage so the app routes to
+      // the "Account Created" success screen, then the wizard.
+      setOnboardingStage("account-created");
       setIsOnboarded(true);
     } catch (err) {
-      console.error("[Onboarding] Registration error:", err);
+      console.error("========== REGISTRATION ERROR ==========");
+      console.error("Status:", err.response?.status);
+      console.error("Payload sent:", JSON.stringify(payload, null, 2));
+      console.error(
+        "Response data:",
+        JSON.stringify(err.response?.data, null, 2),
+      );
+      console.error("========================================");
 
-      // Handle specific error cases
-      if (err.response?.status === 401) {
-        setError("Session expired. Please verify OTP again.");
-        setStep("signup");
+      const validationErrors = err.response?.data?.errors;
+      if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+        const first = validationErrors[0];
+        setError(`${first.field}: ${first.message}`);
+      } else if (
+        typeof validationErrors === "object" &&
+        validationErrors !== null
+      ) {
+        const firstKey = Object.keys(validationErrors)[0];
+        const firstMessage = Array.isArray(validationErrors[firstKey])
+          ? validationErrors[firstKey][0]
+          : validationErrors[firstKey];
+        setError(`${firstKey}: ${firstMessage}`);
       } else {
         setError(
           err.response?.data?.message ||
-            "Failed to create account. Please try again.",
+            `Registration failed (${err.response?.status || "network error"})`,
         );
       }
     } finally {
@@ -328,7 +380,6 @@ const Onboarding = () => {
       className="d-flex flex-column vh-100 bg-white px-3 px-sm-4 py-4 justify-content-between overflow-hidden mx-auto"
       style={{ maxWidth: "480px" }}
     >
-      {/* Error & Success Messages */}
       {error && (
         <div
           className="alert alert-danger py-2 mb-2"
@@ -346,9 +397,7 @@ const Onboarding = () => {
         </div>
       )}
 
-      {/* ============================================================
-          STEP 1: SIGNUP (Phone/Email Entry)
-          ============================================================ */}
+      {/* STEP 1: SIGNUP */}
       {step === "signup" && (
         <>
           <div>
@@ -370,34 +419,41 @@ const Onboarding = () => {
           </div>
 
           <div className="my-auto py-3">
-            {/* Phone / Email Tabs */}
             <div
               className="d-flex rounded-3 overflow-hidden mb-4"
               style={{ height: "50px", borderRadius: "8px" }}
             >
               <button
                 style={tabStyle(method === "Phone")}
-                onClick={() => setMethod("Phone")}
+                onClick={() => {
+                  setMethod("Phone");
+                  setError("");
+                }}
               >
                 Phone
               </button>
               <button
                 style={tabStyle(method === "Email")}
-                onClick={() => setMethod("Email")}
+                onClick={() => {
+                  setMethod("Email");
+                  setError("");
+                }}
               >
                 Email
               </button>
             </div>
 
-            {/* Input Field */}
             {method === "Phone" ? (
               <input
                 type="tel"
                 style={inputStyle}
-                placeholder="Enter your phone number"
+                placeholder="Enter your phone number (e.g. +2348012345678)"
                 className="mb-4"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setError("");
+                }}
                 disabled={loading}
               />
             ) : (
@@ -407,7 +463,10 @@ const Onboarding = () => {
                 placeholder="Enter your email address"
                 className="mb-4"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
                 disabled={loading}
               />
             )}
@@ -421,7 +480,6 @@ const Onboarding = () => {
             </button>
           </div>
 
-          {/* Footer */}
           <div>
             <div className="text-center mb-3">
               <p className="m-0 text-dark" style={{ fontSize: "13px" }}>
@@ -451,6 +509,7 @@ const Onboarding = () => {
                 <span
                   className="fw-bold"
                   style={{ color: "#0033CC", cursor: "pointer" }}
+                  onClick={() => setAuthScreen("signin")}
                 >
                   Log in
                 </span>
@@ -464,14 +523,15 @@ const Onboarding = () => {
         </>
       )}
 
-      {/* ============================================================
-          STEP 2: OTP VERIFICATION
-          ============================================================ */}
+      {/* STEP 2: OTP */}
       {step === "otp" && (
         <>
           <button
             className="btn p-0 border-0 text-dark align-self-start mb-2"
-            onClick={() => setStep("signup")}
+            onClick={() => {
+              setStep("signup");
+              setError("");
+            }}
             style={{ fontSize: "28px", lineHeight: 1 }}
           >
             ‹
@@ -554,14 +614,15 @@ const Onboarding = () => {
         </>
       )}
 
-      {/* ============================================================
-          STEP 3: USER DETAILS
-          ============================================================ */}
+      {/* STEP 3: DETAILS */}
       {step === "details" && (
         <>
           <button
             className="btn p-0 border-0 text-dark align-self-start mb-2"
-            onClick={() => setStep("otp")}
+            onClick={() => {
+              setStep("otp");
+              setError("");
+            }}
             style={{ fontSize: "28px", lineHeight: 1 }}
           >
             ‹
@@ -587,7 +648,10 @@ const Onboarding = () => {
               className="mb-3"
               placeholder="Enter your full name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setError("");
+              }}
             />
 
             <label className="fw-bold mb-2" style={{ fontSize: "15px" }}>
@@ -598,7 +662,10 @@ const Onboarding = () => {
               style={inputStyle}
               className="mb-3"
               value={dob}
-              onChange={(e) => setDob(e.target.value)}
+              onChange={(e) => {
+                setDob(e.target.value);
+                setError("");
+              }}
             />
 
             <label className="fw-bold mb-2" style={{ fontSize: "15px" }}>
@@ -608,7 +675,10 @@ const Onboarding = () => {
               {["Male", "Female", "Prefer not to say"].map((g) => (
                 <button
                   key={g}
-                  onClick={() => setGender(g)}
+                  onClick={() => {
+                    setGender(g);
+                    setError("");
+                  }}
                   className="btn text-start rounded-3 d-flex align-items-center"
                   style={{
                     border: "1px solid #000",
@@ -651,14 +721,15 @@ const Onboarding = () => {
         </>
       )}
 
-      {/* ============================================================
-          STEP 4: CREATE PASSWORD
-          ============================================================ */}
+      {/* STEP 4: PASSWORD */}
       {step === "password" && (
         <>
           <button
             className="btn p-0 border-0 text-dark align-self-start mb-2"
-            onClick={() => setStep("details")}
+            onClick={() => {
+              setStep("details");
+              setError("");
+            }}
             style={{ fontSize: "28px", lineHeight: 1 }}
           >
             ‹
@@ -683,7 +754,10 @@ const Onboarding = () => {
               className="mb-3"
               placeholder="**********"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
               disabled={loading}
             />
 
@@ -696,7 +770,10 @@ const Onboarding = () => {
               className="mb-3"
               placeholder="**********"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setError("");
+              }}
               disabled={loading}
             />
 
