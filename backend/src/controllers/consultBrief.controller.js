@@ -20,40 +20,6 @@ const getConsultBrief = async (req, res, next) => {
             });
         }
 
-        // VALIDATE DATES
-        if (!startDate || !endDate) {
-            return res.status(400).json({
-                success: false,
-                message: "startDate and endDate are required."
-            });
-        }
-
-
-        // Treat query dates as UTC dates.
-        const start = new Date(
-            `${startDate}T00:00:00.000Z`
-        );
-
-        const end = new Date(
-            `${endDate}T23:59:59.999Z`
-        );
-
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid startDate or endDate."
-            });
-        }
-
-
-        if (start > end) {
-            return res.status(400).json({
-                success: false,
-                message: "startDate cannot be after endDate."
-            });
-        }
-
         // FIND PROFILE
         const profile = await ProfileModel.findById(profile_id);
 
@@ -65,10 +31,97 @@ const getConsultBrief = async (req, res, next) => {
         }
 
         // CHECK PROFILE OWNERSHIP
-        if (profile.owner.toString() !== req.user.id) {
+        if (profile.owner.toString() !== req.user.id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: "You don't have access to this profile."
+            });
+        }
+
+        // DETERMINE DATE RANGE
+        // Dates are OPTIONAL.
+        let start;
+        let end;
+
+        const now = new Date();
+
+        // Get earliest medication start date
+        const earliestMedication = await MedicationModel.findOne({
+            profile: profile_id
+        })
+            .sort({ startDate: 1 })
+            .select("startDate");
+
+        // Get earliest symptom date
+        const earliestSymptom = await SymptomModel.findOne({
+            profile: profile_id
+        })
+            .sort({ loggedAt: 1 })
+            .select("loggedAt");
+
+        // Get earliest medication log date
+        const earliestMedicationLog = await MedicationLogModel.findOne({
+            profile: profile_id
+        })
+            .sort({ scheduledFor: 1 })
+            .select("scheduledFor");
+
+        // Determine earliest available history date
+        const possibleStartDates = [
+            earliestMedication?.startDate,
+            earliestSymptom?.loggedAt,
+            earliestMedicationLog?.scheduledFor
+        ].filter(Boolean);
+
+        let earliestDate = now;
+
+        if (possibleStartDates.length > 0) {
+            earliestDate = new Date(
+                Math.min(
+                    ...possibleStartDates.map(date =>
+                        new Date(date).getTime()
+                    )
+                )
+            );
+        }
+
+        // START DATE
+        if (startDate) {
+            start = new Date(`${startDate}T00:00:00.000Z`);
+
+            if (isNaN(start.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid startDate."
+                });
+            }
+        } else {
+            // No start date supplied:
+            // begin from earliest available history.
+            start = earliestDate;
+        }
+
+        // END DATE
+        if (endDate) {
+            end = new Date(`${endDate}T23:59:59.999Z`);
+
+            if (isNaN(end.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid endDate."
+                });
+            }
+        } else {
+            // No end date supplied:
+            // continue through now.
+            end = now;
+        }
+
+        // VALIDATE DATE ORDER
+        if (start > end) {
+            return res.status(400).json({
+                success: false,
+                message: "startDate cannot be after endDate."
             });
         }
 
@@ -79,8 +132,16 @@ const getConsultBrief = async (req, res, next) => {
 
         // GENERATE MISSING MEDICATION LOGS
         // One MedicationLog = one scheduled dose occurrence.
+        //
         // Missing scheduled occurrences are created as pending.
         // Existing logs are not duplicated.
+        //
+        // This allows adherence to include:
+        //
+        // pending + taken + skipped
+        //
+        // even when the user did not manually create a log
+        // for every scheduled dose.
 
         for (const medication of medications) {
 
@@ -89,8 +150,11 @@ const getConsultBrief = async (req, res, next) => {
 
             let medicationEnd = new Date(end);
 
+            // Respect medication end date if one exists
             if (medication.endDate) {
-                const medicationEndDate = new Date(medication.endDate);
+
+                const medicationEndDate =
+                    new Date(medication.endDate);
 
                 medicationEndDate.setUTCHours(
                     23,
@@ -104,7 +168,6 @@ const getConsultBrief = async (req, res, next) => {
                 }
             }
 
-
             const generationStart = new Date(
                 Math.max(
                     start.getTime(),
@@ -112,12 +175,10 @@ const getConsultBrief = async (req, res, next) => {
                 )
             );
 
-
-            // Medication did not exist during this period.
+            // Medication did not exist during this period
             if (generationStart > medicationEnd) {
                 continue;
             }
-
 
             const occurrences =
                 generateScheduledOccurrences(
@@ -126,13 +187,11 @@ const getConsultBrief = async (req, res, next) => {
                     medicationEnd
                 );
 
-
             if (occurrences.length === 0) {
                 continue;
             }
 
-
-            // Find existing logs for these occurrences.
+            // Find existing logs for these occurrences
             const existingLogs =
                 await MedicationLogModel.find({
                     profile: profile_id,
@@ -142,15 +201,13 @@ const getConsultBrief = async (req, res, next) => {
                     }
                 }).select("scheduledFor");
 
-
             const existingDates = new Set(
                 existingLogs.map(log =>
                     new Date(log.scheduledFor).getTime()
                 )
             );
 
-
-            // Keep only occurrences that do not already have logs.
+            // Keep only occurrences without existing logs
             const missingOccurrences =
                 occurrences.filter(
                     occurrence =>
@@ -158,7 +215,6 @@ const getConsultBrief = async (req, res, next) => {
                             occurrence.getTime()
                         )
                 );
-
 
             if (missingOccurrences.length > 0) {
 
@@ -172,14 +228,13 @@ const getConsultBrief = async (req, res, next) => {
                         })
                     );
 
-
-                await MedicationLogModel.insertMany(newLogs);
+                await MedicationLogModel.insertMany(
+                    newLogs
+                );
             }
         }
 
         // CURRENT MEDICATIONS
-        const now = new Date();
-
         const currentMedications =
             await MedicationModel.find({
                 profile: profile_id,
@@ -214,7 +269,7 @@ const getConsultBrief = async (req, res, next) => {
                     endDate: medication.endDate
                 })
             );
-
+            
         // GET MEDICATION LOGS
         const medicationLogs =
             await MedicationLogModel.find({
@@ -230,40 +285,34 @@ const getConsultBrief = async (req, res, next) => {
                 });
 
         // CALCULATE ADHERENCE
-        // Total scheduled doses = pending + taken + skipped.
-
-        // Adherence rate = taken / total scheduled × 100
+        // Total scheduled doses = pending + taken + skipped
 
         const totalScheduledDoses =
             medicationLogs.length;
-
 
         const takenDoses =
             medicationLogs.filter(
                 log => log.status === "taken"
             ).length;
 
-
         const skippedDoses =
             medicationLogs.filter(
                 log => log.status === "skipped"
             ).length;
-
 
         const pendingDoses =
             medicationLogs.filter(
                 log => log.status === "pending"
             ).length;
 
-
         let adherenceRate = 0;
-
 
         if (totalScheduledDoses > 0) {
             adherenceRate =
-                (takenDoses / totalScheduledDoses) * 100;
+                (takenDoses /
+                    totalScheduledDoses) *
+                100;
         }
-
 
         adherenceRate =
             Math.round(adherenceRate * 100) / 100;
@@ -286,11 +335,10 @@ const getConsultBrief = async (req, res, next) => {
 
                 const symptomName =
                     symptom.symptoms &&
-                        symptom.symptoms.length > 0
+                    symptom.symptoms.length > 0
                         ? symptom.symptoms.join(", ")
                         : symptom.otherSymptom ||
                         "Unknown symptom";
-
 
                 return {
                     symptomId: symptom._id,
@@ -342,7 +390,6 @@ const getConsultBrief = async (req, res, next) => {
         next(error);
     }
 };
-
 
 module.exports = {
     getConsultBrief
