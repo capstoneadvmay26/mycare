@@ -9,8 +9,7 @@ const generateScheduledOccurrences = require("../utils/medicationLogGenerator");
 
 const getConsultBrief = async (req, res, next) => {
     try {
-        const { profile_id } = req.params;
-        const { startDate, endDate } = req.query;
+        const { profile_id, startDate, endDate } = req.query;
 
         // VALIDATE PROFILE ID
         if (!mongoose.Types.ObjectId.isValid(profile_id)) {
