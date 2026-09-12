@@ -399,36 +399,56 @@ const getSymptomOptions = async (req, res, next) => {
 
 const getSymptomHistory = async (req, res, next) => {
     try {
-        const { symptom } = req.query;
+        const { profile_id, symptom } = req.query;
 
-        // Find profiles belonging to the authenticated user
-        const profiles = await ProfileModel.find({
-            owner: req.user.id
-        }).select("_id");
+        // Profile ID is required because history belongs to the currently selected profile.
+        if (!profile_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Profile ID is required.",
+            });
+        }
 
-        const profile_ids = profiles.map(profile => profile._id);
+        // Find the requested profile
+        const profile = await ProfileModel.findById(profile_id);
 
-        // Build query
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: "Profile not found.",
+            });
+        }
+
+        // Make sure the profile belongs to the currently authenticated user.
+        if (profile.owner.toString() !== req.user.id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "You don't have access to this profile.",
+            });
+        }
+
+        // Build query using ONLY the selected profile.
         const query = {
-            profile: { $in: profile_ids }
+            profile: profile_id,
         };
 
         // Optional symptom filter
         if (symptom) {
             query.symptoms = {
                 $regex: symptom,
-                $options: "i"
+                $options: "i",
             };
         }
 
-        // Find symptom history
+        // Find symptom history for the selected profile
         const symptoms = await SymptomModel.find(query)
             .sort({ loggedAt: -1 });
 
         return res.status(200).json({
             success: true,
+            profile_id,
             count: symptoms.length,
-            symptoms
+            symptoms,
         });
 
     } catch (error) {
