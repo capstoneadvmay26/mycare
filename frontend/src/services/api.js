@@ -100,24 +100,24 @@ api.interceptors.response.use(
 // ============================================================
 
 /**
- * Request OTP for email or phone
- * Body: { method: "email" | "phone", identifier: "user@example.com" }
+ * Request OTP — sends { method, email } OR { method, phone }
+ * (Backend requires email/phone fields, NOT identifier)
  */
 export const requestOtp = async (method, identifier) => {
-  return api.post('/auth/request-otp', { method, identifier });
+  const body = { method };
+  body[method] = identifier; // dynamically sets `email` or `phone`
+  return api.post('/auth/request-otp', body);
 };
 
 /**
- * Verify OTP
- * Body: { method: "email" | "phone", identifier: "user@example.com", otp: "123456" }
+ * Verify OTP — sends { method, identifier, otp }
  */
 export const verifyOtp = async (method, identifier, otp) => {
   return api.post('/auth/verify-otp', { method, identifier, otp });
 };
 
 /**
- * Register new user
- * Body: { full_name, date_of_birth, gender, password }
+ * Register new user — Body: { full_name, date_of_birth, gender, password }
  * ⚠️ Requires Bearer token from verify-otp
  */
 export const register = async (userData) => {
@@ -125,8 +125,7 @@ export const register = async (userData) => {
 };
 
 /**
- * Login with password
- * Body: { identifier, password }
+ * Login with password — Body: { identifier, password }
  */
 export const login = async (identifier, password) => {
   return api.post('/auth/login', { identifier, password });
@@ -241,7 +240,7 @@ export const submitCheckIn = async (symptomId, status) => {
 };
 
 // ============================================================
-// HISTORY ENDPOINTS — ✅ Updated to match backend contract
+// HISTORY ENDPOINTS — Matches latest backend contract
 // ============================================================
 
 /**
@@ -256,7 +255,7 @@ export const getHistory = async (profileId, type = 'all') => {
 
 /**
  * Get medication adherence history
- * Params: { profile_id, period: "week" | "month" | ... }
+ * Params: { profile_id, period: "week" | "month" }
  */
 export const getMedicationHistory = async (profileId, period = 'week') => {
   return api.get('/medications/history', {
@@ -266,7 +265,7 @@ export const getMedicationHistory = async (profileId, period = 'week') => {
 
 /**
  * Get symptom logs history
- * Params: { profile_id, period: "week" | "month" | ... }
+ * Params: { profile_id, period: "week" | "month" }
  */
 export const getSymptomHistory = async (profileId, period = 'month') => {
   return api.get('/symptoms/history', {
@@ -275,7 +274,7 @@ export const getSymptomHistory = async (profileId, period = 'month') => {
 };
 
 /**
- * Generate consult brief JSON for a profile
+ * Generate consult brief JSON
  * Params: { profile_id }
  */
 export const getConsultBrief = async (profileId) => {
