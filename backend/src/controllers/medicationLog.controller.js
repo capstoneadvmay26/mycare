@@ -7,9 +7,8 @@ const mongoose = require('mongoose');
 
 const getMedicationHistory = async (req, res, next) => {
     try {
-        const { profile_id } = req.params;
-
         const {
+            profile_id,
             period,
             status,
             medicationId,
