@@ -52,21 +52,18 @@ const AddMedicationModal = ({
     endDate: "",
   });
 
-  // 12-hour picker state
-  const [hour, setHour] = useState("8");
-  const [minute, setMinute] = useState("00");
-  const [period, setPeriod] = useState("AM");
+  // Array of time slots — one per dose for the current frequency
+  // Each slot: { hour, minute, period, activePicker }
+  const [timeSlots, setTimeSlots] = useState([
+    { hour: "8", minute: "00", period: "AM", activePicker: null },
+  ]);
 
-  // Custom mobile picker
-  const [activePicker, setActivePicker] = useState(null);
-
-  // Error + loading
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   // ----------------------------------------
-  // Prefill when the modal opens or editingMedication changes
-  // (Rule disabled: legitimate prop-driven state sync, not a cascading render)
+  // Prefill when modal opens or editingMedication changes
+  // ----------------------------------------
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isOpen) return;
@@ -84,16 +81,19 @@ const AddMedicationModal = ({
           : "",
       });
 
-      const firstTime = Array.isArray(editingMedication.scheduleTime)
-        ? editingMedication.scheduleTime[0]
-        : null;
-
-      if (firstTime) {
-        const { hour: h, minute: m, period: p } = to12Hour(firstTime);
-        setHour(h);
-        setMinute(m);
-        setPeriod(p);
-      }
+      // Build time slots from scheduleTime array
+      const times = Array.isArray(editingMedication.scheduleTime)
+        ? editingMedication.scheduleTime
+        : [];
+      const slots = times.map((t) => {
+        const parsed = to12Hour(t);
+        return { ...parsed, activePicker: null };
+      });
+      setTimeSlots(
+        slots.length > 0
+          ? slots
+          : [{ hour: "8", minute: "00", period: "AM", activePicker: null }]
+      );
     } else {
       const today = new Date().toISOString().split("T")[0];
       setFormData({
@@ -103,15 +103,31 @@ const AddMedicationModal = ({
         startDate: today,
         endDate: "",
       });
-      setHour("8");
-      setMinute("00");
-      setPeriod("AM");
+      setTimeSlots([
+        { hour: "8", minute: "00", period: "AM", activePicker: null },
+      ]);
     }
 
     setError("");
-    setActivePicker(null);
   }, [isOpen, editingMedication]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // ----------------------------------------
+  // When frequency changes, rebuild the time slots
+  // ----------------------------------------
+  const handleFrequencyChange = (newFrequency) => {
+    setFormData((prev) => ({ ...prev, frequency: newFrequency }));
+
+    const option = FREQUENCY_OPTIONS.find((f) => f.value === newFrequency);
+    const defaults = option?.defaultTimes || [];
+
+    const slots = defaults.map((t) => {
+      const parsed = to12Hour(t);
+      return { ...parsed, activePicker: null };
+    });
+
+    setTimeSlots(slots);
+  };
 
   // ----------------------------------------
   // Handlers
@@ -122,11 +138,32 @@ const AddMedicationModal = ({
     setError("");
   };
 
+  const updateSlot = (index, field, value) => {
+    setTimeSlots((prev) =>
+      prev.map((slot, i) =>
+        i === index ? { ...slot, [field]: value } : slot
+      )
+    );
+  };
+
+  const togglePicker = (index, pickerType) => {
+    setTimeSlots((prev) =>
+      prev.map((slot, i) => ({
+        ...slot,
+        activePicker:
+          i === index
+            ? slot.activePicker === pickerType
+              ? null
+              : pickerType
+            : null, // close other pickers
+      }))
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (!formData.name.trim()) {
       setError("Medication name is required.");
       return;
@@ -139,15 +176,15 @@ const AddMedicationModal = ({
       setError("Start date is required.");
       return;
     }
+    if (!profile_id) {
+      setError("Profile not loaded. Please try again.");
+      return;
+    }
 
-    // Build scheduleTime
-    const frequencyOption = FREQUENCY_OPTIONS.find(
-      (f) => f.value === formData.frequency
+    // Build scheduleTime array from all slots
+    const scheduleTime = timeSlots.map((s) =>
+      to24Hour(s.hour, s.minute, s.period)
     );
-    const scheduleTime =
-      frequencyOption && frequencyOption.defaultTimes.length > 0
-        ? [to24Hour(hour, minute, period)]
-        : [];
 
     const payload = {
       profile_id,
@@ -177,7 +214,7 @@ const AddMedicationModal = ({
   };
 
   // ----------------------------------------
-  // Picker helpers
+  // Picker options
   // ----------------------------------------
   const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
   const minutes = Array.from({ length: 60 }, (_, i) =>
@@ -185,27 +222,20 @@ const AddMedicationModal = ({
   );
   const periods = ["AM", "PM"];
 
-  const handleSelect = (value) => {
-    if (activePicker === "hour") setHour(value);
-    if (activePicker === "minute") setMinute(value);
-    if (activePicker === "period") setPeriod(value);
-    setActivePicker(null);
-  };
-
-  const renderPicker = () => {
-    if (!activePicker) return null;
+  const renderPicker = (slotIndex, slot) => {
+    if (!slot.activePicker) return null;
 
     let list = [];
-    if (activePicker === "hour") list = hours;
-    if (activePicker === "minute") list = minutes;
-    if (activePicker === "period") list = periods;
+    if (slot.activePicker === "hour") list = hours;
+    if (slot.activePicker === "minute") list = minutes;
+    if (slot.activePicker === "period") list = periods;
 
     const current =
-      activePicker === "hour"
-        ? hour
-        : activePicker === "minute"
-        ? minute
-        : period;
+      slot.activePicker === "hour"
+        ? slot.hour
+        : slot.activePicker === "minute"
+        ? slot.minute
+        : slot.period;
 
     return (
       <div
@@ -215,7 +245,10 @@ const AddMedicationModal = ({
         {list.map((item) => (
           <div
             key={item}
-            onClick={() => handleSelect(item)}
+            onClick={() => {
+              updateSlot(slotIndex, slot.activePicker, item);
+              updateSlot(slotIndex, "activePicker", null);
+            }}
             style={{
               padding: "8px",
               cursor: "pointer",
@@ -244,14 +277,13 @@ const AddMedicationModal = ({
       style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
     >
       <div
-        className="modal-dialog modal-dialog-centered mx-auto px-3"
+        className="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto px-3"
         style={{ maxWidth: "440px" }}
       >
         <div
           className="modal-content border-0 shadow-lg"
           style={{ borderRadius: "16px", overflow: "hidden" }}
         >
-          {/* Header */}
           <div className="modal-header border-0 pb-0 pt-3 px-4 d-flex align-items-center justify-content-between">
             <h5 className="modal-title fw-bold text-dark m-0">
               {isEditMode ? "Edit Medication" : "Add Medication"}
@@ -265,7 +297,6 @@ const AddMedicationModal = ({
             />
           </div>
 
-          {/* Body */}
           <div className="modal-body px-4 py-3">
             {error && (
               <div
@@ -322,7 +353,7 @@ const AddMedicationModal = ({
                   className="form-select py-2"
                   name="frequency"
                   value={formData.frequency}
-                  onChange={handleChange}
+                  onChange={(e) => handleFrequencyChange(e.target.value)}
                   disabled={saving}
                 >
                   {FREQUENCY_OPTIONS.map((opt) => (
@@ -333,75 +364,76 @@ const AddMedicationModal = ({
                 </select>
               </div>
 
-              {/* Time Picker */}
+              {/* Multiple Time Pickers */}
               {showTimePicker && (
                 <div className="mb-3">
                   <label className="form-label fw-bold small text-secondary">
-                    Time
+                    {timeSlots.length === 1 ? "Time" : "Times"}
                   </label>
-                  <div className="row g-2">
-                    <div className="col-4">
-                      <button
-                        type="button"
-                        className="btn w-100 py-2 text-center fw-semibold"
-                        style={{
-                          borderRadius: "8px",
-                          backgroundColor: "#FFF",
-                          border: "1px solid #DEDFE2",
-                          color: "#000",
-                        }}
-                        onClick={() =>
-                          setActivePicker(
-                            activePicker === "hour" ? null : "hour"
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        {hour}
-                      </button>
+
+                  {timeSlots.map((slot, index) => (
+                    <div key={index} className="mb-2">
+                      <div className="d-flex align-items-center mb-1">
+                        <span
+                          className="text-secondary me-2"
+                          style={{ fontSize: "12px", minWidth: "50px" }}
+                        >
+                          Dose {index + 1}
+                        </span>
+                      </div>
+                      <div className="row g-2">
+                        <div className="col-4">
+                          <button
+                            type="button"
+                            className="btn w-100 py-2 text-center fw-semibold"
+                            style={{
+                              borderRadius: "8px",
+                              backgroundColor: "#FFF",
+                              border: "1px solid #DEDFE2",
+                              color: "#000",
+                            }}
+                            onClick={() => togglePicker(index, "hour")}
+                            disabled={saving}
+                          >
+                            {slot.hour}
+                          </button>
+                        </div>
+                        <div className="col-4">
+                          <button
+                            type="button"
+                            className="btn w-100 py-2 text-center fw-semibold"
+                            style={{
+                              borderRadius: "8px",
+                              backgroundColor: "#FFF",
+                              border: "1px solid #DEDFE2",
+                              color: "#000",
+                            }}
+                            onClick={() => togglePicker(index, "minute")}
+                            disabled={saving}
+                          >
+                            {slot.minute}
+                          </button>
+                        </div>
+                        <div className="col-4">
+                          <button
+                            type="button"
+                            className="btn w-100 py-2 text-center fw-semibold"
+                            style={{
+                              borderRadius: "8px",
+                              backgroundColor: "#FFF",
+                              border: "1px solid #DEDFE2",
+                              color: "#000",
+                            }}
+                            onClick={() => togglePicker(index, "period")}
+                            disabled={saving}
+                          >
+                            {slot.period}
+                          </button>
+                        </div>
+                      </div>
+                      {renderPicker(index, slot)}
                     </div>
-                    <div className="col-4">
-                      <button
-                        type="button"
-                        className="btn w-100 py-2 text-center fw-semibold"
-                        style={{
-                          borderRadius: "8px",
-                          backgroundColor: "#FFF",
-                          border: "1px solid #DEDFE2",
-                          color: "#000",
-                        }}
-                        onClick={() =>
-                          setActivePicker(
-                            activePicker === "minute" ? null : "minute"
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        {minute}
-                      </button>
-                    </div>
-                    <div className="col-4">
-                      <button
-                        type="button"
-                        className="btn w-100 py-2 text-center fw-semibold"
-                        style={{
-                          borderRadius: "8px",
-                          backgroundColor: "#FFF",
-                          border: "1px solid #DEDFE2",
-                          color: "#000",
-                        }}
-                        onClick={() =>
-                          setActivePicker(
-                            activePicker === "period" ? null : "period"
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        {period}
-                      </button>
-                    </div>
-                  </div>
-                  {renderPicker()}
+                  ))}
                 </div>
               )}
 

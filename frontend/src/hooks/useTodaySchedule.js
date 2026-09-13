@@ -54,13 +54,10 @@ export const useTodaySchedule = (profileId) => {
         getHistory(profileId, "medications"),
       ]);
 
-      const medications =
-        medsResponse.data?.data || medsResponse.data || [];
+      const medications = medsResponse.data?.data || medsResponse.data || [];
 
       const allLogs =
-        historyResponse.data?.history ||
-        historyResponse.data?.data ||
-        [];
+        historyResponse.data?.history || historyResponse.data?.data || [];
 
       // --------------------------------------------------------
       // 1. Filter logs to today (client-side, timezone-safe)
@@ -69,7 +66,7 @@ export const useTodaySchedule = (profileId) => {
       const todayStart = new Date(
         today.getFullYear(),
         today.getMonth(),
-        today.getDate()
+        today.getDate(),
       );
       const todayEnd = new Date(todayStart);
       todayEnd.setDate(todayEnd.getDate() + 1);
@@ -100,10 +97,9 @@ export const useTodaySchedule = (profileId) => {
             if (!log.medication) return false;
             if (log.medication !== med.name) return false;
             const logDate = new Date(log.date);
-            return (
-              logDate.getHours() === hh &&
-              logDate.getMinutes() === mm
-            );
+            // Match within 60 minutes
+            const diffMs = Math.abs(logDate.getTime() - slotDate.getTime());
+            return diffMs <= 60 * 60 * 1000;
           });
 
           slots.push({
@@ -116,8 +112,8 @@ export const useTodaySchedule = (profileId) => {
             status: matchingLog
               ? matchingLog.status // "taken" | "skipped"
               : slotDate <= now
-              ? "due-now"
-              : "upcoming",
+                ? "due-now"
+                : "upcoming",
             logId: matchingLog?.id || null,
           });
         });
@@ -129,7 +125,7 @@ export const useTodaySchedule = (profileId) => {
       const dueNow = slots.filter((s) => s.status === "due-now");
       const upcoming = slots.filter((s) => s.status === "upcoming");
       const completed = slots.filter(
-        (s) => s.status === "taken" || s.status === "skipped"
+        (s) => s.status === "taken" || s.status === "skipped",
       );
 
       const taken = completed.filter((s) => s.status === "taken").length;

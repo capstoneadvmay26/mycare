@@ -13,12 +13,12 @@ const ProfileContext = createContext();
 
 // Palette for assigning visual colors to profiles
 const PROFILE_COLORS = [
-  "#0033CC", // brand blue
-  "#2196F3", // light blue
-  "#4CBB17", // green
-  "#EC4899", // pink
-  "#F7C81B", // yellow
-  "#F97316", // orange
+  "#0033CC",
+  "#2196F3",
+  "#4CBB17",
+  "#EC4899",
+  "#F7C81B",
+  "#F97316",
 ];
 
 const initialOf = (name) => {
@@ -26,9 +26,8 @@ const initialOf = (name) => {
   return name.trim().charAt(0).toUpperCase();
 };
 
-// Normalize a backend profile to the shape our UI expects
 const normalizeProfile = (p, index) => ({
-  id: p.id || p._id,                              // real Mongo ObjectId
+  id: p.id || p._id,
   name: p.name || "Unnamed",
   relationship: p.relationship || "Self",
   condition: p.condition || null,
@@ -39,7 +38,7 @@ const normalizeProfile = (p, index) => ({
 });
 
 export const ProfileProvider = ({ children }) => {
-  const { isOnboarded } = useApp();
+  const { isOnboarded, userName } = useApp();
 
   const [profiles, setProfiles] = useState([]);
   const [activeProfile, setActiveProfile] = useState(null);
@@ -47,7 +46,7 @@ export const ProfileProvider = ({ children }) => {
   const [error, setError] = useState("");
 
   // ============================================================
-  // FETCH PROFILES FROM BACKEND
+  // FETCH PROFILES FROM BACKEND (with auto-bootstrap)
   // ============================================================
   const fetchProfiles = useCallback(async () => {
     if (!isOnboarded) {
@@ -62,24 +61,115 @@ export const ProfileProvider = ({ children }) => {
 
     try {
       const response = await getProfiles();
-      const rawProfiles = response.data?.profiles || [];
-      const normalized = rawProfiles.map(normalizeProfile);
+      console.log("[ProfileContext] GET /profiles →", response.data);
 
+      // Handle all possible response shapes
+      const rawProfiles =
+        response.data?.profiles ||
+        response.data?.data ||
+        [];
+
+      console.log("[ProfileContext] Found", rawProfiles.length, "profiles");
+
+      // ============================================================
+      // 🆕 AUTO-BOOTSTRAP: create a "Me" profile if user has none
+      // ============================================================
+      if (rawProfiles.length === 0) {
+        console.warn(
+          "[ProfileContext] No profiles found — bootstrapping 'Me'..."
+        );
+        try {
+          const createResponse = await createProfile({
+            name: userName || "Me",
+            relationship: "Self",
+          });
+
+          const newProfile =
+            createResponse.data?.data ||
+            createResponse.data?.profile ||
+            createResponse.data;
+
+          console.log(
+            "[ProfileContext] Auto-created profile:",
+            newProfile
+          );
+
+          // Refetch to get the canonical list
+          const retry = await getProfiles();
+          const retryProfiles =
+            retry.data?.profiles ||
+            retry.data?.data ||
+            [];
+
+          const normalized = retryProfiles.map(normalizeProfile);
+          setProfiles(normalized);
+
+          if (normalized.length > 0) {
+            const active = normalized[0];
+            setActiveProfile(active);
+            localStorage.setItem("mycare_currentProfileId", active.id);
+          }
+
+          setLoading(false);
+          return;
+        } catch (createErr) {
+          console.error(
+            "[ProfileContext] Auto-bootstrap failed:",
+            createErr
+          );
+
+          // If it says "already exists", refetch to get the real profile
+          const msg = createErr.response?.data?.message?.toLowerCase() || "";
+          if (msg.includes("already exists")) {
+            const retry = await getProfiles();
+            const retryProfiles =
+              retry.data?.profiles ||
+              retry.data?.data ||
+              [];
+
+            const normalized = retryProfiles.map(normalizeProfile);
+            setProfiles(normalized);
+
+            if (normalized.length > 0) {
+              const active = normalized[0];
+              setActiveProfile(active);
+              localStorage.setItem("mycare_currentProfileId", active.id);
+            }
+
+            setLoading(false);
+            return;
+          }
+
+          setError(
+            createErr.response?.data?.message ||
+              "Failed to create your profile. Please reload."
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // ============================================================
+      // NORMAL PATH — we have profiles
+      // ============================================================
+      const normalized = rawProfiles.map(normalizeProfile);
       setProfiles(normalized);
 
-      if (normalized.length > 0) {
-        // Prefer: cached id → "Me" profile → first profile
-        const cachedId = localStorage.getItem("mycare_currentProfileId");
-        const cached = normalized.find((p) => p.id === cachedId);
-        const selfProfile = normalized.find((p) => p.isSelf);
-        const fallback = normalized[0];
+      // Pick active: cached → "Self" profile → first
+      const cachedId = localStorage.getItem("mycare_currentProfileId");
+      const cached = normalized.find((p) => p.id === cachedId);
+      const selfProfile = normalized.find((p) => p.isSelf);
+      const fallback = normalized[0];
 
-        const nextActive = cached || selfProfile || fallback;
-        setActiveProfile(nextActive);
-        localStorage.setItem("mycare_currentProfileId", nextActive.id);
-      } else {
-        setActiveProfile(null);
-      }
+      const nextActive = cached || selfProfile || fallback;
+      setActiveProfile(nextActive);
+      localStorage.setItem("mycare_currentProfileId", nextActive.id);
+
+      console.log(
+        "[ProfileContext] Active profile set:",
+        nextActive.name,
+        nextActive.id
+      );
     } catch (err) {
       console.error("[ProfileContext] fetch error:", err);
       setError(
@@ -90,22 +180,22 @@ export const ProfileProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isOnboarded]);
+  }, [isOnboarded, userName]);
 
- useEffect(() => {
-  let cancelled = false;
+  useEffect(() => {
+    let cancelled = false;
 
-  const load = async () => {
-    if (cancelled) return;
-    await fetchProfiles();
-  };
+    const load = async () => {
+      if (cancelled) return;
+      await fetchProfiles();
+    };
 
-  load();
+    load();
 
-  return () => {
-    cancelled = true;
-  };
-}, [fetchProfiles]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchProfiles]);
 
   // ============================================================
   // SWITCH ACTIVE PROFILE
@@ -121,7 +211,7 @@ export const ProfileProvider = ({ children }) => {
   };
 
   // ============================================================
-  // ADD DEPENDENT (calls backend)
+  // ADD DEPENDENT
   // ============================================================
   const addDependent = async (newDep) => {
     try {
@@ -139,13 +229,10 @@ export const ProfileProvider = ({ children }) => {
   };
 
   // ============================================================
-  // UPDATE PROFILE (local only for now)
+  // UPDATE PROFILE (local only)
   // ============================================================
   const updateActiveProfile = async (updatedData) => {
     if (!activeProfile) return;
-
-    // ⚠️ TODO: wire to backend when `updateProfile` endpoint is ready.
-    // For now, just update local state so UI reflects changes.
 
     setProfiles((prev) =>
       prev.map((p) =>
