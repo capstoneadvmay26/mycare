@@ -14,8 +14,7 @@ import { getMedications, getHistory } from "../services/api";
  *   - upcoming    → time hasn't come yet
  *   - completed   → taken or skipped today
  *
- * Returns:
- *   { dueNow, upcoming, completed, total, taken, adherence, loading, error, refresh }
+ * ⚠️ Only includes meds whose startDate <= today <= endDate (or no endDate)
  */
 export const useTodaySchedule = (profileId) => {
   const [state, setState] = useState({
@@ -48,29 +47,37 @@ export const useTodaySchedule = (profileId) => {
     setState((s) => ({ ...s, loading: true, error: "" }));
 
     try {
-      // Fetch medications and history in parallel
       const [medsResponse, historyResponse] = await Promise.all([
         getMedications(profileId),
         getHistory(profileId, "medications"),
       ]);
 
       const medications = medsResponse.data?.data || medsResponse.data || [];
-
       const allLogs =
         historyResponse.data?.history || historyResponse.data?.data || [];
 
       // --------------------------------------------------------
-      // 1. Filter logs to today (client-side, timezone-safe)
+      // 1. Compute today's boundaries
       // --------------------------------------------------------
       const today = new Date();
       const todayStart = new Date(
         today.getFullYear(),
         today.getMonth(),
-        today.getDate(),
+        today.getDate()
       );
       const todayEnd = new Date(todayStart);
       todayEnd.setDate(todayEnd.getDate() + 1);
 
+      // 🆕 Normalized "today" for date-range comparison (midnight local)
+      const todayMidnight = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      ).getTime();
+
+      // --------------------------------------------------------
+      // 2. Filter logs to today (client-side, timezone-safe)
+      // --------------------------------------------------------
       const todayLogs = allLogs.filter((log) => {
         if (!log.date) return false;
         const logDate = new Date(log.date);
@@ -78,26 +85,56 @@ export const useTodaySchedule = (profileId) => {
       });
 
       // --------------------------------------------------------
-      // 2. Build today's dose slots
+      // 3. Build today's dose slots — ONLY for meds active today
       // --------------------------------------------------------
       const now = new Date();
       const slots = [];
 
       medications.forEach((med) => {
         const times = Array.isArray(med.scheduleTime) ? med.scheduleTime : [];
-        if (times.length === 0) return; // skip as-needed meds
+        if (times.length === 0) return;
 
+        // 🆕 Check startDate — skip if med starts in the future
+        if (med.startDate) {
+          const medStart = new Date(med.startDate);
+          const medStartMidnight = new Date(
+            medStart.getFullYear(),
+            medStart.getMonth(),
+            medStart.getDate()
+          ).getTime();
+
+          if (medStartMidnight > todayMidnight) {
+            // Med starts in the future — skip for today's schedule
+            return;
+          }
+        }
+
+        // 🆕 Check endDate — skip if med ended before today
+        if (med.endDate) {
+          const medEnd = new Date(med.endDate);
+          const medEndMidnight = new Date(
+            medEnd.getFullYear(),
+            medEnd.getMonth(),
+            medEnd.getDate()
+          ).getTime();
+
+          if (medEndMidnight < todayMidnight) {
+            // Med ended in the past — skip for today's schedule
+            return;
+          }
+        }
+
+        // Med is active today → build slots for each scheduled time
         times.forEach((timeStr) => {
           const [hh, mm] = timeStr.split(":").map(Number);
           const slotDate = new Date(todayStart);
           slotDate.setHours(hh, mm, 0, 0);
 
-          // Find a matching log for this dose (by medication name + time)
+          // Match log within 60 minutes
           const matchingLog = todayLogs.find((log) => {
             if (!log.medication) return false;
             if (log.medication !== med.name) return false;
             const logDate = new Date(log.date);
-            // Match within 60 minutes
             const diffMs = Math.abs(logDate.getTime() - slotDate.getTime());
             return diffMs <= 60 * 60 * 1000;
           });
@@ -110,22 +147,22 @@ export const useTodaySchedule = (profileId) => {
             time: timeStr,
             scheduledFor: slotDate,
             status: matchingLog
-              ? matchingLog.status // "taken" | "skipped"
+              ? matchingLog.status
               : slotDate <= now
-                ? "due-now"
-                : "upcoming",
+              ? "due-now"
+              : "upcoming",
             logId: matchingLog?.id || null,
           });
         });
       });
 
       // --------------------------------------------------------
-      // 3. Bucket into sections
+      // 4. Bucket into sections
       // --------------------------------------------------------
       const dueNow = slots.filter((s) => s.status === "due-now");
       const upcoming = slots.filter((s) => s.status === "upcoming");
       const completed = slots.filter(
-        (s) => s.status === "taken" || s.status === "skipped",
+        (s) => s.status === "taken" || s.status === "skipped"
       );
 
       const taken = completed.filter((s) => s.status === "taken").length;

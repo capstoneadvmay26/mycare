@@ -1,10 +1,25 @@
 // src/components/medications/AddMedicationModal.jsx
 import { useState, useEffect } from "react";
 
+
+// Convert an ISO date string to YYYY-MM-DD in LOCAL timezone
+const formatDateForInput = (isoString) => {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 // Frequency options — display label + backend value + default times
 const FREQUENCY_OPTIONS = [
   { value: "once_daily", label: "Once daily", defaultTimes: ["08:00"] },
-  { value: "twice_daily", label: "Twice daily", defaultTimes: ["08:00", "20:00"] },
+  {
+    value: "twice_daily",
+    label: "Twice daily",
+    defaultTimes: ["08:00", "20:00"],
+  },
   {
     value: "three_times_daily",
     label: "3 times daily",
@@ -74,10 +89,10 @@ const AddMedicationModal = ({
         dosage: editingMedication.dosage || "",
         frequency: editingMedication.frequency || "once_daily",
         startDate: editingMedication.startDate
-          ? editingMedication.startDate.split("T")[0]
+          ? formatDateForInput(editingMedication.startDate)
           : "",
         endDate: editingMedication.endDate
-          ? editingMedication.endDate.split("T")[0]
+          ? formatDateForInput(editingMedication.endDate)
           : "",
       });
 
@@ -92,7 +107,7 @@ const AddMedicationModal = ({
       setTimeSlots(
         slots.length > 0
           ? slots
-          : [{ hour: "8", minute: "00", period: "AM", activePicker: null }]
+          : [{ hour: "8", minute: "00", period: "AM", activePicker: null }],
       );
     } else {
       const today = new Date().toISOString().split("T")[0];
@@ -140,9 +155,7 @@ const AddMedicationModal = ({
 
   const updateSlot = (index, field, value) => {
     setTimeSlots((prev) =>
-      prev.map((slot, i) =>
-        i === index ? { ...slot, [field]: value } : slot
-      )
+      prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)),
     );
   };
 
@@ -156,7 +169,7 @@ const AddMedicationModal = ({
               ? null
               : pickerType
             : null, // close other pickers
-      }))
+      })),
     );
   };
 
@@ -183,7 +196,7 @@ const AddMedicationModal = ({
 
     // Build scheduleTime array from all slots
     const scheduleTime = timeSlots.map((s) =>
-      to24Hour(s.hour, s.minute, s.period)
+      to24Hour(s.hour, s.minute, s.period),
     );
 
     const payload = {
@@ -206,7 +219,7 @@ const AddMedicationModal = ({
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Failed to save medication. Please try again."
+          "Failed to save medication. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -218,7 +231,7 @@ const AddMedicationModal = ({
   // ----------------------------------------
   const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
   const minutes = Array.from({ length: 60 }, (_, i) =>
-    String(i).padStart(2, "0")
+    String(i).padStart(2, "0"),
   );
   const periods = ["AM", "PM"];
 
@@ -234,8 +247,8 @@ const AddMedicationModal = ({
       slot.activePicker === "hour"
         ? slot.hour
         : slot.activePicker === "minute"
-        ? slot.minute
-        : slot.period;
+          ? slot.minute
+          : slot.period;
 
     return (
       <div
@@ -483,8 +496,8 @@ const AddMedicationModal = ({
                 {saving
                   ? "Saving..."
                   : isEditMode
-                  ? "Save Changes"
-                  : "Add Medication"}
+                    ? "Save Changes"
+                    : "Add Medication"}
               </button>
             </form>
           </div>
