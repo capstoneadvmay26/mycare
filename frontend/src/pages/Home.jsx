@@ -4,11 +4,19 @@ import { useApp } from "../context/useApp";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import { useTodaySchedule } from "../hooks/useTodaySchedule";
+import {
+  markMedicationTaken,
+  markMedicationSkipped,
+} from "../services/api";
 import CheckIn from "./CheckIn";
 import DoctorNudge from "./DoctorNudge";
 import HomeGreeting from "../components/home/HomeGreeting";
 import AdherenceDonut from "../components/home/AdherenceDonut";
 import ScheduleSection from "../components/home/ScheduleSection";
+import DoseActionSheet from "../components/home/DoseActionSheet";
+import SkipReasonSheet from "../components/home/SkipReasonSheet";
+import SnoozeSheet from "../components/home/SnoozeSheet";
+import Toast from "../components/ui/Toast";
 import { ArrowLeftRight } from "react-bootstrap-icons";
 
 const Home = () => {
@@ -17,8 +25,12 @@ const Home = () => {
   const { isDark } = useTheme();
 
   const [checkInState, setCheckInState] = useState("idle");
+  const [selectedDose, setSelectedDose] = useState(null);
+  const [skipMode, setSkipMode] = useState(false);
+  const [snoozeMode, setSnoozeMode] = useState(false);
+  const [actionSaving, setActionSaving] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "success" });
 
-  // Real data
   const profileId = activeProfile?.id || activeProfile?._id;
   const {
     dueNow,
@@ -29,27 +41,97 @@ const Home = () => {
     adherence,
     loading,
     error,
+    refresh,
   } = useTodaySchedule(profileId);
 
   const isDependent = activeProfile && !activeProfile.isSelf;
 
-  // Handle tap on a medication (future: open mark-taken modal)
+  // Tap a dose → open action sheet
   const handleSelectDose = (dose) => {
-    console.log("[Home] Selected dose:", dose);
-    // TODO: open modal with Taken / Snooze / Skip options
+    setSelectedDose(dose);
+    setSkipMode(false);
+    setSnoozeMode(false);
   };
 
-  // Cycle to next profile
+  const closeSheet = () => {
+    setSelectedDose(null);
+    setSkipMode(false);
+    setSnoozeMode(false);
+  };
+
+  // Mark as taken
+  const handleTaken = async (dose) => {
+  if (!dose.logId) {
+    setToast({
+      message: "No log for this dose. Try reloading.",
+      type: "error",
+    });
+    return;
+  }
+
+  setActionSaving(true);
+  try {
+    await markMedicationTaken(dose.logId, new Date().toISOString());
+    setToast({ message: `${dose.name} marked as taken`, type: "success" });
+    closeSheet();
+    await refresh();
+  } catch (err) {
+    console.error("[Home] mark taken error:", err);
+    setToast({
+      message: err.response?.data?.message || "Failed to mark as taken",
+      type: "error",
+    });
+  } finally {
+    setActionSaving(false);
+  }
+};
+
+const handleSkip = async (dose, reason) => {
+  if (!dose.logId) {
+    setToast({
+      message: "No log for this dose. Try reloading.",
+      type: "error",
+    });
+    return;
+  }
+
+  setActionSaving(true);
+  try {
+    await markMedicationSkipped(dose.logId, new Date().toISOString(), reason);
+    setToast({ message: `${dose.name} skipped`, type: "info" });
+    closeSheet();
+    await refresh();
+  } catch (err) {
+    console.error("[Home] skip error:", err);
+    setToast({
+      message: err.response?.data?.message || "Failed to skip",
+      type: "error",
+    });
+  } finally {
+    setActionSaving(false);
+  }
+};
+
+  // Snooze — client-side only for now
+  const handleSnooze = (dose, minutes) => {
+    // NOTE: This is a placeholder. Real snooze requires Firebase scheduling,
+    // which is out of scope for now. We just show a confirmation.
+    setToast({
+      message: `Snoozed for ${minutes} minutes`,
+      type: "info",
+    });
+    closeSheet();
+  };
+
+  // Profile switch
   const handleSwitch = () => {
     if (!profiles?.length) return;
-    const currentIndex = profiles.findIndex(
-      (p) => (p.id || p._id) === profileId
-    );
+    const currentIndex = profiles.findIndex((p) => (p.id || p._id) === profileId);
     const nextProfile = profiles[(currentIndex + 1) % profiles.length];
     switchProfile(nextProfile.id || nextProfile._id);
   };
 
-  // === Check-in / nudge sub-flows ===
+  // Check-in sub-flows
   if (checkInState === "active") {
     return (
       <CheckIn
@@ -76,7 +158,7 @@ const Home = () => {
     <div className="d-flex flex-column h-100 p-3">
       <HomeGreeting />
 
-      {/* Dependent Profile Card — only if viewing a dependent */}
+      {/* Dependent Profile Card */}
       {isDependent && (
         <div
           className="d-flex align-items-center p-3 mb-4 rounded-3"
@@ -94,10 +176,7 @@ const Home = () => {
             {activeProfile.initial || activeProfile.name?.[0]?.toUpperCase()}
           </div>
           <div className="flex-grow-1">
-            <p
-              className="m-0 fw-bold"
-              style={{ fontSize: "18px", color: "#000" }}
-            >
+            <p className="m-0 fw-bold" style={{ fontSize: "18px", color: "#000" }}>
               {activeProfile.name}
             </p>
             <p className="m-0" style={{ fontSize: "13px", color: "#666" }}>
@@ -138,12 +217,7 @@ const Home = () => {
                 : `${taken} of ${total} doses taken`}
             </p>
           </div>
-          <AdherenceDonut
-            percent={adherence}
-            size={80}
-            strokeWidth={8}
-            color="#0033CC"
-          />
+          <AdherenceDonut percent={adherence} size={80} strokeWidth={8} color="#0033CC" />
         </div>
       </div>
 
@@ -154,7 +228,7 @@ const Home = () => {
         Schedule
       </h6>
 
-      {/* Loading state */}
+      {/* Loading */}
       {loading && (
         <div className="text-center py-4">
           <div className="spinner-border text-primary" role="status" />
@@ -164,14 +238,14 @@ const Home = () => {
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error */}
       {error && !loading && (
         <div className="alert alert-danger py-2" style={{ fontSize: "14px" }}>
           {error}
         </div>
       )}
 
-      {/* Empty state — actionable */}
+      {/* Empty state */}
       {!loading && !error && total === 0 && (
         <div
           className="text-center py-5 rounded-3 mb-4"
@@ -199,24 +273,12 @@ const Home = () => {
         </div>
       )}
 
-      {/* Schedule sections */}
+      {/* Schedule sections — doses are now clickable */}
       {!loading && !error && total > 0 && (
         <>
-          <ScheduleSection
-            type="dueNow"
-            doses={dueNow}
-            onSelectDose={handleSelectDose}
-          />
-          <ScheduleSection
-            type="upcoming"
-            doses={upcoming}
-            onSelectDose={handleSelectDose}
-          />
-          <ScheduleSection
-            type="completed"
-            doses={completed}
-            onSelectDose={handleSelectDose}
-          />
+          <ScheduleSection type="dueNow" doses={dueNow} onSelectDose={handleSelectDose} />
+          <ScheduleSection type="upcoming" doses={upcoming} onSelectDose={handleSelectDose} />
+          <ScheduleSection type="completed" doses={completed} onSelectDose={handleSelectDose} />
         </>
       )}
 
@@ -247,6 +309,48 @@ const Home = () => {
           View full schedule
         </button>
       </div>
+
+      {/* ============================================ */}
+      {/* Dose action sheets */}
+      {/* ============================================ */}
+
+      {/* Base action sheet */}
+      {selectedDose && !skipMode && !snoozeMode && (
+        <DoseActionSheet
+          dose={selectedDose}
+          onClose={closeSheet}
+          onTaken={handleTaken}
+          onSnooze={() => setSnoozeMode(true)}
+          onSkip={() => setSkipMode(true)}
+        />
+      )}
+
+      {/* Skip reason sheet */}
+      {selectedDose && skipMode && (
+        <SkipReasonSheet
+          dose={selectedDose}
+          onClose={() => setSkipMode(false)}
+          onConfirm={handleSkip}
+          saving={actionSaving}
+        />
+      )}
+
+      {/* Snooze sheet */}
+      {selectedDose && snoozeMode && (
+        <SnoozeSheet
+          dose={selectedDose}
+          onClose={() => setSnoozeMode(false)}
+          onConfirm={handleSnooze}
+          saving={actionSaving}
+        />
+      )}
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
     </div>
   );
 };

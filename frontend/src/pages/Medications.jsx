@@ -12,7 +12,12 @@ import {
   deleteMedication,
 } from "../services/api";
 
+import { useApp } from "../context/useApp";
+
 const Medications = () => {
+
+  const { setCurrentTab } = useApp();
+
   const { activeProfile, loading: profileLoading } = useProfile();
   const { isDark } = useTheme();
   const profileId = activeProfile?.id || activeProfile?._id;
@@ -267,7 +272,7 @@ const Medications = () => {
             borderRadius: "8px",
             border: "none",
           }}
-          onClick={() => setHistoryOpen(true)}
+          onClick={() => setCurrentTab("MedicationHistory")}
           disabled={!profileId}
         >
           View Medication History

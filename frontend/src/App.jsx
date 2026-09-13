@@ -12,6 +12,7 @@ import Symptoms from "./pages/Symptoms";
 import History from "./pages/History";
 import Profiles from "./pages/Profiles";
 import Settings from "./pages/Settings";
+import MedicationHistory from "./pages/MedicationHistory";
 import { ReminderProvider } from "./context/ReminderContext";
 import GlobalReminderOverlay from "./components/layout/GlobalReminderOverlay";
 import { AppProvider } from "./context/AppContext";
@@ -58,13 +59,22 @@ const AppContent = () => {
 
   const renderScreen = () => {
     switch (currentTab) {
-      case "Home": return <Home />;
-      case "Medications": return <Medications />;
-      case "Symptoms": return <Symptoms />;
-      case "History": return <History />;
-      case "Profiles": return <Profiles />;
-      case "Settings": return <Settings />;
-      default: return <Home />;
+      case "Home":
+        return <Home />;
+      case "Medications":
+        return <Medications />;
+      case "Symptoms":
+        return <Symptoms />;
+      case "History":
+        return <History />;
+      case "Profiles":
+        return <Profiles />;
+      case "Settings":
+        return <Settings />;
+      case "MedicationHistory":
+        return <MedicationHistory />;
+      default:
+        return <Home />;
     }
   };
 
@@ -81,16 +91,15 @@ const AppContent = () => {
     return <AccountCreated />;
   }
 
-
   // "medication-wizard"
   if (onboardingStage === "medication-wizard") {
-  return <MedicationWizard />;
-}
+    return <MedicationWizard />;
+  }
 
-// "trial-framing"
-if (onboardingStage === "trial") {
-  return <TrialFraming />;
-}
+  // "trial-framing"
+  if (onboardingStage === "trial") {
+    return <TrialFraming />;
+  }
 
   // ✅ Onboarded — show main app
   return (
