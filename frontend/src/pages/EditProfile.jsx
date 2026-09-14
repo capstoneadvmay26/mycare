@@ -1,122 +1,408 @@
 // src/pages/EditProfile.jsx
-import { useState } from 'react';
-import { ChevronLeft, Person, Envelope, Telephone, CalendarEvent, GenderMale } from 'react-bootstrap-icons';
-import { useProfile } from '../context/ProfileContext';
+import { useState, useRef } from "react";
+import {
+  ChevronLeft,
+  Person,
+  CalendarEvent,
+  GenderMale,
+  Camera,
+} from "react-bootstrap-icons";
+import { useProfile } from "../context/ProfileContext";
+import { useApp } from "../context/useApp";
+import { useTheme } from "../context/ThemeContext";
+import { uploadImage, isCloudinaryConfigured } from "../services/cloudinary";
+import Avatar from "../components/ui/Avatar";
+import Toast from "../components/ui/Toast";
 
 const EditProfile = ({ onBack }) => {
   const { activeProfile, updateActiveProfile } = useProfile();
+  const { user } = useApp() || {};
+  const { isDark } = useTheme();
 
-  const [name, setName] = useState(activeProfile.name);
-  const [email, setEmail] = useState(activeProfile.email);
-  const [phone, setPhone] = useState(activeProfile.phone);
-  const [dob, setDob] = useState(activeProfile.dob); // Store as YYYY-MM-DD for input
-  const [gender, setGender] = useState(activeProfile.gender);
+  const isSelf =
+    activeProfile?.isSelf || activeProfile?.relationship === "Self";
 
-  const handlePhotoClick = () => {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.onchange = () => {
-      alert("Image selected! (Backend upload integration pending)");
-    };
-    fileInput.click();
-  };
+  const initialName = isSelf
+    ? user?.full_name || activeProfile?.name || ""
+    : activeProfile?.name || "";
 
-  const handleSave = () => {
-    if (!name || !email || !phone) {
-      alert("Please fill in all required fields.");
+  const [name, setName] = useState(initialName);
+  const [dob, setDob] = useState(() => {
+    const raw =
+      activeProfile?.dateOfBirth || (isSelf ? user?.date_of_birth : null);
+    if (!raw) return "";
+    try {
+      return new Date(raw).toISOString().split("T")[0];
+    } catch {
+      return "";
+    }
+  });
+  const [gender, setGender] = useState(
+    activeProfile?.gender || (isSelf ? user?.gender : "") || ""
+  );
+  const [avatarUrl, setAvatarUrl] = useState(activeProfile?.avatarUrl || "");
+
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState({ message: "", type: "success" });
+  const [error, setError] = useState("");
+
+  const fileInputRef = useRef(null);
+
+  const cloudinaryReady = isCloudinaryConfigured();
+
+  // ------------------------------------------------------------
+  // Handle photo selection → upload to Cloudinary
+  // ------------------------------------------------------------
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+
+    if (!cloudinaryReady) {
+      setError(
+        "Photo upload is not configured yet. Add Cloudinary keys to .env."
+      );
       return;
     }
-    updateActiveProfile({ name, email, phone, dob, gender }); // Store the ISO string
-    alert("Profile updated successfully!");
-    onBack();
+
+    setUploading(true);
+    try {
+      const result = await uploadImage(file);
+      setAvatarUrl(result.secure_url);
+      setToast({
+        message: "Photo uploaded — tap Save to confirm",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("[EditProfile] upload error:", err);
+      setError(err.message || "Failed to upload photo. Try again.");
+    } finally {
+      setUploading(false);
+      // Reset file input so picking the same file again works
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const triggerPhotoPicker = () => {
+    if (uploading) return;
+    fileInputRef.current?.click();
+  };
+
+  // ------------------------------------------------------------
+  // Save profile updates
+  // ------------------------------------------------------------
+  const handleSave = async () => {
+    setError("");
+
+    if (!name.trim() || name.trim().length < 2) {
+      setError("Name must be at least 2 characters.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updates = { name: name.trim() };
+      if (dob) updates.dateOfBirth = dob;
+      if (gender) updates.gender = gender;
+      if (avatarUrl && avatarUrl !== activeProfile?.avatarUrl) {
+        updates.avatarUrl = avatarUrl;
+      }
+
+      await updateActiveProfile(updates);
+      setToast({ message: "Profile updated successfully", type: "success" });
+      setTimeout(() => onBack(), 800);
+    } catch (err) {
+      console.error("[EditProfile] save error:", err);
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to save. Please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="d-flex flex-column h-100 bg-white">
-      <div className="d-flex justify-content-center align-items-center p-3 border-bottom" style={{ position: 'relative' }}>
-        <button className="btn p-0 border-0 position-absolute" style={{ left: '15px' }} onClick={onBack}>
+    <div
+      className="d-flex flex-column h-100"
+      style={{ backgroundColor: isDark ? "#1a1a1a" : "#FFF" }}
+    >
+      {/* Header */}
+      <div
+        className="d-flex justify-content-center align-items-center p-3 border-bottom position-relative"
+        style={{ borderColor: isDark ? "#333" : "#DEDFE2" }}
+      >
+        <button
+          className="btn p-0 border-0 position-absolute"
+          style={{ left: "15px", color: isDark ? "#FFF" : "#000" }}
+          onClick={onBack}
+        >
           <ChevronLeft size={28} />
         </button>
-        <h1 className="fw-bold m-0" style={{ fontSize: '24px' }}>Edit Profile</h1>
+        <h1
+          className="fw-bold m-0"
+          style={{ fontSize: "24px", color: isDark ? "#FFF" : "#000" }}
+        >
+          Edit Profile
+        </h1>
       </div>
 
-      <div className="d-flex flex-column justify-content-center align-items-center mt-4 mb-4">
-        <div className="d-flex justify-content-center align-items-center rounded-circle text-white fw-bold" 
-             style={{ width: '100px', height: '100px', backgroundColor: activeProfile.color, fontSize: '40px' }}>
-          {activeProfile.initial}
-        </div>
-        <button className="btn p-0 border-0 mt-2" 
-                style={{ color: '#0033CC', fontWeight: '600', cursor: 'pointer' }}
-                onClick={handlePhotoClick}>
-          Change Photo
-        </button>
-      </div>
-
-      <div className="px-3">
-        {/* ... Other fields ... */}
-        <div className="mb-3">
-          <label className="fw-bold mb-2">Name</label>
-          <div className="d-flex align-items-center border rounded-3 p-2">
-            <Person size={18} className="me-2" color="#000" />
-            <input className="form-control border-0 shadow-none p-0" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="flex-grow-1 overflow-auto px-3 py-3">
+        {error && (
+          <div
+            className="alert alert-danger py-2 mb-3"
+            style={{ fontSize: "13px" }}
+          >
+            {error}
           </div>
-        </div>
+        )}
 
-        <div className="mb-3">
-          <label className="fw-bold mb-2">Email Address</label>
-          <div className="d-flex align-items-center border rounded-3 p-2">
-            <Envelope size={18} className="me-2" color="#000" />
-            <input className="form-control border-0 shadow-none p-0" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {/* Avatar with upload */}
+        <div className="d-flex flex-column justify-content-center align-items-center mb-4">
+          <div className="position-relative">
+            <Avatar
+              src={avatarUrl}
+              name={name}
+              size={110}
+              color={activeProfile?.color || "#0033CC"}
+              border="2px solid #DEDFE2"
+            />
+
+            {/* Upload badge */}
+            {cloudinaryReady && (
+              <button
+                type="button"
+                onClick={triggerPhotoPicker}
+                disabled={uploading}
+                className="position-absolute bg-white rounded-circle d-flex justify-content-center align-items-center border-0"
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  bottom: 0,
+                  right: 0,
+                  border: "2px solid #FFF",
+                  cursor: uploading ? "not-allowed" : "pointer",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  opacity: uploading ? 0.5 : 1,
+                  padding: 0,
+                }}
+                aria-label="Change photo"
+              >
+                {uploading ? (
+                  <span
+                    className="spinner-border spinner-border-sm"
+                    style={{ color: "#0033CC" }}
+                    role="status"
+                  />
+                ) : (
+                  <Camera size={18} color="#0033CC" />
+                )}
+              </button>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: "none" }}
+              onChange={handlePhotoChange}
+            />
           </div>
+
+          {cloudinaryReady ? (
+            <button
+              type="button"
+              className="btn p-0 border-0 mt-2"
+              onClick={triggerPhotoPicker}
+              disabled={uploading}
+              style={{
+                color: "#0033CC",
+                fontWeight: "600",
+                fontSize: "14px",
+                textDecoration: "underline",
+              }}
+            >
+              {uploading ? "Uploading..." : "Change Photo"}
+            </button>
+          ) : (
+            <p
+              className="text-secondary mt-2 mb-0"
+              style={{ fontSize: "12px" }}
+            >
+              Photo upload coming soon
+            </p>
+          )}
         </div>
 
+        {/* Name */}
         <div className="mb-3">
-          <label className="fw-bold mb-2">Phone Number</label>
-          <div className="d-flex align-items-center border rounded-3 p-2">
-            <Telephone size={18} className="me-2" color="#000" />
-            <input className="form-control border-0 shadow-none p-0" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="mb-3">
-          <label className="fw-bold mb-2">Date of Birth</label>
-          <div className="d-flex align-items-center border rounded-3 p-2">
-            <CalendarEvent size={18} className="me-2" color="#000" />
-            <input 
-              className="form-control border-0 shadow-none p-0" 
-              type="date" 
-              value={dob} 
-              onChange={(e) => setDob(e.target.value)} 
+          <label
+            className="fw-bold mb-2"
+            style={{ color: isDark ? "#FFF" : "#000" }}
+          >
+            Name
+          </label>
+          <div
+            className="d-flex align-items-center border rounded-3 p-2"
+            style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+          >
+            <Person size={18} className="me-2" color={isDark ? "#FFF" : "#000"} />
+            <input
+              className="form-control border-0 shadow-none p-0"
+              style={{
+                backgroundColor: "transparent",
+                color: isDark ? "#FFF" : "#000",
+              }}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={saving}
+              maxLength={100}
             />
           </div>
         </div>
 
+        {/* DOB */}
         <div className="mb-3">
-          <label className="fw-bold mb-2">Gender</label>
-          <div className="d-flex align-items-center border rounded-3 p-2">
-            <GenderMale size={18} className="me-2" color="#000" />
-            <select className="form-control border-0 shadow-none p-0" value={gender} onChange={(e) => setGender(e.target.value)}>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
+          <label
+            className="fw-bold mb-2"
+            style={{ color: isDark ? "#FFF" : "#000" }}
+          >
+            Date of Birth
+          </label>
+          <div
+            className="d-flex align-items-center border rounded-3 p-2"
+            style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+          >
+            <CalendarEvent
+              size={18}
+              className="me-2"
+              color={isDark ? "#FFF" : "#000"}
+            />
+            <input
+              className="form-control border-0 shadow-none p-0"
+              style={{
+                backgroundColor: "transparent",
+                color: isDark ? "#FFF" : "#000",
+              }}
+              type="date"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              disabled={saving}
+            />
           </div>
         </div>
+
+        {/* Gender */}
+       {/* Gender */}
+<div className="mb-3">
+  <label
+    className="fw-bold mb-2"
+    style={{ color: isDark ? "#FFF" : "#000" }}
+  >
+    Gender
+  </label>
+  <div
+    className="d-flex align-items-center border rounded-3 p-2 position-relative"
+    style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+  >
+    <GenderMale
+      size={18}
+      className="me-2"
+      color={isDark ? "#FFF" : "#000"}
+    />
+    <select
+      className="form-control border-0 shadow-none p-0 pe-4"
+      style={{
+        backgroundColor: "transparent",
+        color: isDark ? "#FFF" : "#000",
+        appearance: "none",
+        WebkitAppearance: "none",
+        MozAppearance: "none",
+        cursor: "pointer",
+      }}
+      value={gender}
+      onChange={(e) => setGender(e.target.value)}
+      disabled={saving}
+    >
+      <option value="">Not specified</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      <option value="Other">Other</option>
+      <option value="Prefer not to say">Prefer not to say</option>
+    </select>
+    {/* Custom chevron */}
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      style={{
+        position: "absolute",
+        right: "14px",
+        pointerEvents: "none",
+        opacity: 0.6,
+      }}
+    >
+      <path
+        d="M6 9l6 6 6-6"
+        stroke={isDark ? "#FFF" : "#000"}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </div>
+</div>
+
+        <p
+          className="text-secondary mt-3"
+          style={{ fontSize: "12px", fontStyle: "italic" }}
+        >
+          Note: Email and phone number cannot be changed here. Contact support
+          to update them.
+        </p>
       </div>
 
-      <div className="p-3 mt-auto">
-        <button className="btn w-100 py-3 fw-bold text-white mb-3" 
-                style={{ backgroundColor: '#0033CC', borderRadius: '8px' }}
-                onClick={handleSave}>
-          Save Changes
+      {/* Bottom Buttons */}
+      <div
+        className="p-3 border-top"
+        style={{ borderColor: isDark ? "#333" : "#DEDFE2" }}
+      >
+        <button
+          className="btn w-100 py-3 fw-bold text-white mb-2"
+          style={{
+            backgroundColor: saving ? "#999" : "#0033CC",
+            borderRadius: "8px",
+            border: "none",
+          }}
+          onClick={handleSave}
+          disabled={saving || uploading}
+        >
+          {saving ? "Saving..." : "Save Changes"}
         </button>
-        <button className="btn w-100 py-3 fw-bold"
-                style={{ backgroundColor: '#FFF', color: '#0033CC', border: '1px solid #0033CC', borderRadius: '8px' }}
-                onClick={onBack}>
+        <button
+          className="btn w-100 py-3 fw-bold"
+          style={{
+            backgroundColor: "transparent",
+            color: "#0033CC",
+            border: "1px solid #0033CC",
+            borderRadius: "8px",
+          }}
+          onClick={onBack}
+          disabled={saving || uploading}
+        >
           Cancel
         </button>
       </div>
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
     </div>
   );
 };

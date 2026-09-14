@@ -4,10 +4,7 @@ import { useApp } from "../context/useApp";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import { useTodaySchedule } from "../hooks/useTodaySchedule";
-import {
-  markMedicationTaken,
-  markMedicationSkipped,
-} from "../services/api";
+import { markMedicationTaken, markMedicationSkipped } from "../services/api";
 import CheckIn from "./CheckIn";
 import DoctorNudge from "./DoctorNudge";
 import HomeGreeting from "../components/home/HomeGreeting";
@@ -20,10 +17,14 @@ import { clearSnooze } from "../utils/snoozeStore";
 import SnoozeSheet from "../components/home/SnoozeSheet";
 import Toast from "../components/ui/Toast";
 import { ArrowLeftRight } from "react-bootstrap-icons";
+import Avatar from "../components/ui/Avatar";
+
+
 
 const Home = () => {
   const { setCurrentTab } = useApp();
   const { activeProfile, profiles, switchProfile } = useProfile();
+  const { user } = useApp() || {};
   const { isDark } = useTheme();
 
   const [checkInState, setCheckInState] = useState("idle");
@@ -63,90 +64,92 @@ const Home = () => {
 
   // Mark as taken
   const handleTaken = async (dose) => {
-  if (!dose.logId) {
-    setToast({
-      message: "No log for this dose. Try reloading.",
-      type: "error",
-    });
-    return;
-  }
+    if (!dose.logId) {
+      setToast({
+        message: "No log for this dose. Try reloading.",
+        type: "error",
+      });
+      return;
+    }
 
-  setActionSaving(true);
-  try {
-await markMedicationTaken(dose.logId, new Date().toISOString());
-clearSnooze(dose.logId); // 🆕 clear snooze if user took the dose
-setToast({ message: `${dose.name} marked as taken`, type: "success" });
-    closeSheet();
-    await refresh();
-  } catch (err) {
-    console.error("[Home] mark taken error:", err);
-    setToast({
-      message: err.response?.data?.message || "Failed to mark as taken",
-      type: "error",
-    });
-  } finally {
-    setActionSaving(false);
-  }
-};
+    setActionSaving(true);
+    try {
+      await markMedicationTaken(dose.logId, new Date().toISOString());
+      clearSnooze(dose.logId); // 🆕 clear snooze if user took the dose
+      setToast({ message: `${dose.name} marked as taken`, type: "success" });
+      closeSheet();
+      await refresh();
+    } catch (err) {
+      console.error("[Home] mark taken error:", err);
+      setToast({
+        message: err.response?.data?.message || "Failed to mark as taken",
+        type: "error",
+      });
+    } finally {
+      setActionSaving(false);
+    }
+  };
 
-const handleSkip = async (dose, reason) => {
-  if (!dose.logId) {
-    setToast({
-      message: "No log for this dose. Try reloading.",
-      type: "error",
-    });
-    return;
-  }
+  const handleSkip = async (dose, reason) => {
+    if (!dose.logId) {
+      setToast({
+        message: "No log for this dose. Try reloading.",
+        type: "error",
+      });
+      return;
+    }
 
-  setActionSaving(true);
-  try {
-    await markMedicationSkipped(dose.logId, new Date().toISOString(), reason);
-clearSnooze(dose.logId); // 🆕 clear snooze if user skipped the dose
-setToast({ message: `${dose.name} skipped`, type: "info" });
-    closeSheet();
-    await refresh();
-  } catch (err) {
-    console.error("[Home] skip error:", err);
-    setToast({
-      message: err.response?.data?.message || "Failed to skip",
-      type: "error",
-    });
-  } finally {
-    setActionSaving(false);
-  }
-};
+    setActionSaving(true);
+    try {
+      await markMedicationSkipped(dose.logId, new Date().toISOString(), reason);
+      clearSnooze(dose.logId); // 🆕 clear snooze if user skipped the dose
+      setToast({ message: `${dose.name} skipped`, type: "info" });
+      closeSheet();
+      await refresh();
+    } catch (err) {
+      console.error("[Home] skip error:", err);
+      setToast({
+        message: err.response?.data?.message || "Failed to skip",
+        type: "error",
+      });
+    } finally {
+      setActionSaving(false);
+    }
+  };
 
   // Snooze — store locally, no backend change needed
-const handleSnooze = (dose, minutes) => {
-  if (!dose.logId) {
-    setToast({
-      message: "No log for this dose. Try reloading.",
-      type: "error",
-    });
-    return;
-  }
+  const handleSnooze = (dose, minutes) => {
+    if (!dose.logId) {
+      setToast({
+        message: "No log for this dose. Try reloading.",
+        type: "error",
+      });
+      return;
+    }
 
-  try {
-    snoozeDose(dose.logId, minutes);
-    setToast({
-      message: `Snoozed for ${minutes} minutes`,
-      type: "info",
-    });
-    closeSheet();
-    refresh();
-  } catch (err) {
-    console.error("[Home] snooze error:", err);
-    setToast({
-      message: "Failed to snooze. Please try again.",
-      type: "error",
-    });
-  }
-};
+    try {
+      snoozeDose(dose.logId, minutes);
+      setToast({
+        message: `Snoozed for ${minutes} minutes`,
+        type: "info",
+      });
+      closeSheet();
+      refresh();
+    } catch (err) {
+      console.error("[Home] snooze error:", err);
+      setToast({
+        message: "Failed to snooze. Please try again.",
+        type: "error",
+      });
+    }
+  };
 
   // Profile switch
   const handleSwitch = () => {
     if (!profiles?.length) return;
-    const currentIndex = profiles.findIndex((p) => (p.id || p._id) === profileId);
+    const currentIndex = profiles.findIndex(
+      (p) => (p.id || p._id) === profileId,
+    );
     const nextProfile = profiles[(currentIndex + 1) % profiles.length];
     switchProfile(nextProfile.id || nextProfile._id);
   };
@@ -184,19 +187,22 @@ const handleSnooze = (dose, minutes) => {
           className="d-flex align-items-center p-3 mb-4 rounded-3"
           style={{ backgroundColor: "rgba(0, 51, 204, 0.1)" }}
         >
-          <div
-            className="d-flex justify-content-center align-items-center rounded-circle text-white fw-bold me-3"
-            style={{
-              width: "50px",
-              height: "50px",
-              backgroundColor: activeProfile.color || "#0033CC",
-              fontSize: "20px",
-            }}
-          >
-            {activeProfile.initial || activeProfile.name?.[0]?.toUpperCase()}
-          </div>
+         <Avatar
+  src={activeProfile.avatarUrl}
+  name={
+    activeProfile.isSelf && activeProfile.name === "Me"
+      ? user?.full_name || activeProfile.name
+      : activeProfile.name
+  }
+  size={50}
+  color={activeProfile.color || "#0033CC"}
+  className="me-3"
+/>
           <div className="flex-grow-1">
-            <p className="m-0 fw-bold" style={{ fontSize: "18px", color: "#000" }}>
+            <p
+              className="m-0 fw-bold"
+              style={{ fontSize: "18px", color: "#000" }}
+            >
               {activeProfile.name}
             </p>
             <p className="m-0" style={{ fontSize: "13px", color: "#666" }}>
@@ -233,11 +239,16 @@ const handleSnooze = (dose, minutes) => {
               {loading
                 ? "Loading..."
                 : total === 0
-                ? "No doses scheduled"
-                : `${taken} of ${total} doses taken`}
+                  ? "No doses scheduled"
+                  : `${taken} of ${total} doses taken`}
             </p>
           </div>
-          <AdherenceDonut percent={adherence} size={80} strokeWidth={8} color="#0033CC" />
+          <AdherenceDonut
+            percent={adherence}
+            size={80}
+            strokeWidth={8}
+            color="#0033CC"
+          />
         </div>
       </div>
 
@@ -296,9 +307,21 @@ const handleSnooze = (dose, minutes) => {
       {/* Schedule sections — doses are now clickable */}
       {!loading && !error && total > 0 && (
         <>
-          <ScheduleSection type="dueNow" doses={dueNow} onSelectDose={handleSelectDose} />
-          <ScheduleSection type="upcoming" doses={upcoming} onSelectDose={handleSelectDose} />
-          <ScheduleSection type="completed" doses={completed} onSelectDose={handleSelectDose} />
+          <ScheduleSection
+            type="dueNow"
+            doses={dueNow}
+            onSelectDose={handleSelectDose}
+          />
+          <ScheduleSection
+            type="upcoming"
+            doses={upcoming}
+            onSelectDose={handleSelectDose}
+          />
+          <ScheduleSection
+            type="completed"
+            doses={completed}
+            onSelectDose={handleSelectDose}
+          />
         </>
       )}
 
