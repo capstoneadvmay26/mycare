@@ -19,6 +19,10 @@ import { AppProvider } from "./context/AppContext";
 import { useApp } from "./context/useApp";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import LogSymptom from "./pages/LogSymptom";
+import SymptomHistory from "./pages/SymptomHistory";
+import CheckIn from "./pages/CheckIn";
+import DoctorNudge from "./pages/DoctorNudge";
 
 import {
   House,
@@ -73,6 +77,14 @@ const AppContent = () => {
         return <Settings />;
       case "MedicationHistory":
         return <MedicationHistory />;
+        case "LogSymptom":
+  return <LogSymptom />;
+case "SymptomHistory":
+  return <SymptomHistory />;
+case "CheckIn":
+  return <CheckIn />;
+case "DoctorNudge":
+  return <DoctorNudge />;
       default:
         return <Home />;
     }

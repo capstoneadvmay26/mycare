@@ -4,30 +4,26 @@ import { useApp } from "../context/useApp";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import { useTodaySchedule } from "../hooks/useTodaySchedule";
-import { markMedicationTaken, markMedicationSkipped } from "../services/api";
-import CheckIn from "./CheckIn";
-import DoctorNudge from "./DoctorNudge";
+import {
+  markMedicationTaken,
+  markMedicationSkipped,
+} from "../services/api";
 import HomeGreeting from "../components/home/HomeGreeting";
 import AdherenceDonut from "../components/home/AdherenceDonut";
 import ScheduleSection from "../components/home/ScheduleSection";
 import DoseActionSheet from "../components/home/DoseActionSheet";
 import SkipReasonSheet from "../components/home/SkipReasonSheet";
-import { snoozeDose } from "../utils/snoozeStore";
-import { clearSnooze } from "../utils/snoozeStore";
 import SnoozeSheet from "../components/home/SnoozeSheet";
+import { snoozeDose, clearSnooze } from "../utils/snoozeStore";
 import Toast from "../components/ui/Toast";
-import { ArrowLeftRight } from "react-bootstrap-icons";
 import Avatar from "../components/ui/Avatar";
-
-
+import { ArrowLeftRight } from "react-bootstrap-icons";
 
 const Home = () => {
-  const { setCurrentTab } = useApp();
+  const { setCurrentTab, user } = useApp();
   const { activeProfile, profiles, switchProfile } = useProfile();
-  const { user } = useApp() || {};
   const { isDark } = useTheme();
 
-  const [checkInState, setCheckInState] = useState("idle");
   const [selectedDose, setSelectedDose] = useState(null);
   const [skipMode, setSkipMode] = useState(false);
   const [snoozeMode, setSnoozeMode] = useState(false);
@@ -49,7 +45,9 @@ const Home = () => {
 
   const isDependent = activeProfile && !activeProfile.isSelf;
 
-  // Tap a dose → open action sheet
+  // ------------------------------------------------------------
+  // Dose sheet handlers
+  // ------------------------------------------------------------
   const handleSelectDose = (dose) => {
     setSelectedDose(dose);
     setSkipMode(false);
@@ -62,7 +60,6 @@ const Home = () => {
     setSnoozeMode(false);
   };
 
-  // Mark as taken
   const handleTaken = async (dose) => {
     if (!dose.logId) {
       setToast({
@@ -75,7 +72,7 @@ const Home = () => {
     setActionSaving(true);
     try {
       await markMedicationTaken(dose.logId, new Date().toISOString());
-      clearSnooze(dose.logId); // 🆕 clear snooze if user took the dose
+      clearSnooze(dose.logId);
       setToast({ message: `${dose.name} marked as taken`, type: "success" });
       closeSheet();
       await refresh();
@@ -101,8 +98,12 @@ const Home = () => {
 
     setActionSaving(true);
     try {
-      await markMedicationSkipped(dose.logId, new Date().toISOString(), reason);
-      clearSnooze(dose.logId); // 🆕 clear snooze if user skipped the dose
+      await markMedicationSkipped(
+        dose.logId,
+        new Date().toISOString(),
+        reason
+      );
+      clearSnooze(dose.logId);
       setToast({ message: `${dose.name} skipped`, type: "info" });
       closeSheet();
       await refresh();
@@ -117,7 +118,6 @@ const Home = () => {
     }
   };
 
-  // Snooze — store locally, no backend change needed
   const handleSnooze = (dose, minutes) => {
     if (!dose.logId) {
       setToast({
@@ -144,38 +144,14 @@ const Home = () => {
     }
   };
 
-  // Profile switch
   const handleSwitch = () => {
     if (!profiles?.length) return;
     const currentIndex = profiles.findIndex(
-      (p) => (p.id || p._id) === profileId,
+      (p) => (p.id || p._id) === profileId
     );
     const nextProfile = profiles[(currentIndex + 1) % profiles.length];
     switchProfile(nextProfile.id || nextProfile._id);
   };
-
-  // Check-in sub-flows
-  if (checkInState === "active") {
-    return (
-      <CheckIn
-        symptom="Headache"
-        onBack={() => setCheckInState("idle")}
-        onComplete={(result) => {
-          if (result === "nudge") setCheckInState("nudge");
-          else setCheckInState("idle");
-        }}
-      />
-    );
-  }
-
-  if (checkInState === "nudge") {
-    return (
-      <DoctorNudge
-        onBack={() => setCheckInState("idle")}
-        onClose={() => setCheckInState("idle")}
-      />
-    );
-  }
 
   return (
     <div className="d-flex flex-column h-100 p-3">
@@ -187,17 +163,17 @@ const Home = () => {
           className="d-flex align-items-center p-3 mb-4 rounded-3"
           style={{ backgroundColor: "rgba(0, 51, 204, 0.1)" }}
         >
-         <Avatar
-  src={activeProfile.avatarUrl}
-  name={
-    activeProfile.isSelf && activeProfile.name === "Me"
-      ? user?.full_name || activeProfile.name
-      : activeProfile.name
-  }
-  size={50}
-  color={activeProfile.color || "#0033CC"}
-  className="me-3"
-/>
+          <Avatar
+            src={activeProfile.avatarUrl}
+            name={
+              activeProfile.isSelf && activeProfile.name === "Me"
+                ? user?.full_name || activeProfile.name
+                : activeProfile.name
+            }
+            size={50}
+            color={activeProfile.color || "#0033CC"}
+            className="me-3"
+          />
           <div className="flex-grow-1">
             <p
               className="m-0 fw-bold"
@@ -239,8 +215,8 @@ const Home = () => {
               {loading
                 ? "Loading..."
                 : total === 0
-                  ? "No doses scheduled"
-                  : `${taken} of ${total} doses taken`}
+                ? "No doses scheduled"
+                : `${taken} of ${total} doses taken`}
             </p>
           </div>
           <AdherenceDonut
@@ -304,7 +280,7 @@ const Home = () => {
         </div>
       )}
 
-      {/* Schedule sections — doses are now clickable */}
+      {/* Schedule sections */}
       {!loading && !error && total > 0 && (
         <>
           <ScheduleSection
@@ -335,7 +311,7 @@ const Home = () => {
             borderRadius: "8px",
             border: "none",
           }}
-          onClick={() => setCheckInState("active")}
+          onClick={() => setCurrentTab("Symptoms")}
         >
           Start Daily Check-in
         </button>
@@ -353,11 +329,7 @@ const Home = () => {
         </button>
       </div>
 
-      {/* ============================================ */}
       {/* Dose action sheets */}
-      {/* ============================================ */}
-
-      {/* Base action sheet */}
       {selectedDose && !skipMode && !snoozeMode && (
         <DoseActionSheet
           dose={selectedDose}
@@ -368,7 +340,6 @@ const Home = () => {
         />
       )}
 
-      {/* Skip reason sheet */}
       {selectedDose && skipMode && (
         <SkipReasonSheet
           dose={selectedDose}
@@ -378,7 +349,6 @@ const Home = () => {
         />
       )}
 
-      {/* Snooze sheet */}
       {selectedDose && snoozeMode && (
         <SnoozeSheet
           dose={selectedDose}
@@ -388,7 +358,6 @@ const Home = () => {
         />
       )}
 
-      {/* Toast */}
       <Toast
         message={toast.message}
         type={toast.type}

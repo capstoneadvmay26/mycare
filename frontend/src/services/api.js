@@ -219,25 +219,6 @@ export const getAdherenceHistory = async (profileId, period = 'week') => {
   });
 };
 
-// ============================================================
-// SYMPTOM ENDPOINTS
-// ============================================================
-
-export const getSymptoms = async (profileId) => {
-  return api.get('/symptoms', { params: { profile_id: profileId } });
-};
-
-export const logSymptom = async (symptomData) => {
-  return api.post('/symptoms/log', symptomData);
-};
-
-export const getSymptomStatus = async (symptomId) => {
-  return api.get(`/symptoms/${symptomId}/status`);
-};
-
-export const submitCheckIn = async (symptomId, status) => {
-  return api.post(`/symptoms/${symptomId}/check-in`, { status });
-};
 
 // ============================================================
 // HISTORY ENDPOINTS — Matches latest backend contract
@@ -263,15 +244,6 @@ export const getMedicationHistory = async (profileId, period = 'week') => {
   });
 };
 
-/**
- * Get symptom logs history
- * Params: { profile_id, period: "week" | "month" }
- */
-export const getSymptomHistory = async (profileId, period = 'month') => {
-  return api.get('/symptoms/history', {
-    params: { profile_id: profileId, period },
-  });
-};
 
 /**
  * Generate consult brief JSON
@@ -315,6 +287,47 @@ export const exportData = async () => {
 
 export const deleteAccount = async () => {
   return api.delete('/account');
+};
+
+// ============================================================
+// SYMPTOM ENDPOINTS
+// ============================================================
+
+// ⚠️ The backend does NOT expose GET /symptoms (only /symptoms/history)
+// Use the history endpoint for listing.
+export const getSymptoms = async (profileId) => {
+  return api.get('/symptoms/history', {
+    params: { profile_id: profileId },
+  });
+};
+
+export const logSymptom = async (symptomData) => {
+  return api.post('/symptoms/log', symptomData);
+};
+
+export const getSymptomStatus = async (symptomId) => {
+  return api.get(`/symptoms/${symptomId}/status`);
+};
+
+export const submitCheckIn = async (symptomId, status) => {
+  return api.post(`/symptoms/${symptomId}/check-in`, { status });
+};
+
+export const getSymptomOptions = async () => {
+  return api.get('/symptoms/options');
+};
+
+export const getSymptomHistory = async (profileId, period = 'month') => {
+  return api.get('/symptoms/history', {
+    params: { profile_id: profileId, period },
+  });
+};
+
+export const recordDoctorFollowUp = async (symptomId, response) => {
+  return api.post('/notifications/doctor-follow-up', {
+    symptomId,
+    response,
+  });
 };
 
 // ============================================================
