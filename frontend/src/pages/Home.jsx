@@ -15,6 +15,8 @@ import AdherenceDonut from "../components/home/AdherenceDonut";
 import ScheduleSection from "../components/home/ScheduleSection";
 import DoseActionSheet from "../components/home/DoseActionSheet";
 import SkipReasonSheet from "../components/home/SkipReasonSheet";
+import { snoozeDose } from "../utils/snoozeStore";
+import { clearSnooze } from "../utils/snoozeStore";
 import SnoozeSheet from "../components/home/SnoozeSheet";
 import Toast from "../components/ui/Toast";
 import { ArrowLeftRight } from "react-bootstrap-icons";
@@ -71,8 +73,9 @@ const Home = () => {
 
   setActionSaving(true);
   try {
-    await markMedicationTaken(dose.logId, new Date().toISOString());
-    setToast({ message: `${dose.name} marked as taken`, type: "success" });
+await markMedicationTaken(dose.logId, new Date().toISOString());
+clearSnooze(dose.logId); // 🆕 clear snooze if user took the dose
+setToast({ message: `${dose.name} marked as taken`, type: "success" });
     closeSheet();
     await refresh();
   } catch (err) {
@@ -98,7 +101,8 @@ const handleSkip = async (dose, reason) => {
   setActionSaving(true);
   try {
     await markMedicationSkipped(dose.logId, new Date().toISOString(), reason);
-    setToast({ message: `${dose.name} skipped`, type: "info" });
+clearSnooze(dose.logId); // 🆕 clear snooze if user skipped the dose
+setToast({ message: `${dose.name} skipped`, type: "info" });
     closeSheet();
     await refresh();
   } catch (err) {
@@ -112,16 +116,32 @@ const handleSkip = async (dose, reason) => {
   }
 };
 
-  // Snooze — client-side only for now
-  const handleSnooze = (dose, minutes) => {
-    // NOTE: This is a placeholder. Real snooze requires Firebase scheduling,
-    // which is out of scope for now. We just show a confirmation.
+  // Snooze — store locally, no backend change needed
+const handleSnooze = (dose, minutes) => {
+  if (!dose.logId) {
+    setToast({
+      message: "No log for this dose. Try reloading.",
+      type: "error",
+    });
+    return;
+  }
+
+  try {
+    snoozeDose(dose.logId, minutes);
     setToast({
       message: `Snoozed for ${minutes} minutes`,
       type: "info",
     });
     closeSheet();
-  };
+    refresh();
+  } catch (err) {
+    console.error("[Home] snooze error:", err);
+    setToast({
+      message: "Failed to snooze. Please try again.",
+      type: "error",
+    });
+  }
+};
 
   // Profile switch
   const handleSwitch = () => {

@@ -35,7 +35,6 @@ const ScheduleSection = ({ type, doses = [], onSelectDose }) => {
   const { label, accent, bg, border, Icon } = config;
 
   const formatTime = (time24) => {
-    // "08:00" → "8:00am"
     const [hh, mm] = time24.split(":").map(Number);
     const period = hh >= 12 ? "pm" : "am";
     const displayHour = hh % 12 === 0 ? 12 : hh % 12;
@@ -77,10 +76,26 @@ const ScheduleSection = ({ type, doses = [], onSelectDose }) => {
               </span>
             </p>
             <p
-              className="m-0"
+              className="m-0 d-flex align-items-center gap-2"
               style={{ fontSize: "13px", color: isDark ? "#A0A0A0" : "#000" }}
             >
-              {formatTime(dose.time)}
+              <span>{formatTime(dose.time)}</span>
+
+              {/* 🆕 Snoozed badge */}
+              {dose.isSnoozed && (
+                <span
+                  className="fw-semibold"
+                  style={{
+                    backgroundColor: "rgba(247, 200, 27, 0.2)",
+                    color: "#B45309",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    fontSize: "11px",
+                  }}
+                >
+                  💤 Snoozed · {dose.snoozeMinutes}m
+                </span>
+              )}
             </p>
           </div>
           <ChevronRight
