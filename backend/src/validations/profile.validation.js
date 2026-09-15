@@ -8,6 +8,7 @@ const createProfileSchema = Joi.object({
   gender: Joi.string()
     .valid("male", "female", "other", "prefer_not_to_say")
     .optional(),
+  timezone: Joi.string().trim().optional(),
 }).custom((value, helpers) => {
   const relationship = value.relationship.toLowerCase();
 
@@ -33,6 +34,7 @@ const updateProfileSchema = Joi.object({
   gender: Joi.string()
     .valid("male", "female", "other", "prefer_not_to_say")
     .optional(),
+  timezone: Joi.string().trim().optional(),
 });
 
 module.exports = {

@@ -51,6 +51,12 @@ const profileSchema = new mongoose.Schema(
             enum: ["male", "female", "other", "prefer_not_to_say"],
         },
 
+        timezone: {
+            type: String,
+            required: true,
+            default: "UTC",
+        },
+
         // Soft delete - "deleting" a profile set this to "archived" instead
         // of actually removing it, preserving medication history uderneath.
         status: {
