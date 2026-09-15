@@ -8,6 +8,7 @@ const toProfileResponse = (profile) => ({
     ? "Self"
     : profile.relationship,
   condition: profile.condition ?? null,
+  timezone: profile.timezone,
 });
 
 const getProfiles = async (req, res, next) => {
@@ -28,7 +29,7 @@ const getProfiles = async (req, res, next) => {
 
 const createProfile = async (req, res, next) => {
   try {
-    const { name, relationship, condition } = req.body;
+    const { name, relationship, condition, timezone } = req.body;
 
     const isSelf = relationship.toLowerCase() === "self";
 
@@ -54,6 +55,7 @@ const createProfile = async (req, res, next) => {
       relationship: isSelf ? "Self" : relationship,
       condition: condition ?? null,
       isSelf,
+      timezone: timezone || "UTC",
     });
 
     return res.status(201).json({
@@ -115,7 +117,7 @@ const updateProfile = async (req, res, next) => {
       });
     }
 
-    const allowedFields = ["name", "relationship", "condition"];
+    const allowedFields = ["name", "relationship", "condition", "timezone"];
     const updates = {};
 
     for (const field of allowedFields) {
