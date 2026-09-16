@@ -1,4 +1,6 @@
-function generateScheduledOccurrences(medication, startDate, endDate) {
+const { DateTime } = require("luxon");
+
+function generateScheduledOccurrences(medication, startDate, endDate, timezone = "UTC") {
     // as_needed medications don't have automatic schedules
     if (medication.frequency === "as_needed") {
         return [];
@@ -49,17 +51,19 @@ function generateScheduledOccurrences(medication, startDate, endDate) {
         for (const time of medication.scheduleTime) {
             const [hours, minutes] = time.split(":");
 
-            const scheduledDate = new Date(currentDate);
-
-            // scheduleTime is interpreted as UTC.
-            // Example:
-            // "08:00" -> 2026-08-20T08:00:00.000Z
-            scheduledDate.setUTCHours(
-                Number(hours),
-                Number(minutes),
-                0,
-                0
+            const scheduledDateTime = DateTime.fromObject(
+                {
+                    year: currentDate.getUTCFullYear(),
+                    month: currentDate.getUTCMonth() + 1,
+                    day: currentDate.getUTCDate(),
+                    hour: Number(hours),
+                    minute: Number(minutes),
+                    second: 0,
+                    millisecond: 0,
+                }, {zone: timezone}
             );
+            
+            const scheduledDate = scheduledDateTime.toJSDate();
 
             if (scheduledDate >= startDate && scheduledDate <= endDate) {
                 occurrences.push(scheduledDate);
