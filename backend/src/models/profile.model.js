@@ -18,6 +18,14 @@ const profileSchema = new mongoose.Schema(
             trim: true,
             miniLength: 2,
         },
+        // Cloudinary image details. We store BOTH the public url (to display
+        // the image) AND the publicID (Cloudinary's internal reference,
+        // required later to delete or replace the image).
+        profileImage: {
+            url: { type: String, default: null },
+            publicId: { type: String, default: null },
+        },
+
 
         // true = this profile is the account holder themselves
         // false = this is a dependent (child, parent, etc. ) they manage
