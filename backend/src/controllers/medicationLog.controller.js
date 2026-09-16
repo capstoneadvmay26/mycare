@@ -3,7 +3,7 @@ const MedicationModel = require('../models/medication.model');
 const ProfileModel = require('../models/profile.model');
 const generateScheduledOccurrences = require('../utils/medicationLogGenerator');
 const mongoose = require('mongoose');
-
+const { DateTime } = require("luxon");
 
 const getMedicationHistory = async (req, res, next) => {
     try {
@@ -84,28 +84,28 @@ const getMedicationHistory = async (req, res, next) => {
                 message: "You don't have access to this profile."
             });
         }
-
-        // Calculate date range
-        const today = new Date();
-
-        let historyStartDate;
-        const historyEndDate = new Date(today);
-
+        
+        // Calculate date range using the profile's timezone
+        const todayInProfileTimezone = DateTime.now().setZone(profile.timezone).startOf("day");
+        
+        let historyStartDateTime;
+        const historyEndDateTime = todayInProfileTimezone.endOf("day");
+        
         if (period === "week") {
-            historyStartDate = new Date(today);
-            historyStartDate.setDate(today.getDate() - 6);
+            historyStartDateTime = todayInProfileTimezone.minus({ days: 6 });
         }
-
+        
         if (period === "month") {
-            historyStartDate = new Date(today);
-            historyStartDate.setDate(today.getDate() - 29);
+            historyStartDateTime = todayInProfileTimezone.minus({ days: 29 });
         }
-
+        
         if (period === "2months") {
-            historyStartDate = new Date(today);
-            historyStartDate.setDate(today.getDate() - 59);
+            historyStartDateTime = todayInProfileTimezone.minus({ days: 59 });
         }
-
+        
+        const historyStartDate = historyStartDateTime.toJSDate();
+        const historyEndDate = historyEndDateTime.toJSDate();
+        
         // Find active medications
         const medications = await MedicationModel.find({
             profile: profile_id,
@@ -142,7 +142,8 @@ const getMedicationHistory = async (req, res, next) => {
             const occurrences = generateScheduledOccurrences(
                 medication,
                 generationStartDate,
-                generationEndDate
+                generationEndDate,
+                profile.timezone
             );
 
             // Find existing logs
@@ -273,9 +274,38 @@ const markDoseAsTaken = async (req, res, next) => {
             });
         }
 
-        // Only the owner can mark the dose as taken
+        // A dose can only be marked as taken while it is still pending
+        if (medicationLog.status !== "pending") {
+            return res.status(400).json({
+                message: `Medication dose is already ${medicationLog.status}.`
+            });
+        }
+
+        // A dose can only be taken within 30 minutes after its scheduled time
+        const now = new Date();
+
+        // A dose cannot be marked as taken before its scheduled time
+        if (now < medicationLog.scheduledFor) {
+            return res.status(400).json({
+                message:
+                "This medication dose is not due yet."
+            });
+        }
+
+        const thirtyMinutesAfterDose = new Date(
+            medicationLog.scheduledFor.getTime() + 30 * 60 * 1000
+        );
+
+        if (now >= thirtyMinutesAfterDose) {
+            return res.status(400).json({
+                message:
+                    "The medication dose window has expired. This dose can no longer be marked as taken."
+            });
+        }
+
+        // Mark the dose as taken
         medicationLog.status = "taken";
-        medicationLog.takenAt = new Date();
+        medicationLog.takenAt = now;
         medicationLog.skippedAt = null;
 
         await medicationLog.save();
@@ -319,6 +349,13 @@ const markDoseAsSkipped = async (req, res, next) => {
             return res.status(403).json({
                 message:
                     "You don't have access to this medication log."
+            });
+        }
+
+         // A dose can only be marked as skipped while it is still pending
+        if (medicationLog.status !== "pending") {
+            return res.status(400).json({
+                message: `Medication dose is already ${medicationLog.status}.`
             });
         }
 
