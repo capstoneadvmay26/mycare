@@ -1,122 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+//import { useState } from 'react';
+import Home from './pages/Home';
+import Onboarding from './pages/Onboarding';
+import Placeholder from './pages/Placeholder';
+import AppShell from './components/layout/AppShell';
+import Symptoms from './pages/Symptoms';
+import Medications from './pages/Medications';
+import History from './pages/History';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Fixed: useApp is imported from useApp.js, not AppContext.jsx!
+import { AppProvider } from './context/AppContext';
+import { useApp } from './context/useApp';
+
+const AppContent = () => {
+  const { isOnboarded, currentTab, setCurrentTab, userName } = useApp();
+
+  const navItems = ['Home', 'Medications', 'Symptoms', 'History', 'Profiles', 'Settings', 'Help & Support'];
+
+  const renderScreen = () => {
+    switch (currentTab) {
+      case 'Home': return <Home />;
+      case 'Medications': return <Medications />;
+      case 'Symptoms': return <Symptoms />;
+      case 'History': return <History />;
+      case 'Profiles': return <Placeholder title="Profiles" />;
+      case 'Settings': return <Placeholder title="Settings" />;
+      case 'Help & Support': return <Placeholder title="Help & Support" />;
+      default: return <Home />;
+    }
+  };
+
+  if (!isOnboarded) {
+    return <Onboarding />;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <AppShell 
+      navItems={navItems}
+      currentTab={currentTab}
+      setCurrentTab={setCurrentTab}
+      userName={userName}
+    >
+      {renderScreen()}
+    </AppShell>
+  );
+};
 
-      <div className="ticks"></div>
+const App = () => {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+};
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
-
-export default App
+export default App;

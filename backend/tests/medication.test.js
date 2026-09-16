@@ -27,12 +27,13 @@ describe("Medication CRUD", () => {
             name: "Paracetamol",
             dosage: "500mg",
             frequency: "twice_daily",
-            scheduledTimes: ["08:00", "20:00"],
+            scheduleTime: ["08:00", "20:00"],
             startDate: "2026-01-01",
         });
 
         expect(res.statusCode).toBe(201);
         expect(res.body.data.name).toBe("Paracetamol");
+        expect(res.body.data.scheduleTime).toEqual(["08:00", "20:00"]);
     });
 
     it("blocks adding a medication to a profile you don't own", async () => {

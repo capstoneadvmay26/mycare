@@ -1,0 +1,101 @@
+import { useApp } from '../context/useApp';
+import { Clock, CheckCircle, ChevronRight } from 'react-bootstrap-icons'; 
+
+const Home = () => {
+  const { userName } = useApp();
+
+  const adherence = 33;
+  const doses = '1 of 3 doses taken';
+
+  const schedule = {
+    dueNow: [{ name: 'Amlodipine', dosage: '5mg', time: '8:00am' }],
+    upcoming: [{ name: 'Metformin', dosage: '500mg', time: '12:00pm' }],
+    completed: [{ name: 'Atorvastatin', dosage: '20mg', time: '9:00pm' }]
+  };
+
+  return (
+    <div className="d-flex flex-column h-100 p-3">
+      <div className="mb-3 mt-2">
+        <h1 className="fw-bold m-0" style={{ fontSize: '24px', color: '#000' }}>
+          Good morning, {userName || 'Tolu'}
+        </h1>
+        <p className="m-0" style={{ fontSize: '15px', color: '#000' }}>
+          Today, Wed Aug 12
+        </p>
+      </div>
+
+      <div className="bg-white rounded-3 p-3 mb-4 shadow-sm" style={{ border: '1px solid rgba(0,0,0,0.1)' }}>
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <p className="m-0 mb-1" style={{ fontSize: '16px' }}>Today's Adherence</p>
+            <p className="m-0 mb-2 fw-bold" style={{ fontSize: '20px' }}>{doses}</p>
+          </div>
+          <div className="d-flex justify-content-center align-items-center rounded-circle" style={{ width: '80px', height: '80px', border: '8px solid #E5E7EB', borderTop: '8px solid rgba(0, 51, 204, 0.9)' }}>
+            <span className="fw-bold" style={{ fontSize: '20px' }}>{adherence}%</span>
+          </div>
+        </div>
+      </div>
+
+      <h6 className="fw-bold mb-3" style={{ fontSize: '20px' }}>Schedule</h6>
+      
+      <div className="rounded-3 p-3 mb-3" style={{ backgroundColor: 'rgba(217, 45, 32, 0.06)', border: '1.054px solid rgba(217, 45, 32, 0.3)', borderRadius: '8px' }}>
+        <div className="d-flex justify-content-between mb-2">
+          <span style={{ fontSize: '16px', color: '#D92D20' }}>Due Now</span>
+          <span style={{ fontSize: '12px', color: '#D92D20' }}>{schedule.dueNow.length} medication</span>
+        </div>
+        {schedule.dueNow.map((med, idx) => (
+          <div key={idx} className="d-flex align-items-center">
+            <Clock size={32} className="me-3 text-dark" />
+            <div>
+              <p className="m-0 fw-bold" style={{ fontSize: '20px' }}>{med.name} <span style={{ fontSize: '13px', fontWeight: '400' }}>{med.dosage}</span></p>
+              <p className="m-0" style={{ fontSize: '13px' }}>{med.time}</p>
+            </div>
+            <ChevronRight size={20} className="ms-auto" color="#000" />
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-3 p-3 mb-3" style={{ backgroundColor: 'rgba(247, 200, 27, 0.06)', border: '1.054px solid rgba(247, 200, 27, 0.3)', borderRadius: '8px' }}>
+        <div className="d-flex justify-content-between mb-2">
+          <span style={{ fontSize: '16px', color: '#F7C81B' }}>Upcoming</span>
+          <span style={{ fontSize: '12px', color: '#000' }}>{schedule.upcoming.length} medication</span>
+        </div>
+        {schedule.upcoming.map((med, idx) => (
+          <div key={idx} className="d-flex align-items-center">
+            <Clock size={32} className="me-3 text-dark" />
+            <div>
+              <p className="m-0 fw-bold" style={{ fontSize: '20px' }}>{med.name} <span style={{ fontSize: '13px', fontWeight: '400' }}>{med.dosage}</span></p>
+              <p className="m-0" style={{ fontSize: '13px' }}>{med.time}</p>
+            </div>
+            <ChevronRight size={20} className="ms-auto" color="#000" />
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-3 p-3 mb-4" style={{ backgroundColor: 'rgba(76, 187, 23, 0.06)', border: '1.054px solid rgba(76, 187, 23, 0.3)', borderRadius: '8px' }}>
+        <div className="d-flex justify-content-between mb-2">
+          <span style={{ fontSize: '16px', color: '#4CBB17' }}>Completed</span>
+          <span style={{ fontSize: '12px', color: '#000' }}>{schedule.completed.length} medication</span>
+        </div>
+        {schedule.completed.map((med, idx) => (
+          <div key={idx} className="d-flex align-items-center">
+            <CheckCircle size={32} className="me-3 text-dark" />
+            <div>
+              <p className="m-0 fw-bold" style={{ fontSize: '20px' }}>{med.name} <span style={{ fontSize: '13px', fontWeight: '400' }}>{med.dosage}</span></p>
+              <p className="m-0" style={{ fontSize: '13px' }}>{med.time}</p>
+            </div>
+            <ChevronRight size={20} className="ms-auto" color="#000" />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-auto">
+        <button className="btn w-100 py-3 fw-bold" style={{ backgroundColor: 'rgba(0, 51, 204, 0.1)', color: '#0033CC', borderRadius: '8px' }}>
+          View full schedule
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Home;
