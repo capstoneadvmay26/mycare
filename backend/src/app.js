@@ -8,6 +8,7 @@ const symptomRoutes = require("./routes/symptom.route");
 const historyRoutes = require("./routes/history.route");
 const consultBriefRoutes = require("./routes/consultBrief.route");
 const notificationSettingsRoutes = require("./routes/notificationSettings.route");
+const notificationRoutes = require("./routes/notification.route");
 const userRoutes = require("./routes/user.route");
 
 const logger = require("./middlewares/logger");
@@ -43,6 +44,7 @@ app.use("/api/v1", symptomRoutes);
 app.use("/api/v1", historyRoutes);
 app.use("/api/v1", consultBriefRoutes);
 app.use("/api/v1", notificationSettingsRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 
 // ------------------------------------------------------------
 // Health check
