@@ -2,52 +2,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, Check, Alarm, X } from "react-bootstrap-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { getSharedAudioContext } from "../../services/audioUnlock";
 
 const CHIME_INTERVAL_MS = 3000;
 const CHIME_MAX_DURATION_MS = 60000;
 
-// ------------------------------------------------------------
-// 🆕 Shared AudioContext — created once, resumed on user gesture
-// ------------------------------------------------------------
-let sharedAudioCtx = null;
-
-const getAudioContext = () => {
-  if (sharedAudioCtx) return sharedAudioCtx;
-
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-    sharedAudioCtx = new AudioCtx();
-    return sharedAudioCtx;
-  } catch (err) {
-    console.warn("[Chime] AudioContext creation failed:", err.message);
-    return null;
-  }
-};
-
 /**
- * Play the two-tone chime.
- * The AudioContext must be running (resumed after user gesture).
+ * Play the two-tone chime using the shared audio context.
+ * Returns true if the sound played, false if audio was blocked.
  */
-const playChime = async () => {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  // 🆕 If the context is suspended, try to resume it
-  if (ctx.state === "suspended") {
-    try {
-      await ctx.resume();
-    } catch (err) {
-      console.warn("[Chime] Failed to resume context:", err.message);
-      return;
-    }
-  }
-
-  // If it's still not running, bail
-  if (ctx.state !== "running") {
-    console.warn("[Chime] Audio context not running, skipping chime");
-    return;
-  }
+const playChime = () => {
+  const ctx = getSharedAudioContext();
+  if (!ctx || ctx.state !== "running") return false;
 
   try {
     const now = ctx.currentTime;
@@ -65,7 +31,7 @@ const playChime = async () => {
     osc1.start(now);
     osc1.stop(now + 0.8);
 
-    // Second tone — E5
+    // Second tone — E5 (softer, offset)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = "sine";
@@ -77,8 +43,11 @@ const playChime = async () => {
     gain2.connect(ctx.destination);
     osc2.start(now + 0.15);
     osc2.stop(now + 1.0);
+
+    return true;
   } catch (err) {
     console.warn("[Chime] Playback error:", err.message);
+    return false;
   }
 };
 
@@ -87,10 +56,11 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
 
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
-
-  // 🆕 Flag to track if audio is allowed
   const [audioBlocked, setAudioBlocked] = useState(false);
 
+  // ------------------------------------------------------------
+  // Stop the looping chime
+  // ------------------------------------------------------------
   const stopChime = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -103,22 +73,14 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
   };
 
   // ------------------------------------------------------------
-  // 🆕 Start loop with resume-aware logic
+  // Start chime loop on mount
   // ------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
-    const start = async () => {
-      // First chime
-      await playChime();
-
-      // Check if it worked
-      const ctx = getAudioContext();
-      if (ctx && ctx.state !== "running") {
-        // Audio is blocked — user hasn't interacted with the page yet
-        setAudioBlocked(true);
-        return;
-      }
+    const start = () => {
+      const played = playChime();
+      setAudioBlocked(!played);
 
       if (cancelled) return;
 
@@ -127,7 +89,7 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
         playChime();
       }, CHIME_INTERVAL_MS);
 
-      // Auto-stop after 60s
+      // Auto-stop after 60 seconds
       timeoutRef.current = setTimeout(() => {
         stopChime();
       }, CHIME_MAX_DURATION_MS);
@@ -142,21 +104,42 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
     
   }, []);
 
-  // 🆕 Resume audio on any user gesture (tap anywhere in the banner)
-  const handleUserGesture = async () => {
-    const ctx = getAudioContext();
-    if (ctx && ctx.state === "suspended") {
+  // ------------------------------------------------------------
+  // iOS / blocked-audio fallback — user taps to unlock
+  // ------------------------------------------------------------
+  const handleUnlockAudio = async () => {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+
+    if (ctx.state === "suspended") {
       try {
         await ctx.resume();
-        setAudioBlocked(false);
       } catch (err) {
-        console.warn("[Chime] Resume on gesture failed:", err.message);
+        console.warn("[Chime] Resume failed:", err.message);
+        return;
+      }
+    }
+
+    if (ctx.state === "running") {
+      setAudioBlocked(false);
+      playChime();
+
+      // Restart the loop
+      if (!intervalRef.current) {
+        intervalRef.current = setInterval(() => {
+          playChime();
+        }, CHIME_INTERVAL_MS);
+      }
+      if (!timeoutRef.current) {
+        timeoutRef.current = setTimeout(() => {
+          stopChime();
+        }, CHIME_MAX_DURATION_MS);
       }
     }
   };
 
   // ------------------------------------------------------------
-  // Action handlers — stop chime
+  // Action handlers
   // ------------------------------------------------------------
   const handleTaken = (d) => {
     stopChime();
@@ -178,6 +161,9 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
     onDismiss?.();
   };
 
+  // ------------------------------------------------------------
+  // Time formatter
+  // ------------------------------------------------------------
   const formatTime = (time24) => {
     const [hh, mm] = time24.split(":").map(Number);
     const period = hh >= 12 ? "pm" : "am";
@@ -196,7 +182,6 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
         zIndex: 1080,
         animation: "reminderSlideDown 0.3s ease-out",
       }}
-      onClick={handleUserGesture}   // 🆕 resume audio on any tap
     >
       <div
         className="rounded-4 shadow-lg p-4"
@@ -224,25 +209,36 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
             >
               Medication Reminder
             </p>
-            <p
-              className="m-0 text-secondary"
-              style={{ fontSize: "11px" }}
-            >
-              {audioBlocked ? "Tap to enable sound" : "Due now"}
+            <p className="m-0 text-secondary" style={{ fontSize: "11px" }}>
+              {audioBlocked ? "🔇 Sound unavailable" : "Due now"}
             </p>
           </div>
           <button
             className="btn p-1 border-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDismiss();
-            }}
+            onClick={handleDismiss}
             style={{ color: "#666" }}
             aria-label="Dismiss"
           >
             <X size={18} />
           </button>
         </div>
+
+        {/* 🆕 iOS / blocked-audio fallback button */}
+        {audioBlocked && (
+          <button
+            className="btn btn-sm mb-3 w-100 fw-semibold"
+            style={{
+              backgroundColor: "rgba(0, 51, 204, 0.1)",
+              color: "#0033CC",
+              borderRadius: "8px",
+              border: "none",
+              padding: "10px",
+            }}
+            onClick={handleUnlockAudio}
+          >
+            🔊 Tap to enable sound
+          </button>
+        )}
 
         {/* Dose info */}
         <div className="mb-4">
@@ -267,10 +263,7 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
               border: "none",
               fontSize: "14px",
             }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTaken(dose);
-            }}
+            onClick={() => handleTaken(dose)}
           >
             <Check size={18} className="me-2" />
             Taken
@@ -285,10 +278,7 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
               border: "none",
               fontSize: "14px",
             }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSnooze(dose);
-            }}
+            onClick={() => handleSnooze(dose)}
           >
             <Alarm size={18} className="me-2" />
             Snooze
@@ -303,10 +293,7 @@ const DoseReminderBanner = ({ dose, onTaken, onSnooze, onSkip, onDismiss }) => {
               border: "none",
               fontSize: "14px",
             }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSkip(dose);
-            }}
+            onClick={() => handleSkip(dose)}
           >
             <X size={18} className="me-2" />
             Skip

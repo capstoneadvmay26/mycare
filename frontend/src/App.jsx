@@ -25,6 +25,8 @@ import { useApp } from "./context/useApp";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { useFCM } from "./hooks/useFCM";
+import { useEffect } from "react";
+import { primeAudio } from "./services/audioUnlock";
 
 import {
   House,
@@ -54,6 +56,12 @@ const AppContent = () => {
     userName,
   } = useApp();
 
+  useEffect(() => {
+    primeAudio();
+  }, []);
+
+
+  
   // 🆕 Mount FCM hook — handles token + foreground messages
   useFCM();
 
