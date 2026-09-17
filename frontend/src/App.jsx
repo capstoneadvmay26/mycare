@@ -18,6 +18,8 @@ import Symptoms from "./pages/Symptoms";
 import History from "./pages/History";
 import Profiles from "./pages/Profiles";
 import Settings from "./pages/Settings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { ReminderProvider } from "./context/ReminderContext";
 import GlobalReminderOverlay from "./components/layout/GlobalReminderOverlay";
 import { AppProvider } from "./context/AppContext";
@@ -50,6 +52,7 @@ const AppContent = () => {
   const {
     isOnboarded,
     authScreen,
+    setAuthScreen,     
     onboardingStage,
     currentTab,
     setCurrentTab,
@@ -60,8 +63,18 @@ const AppContent = () => {
     primeAudio();
   }, []);
 
+  // 🆕 Handle password-reset deep-link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasResetToken =
+      params.has("token") &&
+      window.location.pathname.includes("reset-password");
+    if (hasResetToken && !isOnboarded) {
+      setAuthScreen("reset-password");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  
   // 🆕 Mount FCM hook — handles token + foreground messages
   useFCM();
 
@@ -109,6 +122,8 @@ const AppContent = () => {
   if (!isOnboarded) {
     if (authScreen === "signin") return <SignIn />;
     if (authScreen === "welcome") return <WelcomeBack />;
+    if (authScreen === "forgot") return <ForgotPassword />;
+    if (authScreen === "reset-password") return <ResetPassword />;
     return <Onboarding />;
   }
 

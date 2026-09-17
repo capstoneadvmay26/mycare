@@ -7,15 +7,11 @@ const STORAGE_KEY = "mycare_fcm_token";
 const SW_PATH = "/mycare/firebase-messaging-sw.js";
 const SW_SCOPE = "/mycare/";
 
-// ------------------------------------------------------------
-// Request notification permission from the browser
-// ------------------------------------------------------------
 export const requestNotificationPermission = async () => {
   if (!("Notification" in window)) {
     console.warn("[FCM] Notification API not supported");
     return "unsupported";
   }
-
   if (Notification.permission === "granted") return "granted";
   if (Notification.permission === "denied") return "denied";
 
@@ -29,9 +25,6 @@ export const requestNotificationPermission = async () => {
   }
 };
 
-// ------------------------------------------------------------
-// Register the Firebase Messaging service worker
-// ------------------------------------------------------------
 const registerServiceWorker = async () => {
   if (!("serviceWorker" in navigator)) {
     console.warn("[FCM] Service Worker not supported");
@@ -39,58 +32,62 @@ const registerServiceWorker = async () => {
   }
 
   try {
+    // Check existing registration first
+    const existing = await navigator.serviceWorker.getRegistration(SW_SCOPE);
+    if (existing) {
+      console.log("[FCM] SW already registered:", existing.scope);
+      await navigator.serviceWorker.ready;
+      return existing;
+    }
+
     const registration = await navigator.serviceWorker.register(SW_PATH, {
       scope: SW_SCOPE,
     });
-    console.log("[FCM] Service Worker registered:", registration.scope);
+    console.log("[FCM] SW registered:", registration.scope);
+
+    // Wait for it to be active
+    await navigator.serviceWorker.ready;
+
     return registration;
   } catch (err) {
-    console.error("[FCM] Service Worker registration failed:", err);
+    console.error("[FCM] SW registration failed:", err);
     return null;
   }
 };
 
-// ------------------------------------------------------------
-// Send token to backend (uses Bearer token, no profileId)
-// ------------------------------------------------------------
 const sendTokenToBackend = async (token) => {
   try {
-    await registerFCMToken(token);
-    console.log("[FCM] ✅ Token registered on backend");
+    const res = await registerFCMToken(token);
+    console.log("[FCM] ✅ Token registered on backend:", res?.data);
+    return true;
   } catch (err) {
     console.warn(
-      "[FCM] ⚠️ Backend token registration failed (may not be live yet):",
+      "[FCM] ⚠️ Backend token registration failed:",
       err.response?.status || err.message
     );
+    return false;
   }
 };
 
-// ------------------------------------------------------------
-// Full init: permission → SW → token → backend
-// ------------------------------------------------------------
 export const initializeFCM = async () => {
-  // 1. Permission
   const permission = await requestNotificationPermission();
   if (permission !== "granted") {
-    console.warn("[FCM] Permission not granted, skipping token fetch");
+    console.warn("[FCM] Permission not granted:", permission);
     return null;
   }
 
-  // 2. Service worker
   const registration = await registerServiceWorker();
   if (!registration) {
     console.warn("[FCM] No service worker — cannot fetch token");
     return null;
   }
 
-  // 3. Messaging instance
   const messaging = await getFirebaseMessaging();
   if (!messaging) {
     console.warn("[FCM] Messaging not available");
     return null;
   }
 
-  // 4. FCM token
   try {
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
@@ -103,11 +100,7 @@ export const initializeFCM = async () => {
     }
 
     console.log("[FCM] Token acquired:", token.slice(0, 30) + "...");
-
-    // 5. Cache locally
     localStorage.setItem(STORAGE_KEY, token);
-
-    // 6. Register with backend
     await sendTokenToBackend(token);
 
     return token;
@@ -117,9 +110,6 @@ export const initializeFCM = async () => {
   }
 };
 
-// ------------------------------------------------------------
-// Foreground message handler
-// ------------------------------------------------------------
 export const onForegroundMessage = async (callback) => {
   const messaging = await getFirebaseMessaging();
   if (!messaging) return null;
@@ -130,9 +120,6 @@ export const onForegroundMessage = async (callback) => {
   });
 };
 
-// ------------------------------------------------------------
-// Clear token on logout
-// ------------------------------------------------------------
 export const clearFCMToken = async () => {
   const token = localStorage.getItem(STORAGE_KEY);
   if (!token) return;
@@ -151,7 +138,7 @@ export const clearFCMToken = async () => {
     await unregisterFCMToken(token);
   } catch (err) {
     console.warn(
-      "[FCM] Backend token removal failed (may not be live yet):",
+      "[FCM] Backend token removal failed:",
       err.response?.status || err.message
     );
   }
@@ -159,7 +146,4 @@ export const clearFCMToken = async () => {
   localStorage.removeItem(STORAGE_KEY);
 };
 
-// ------------------------------------------------------------
-// Get cached token
-// ------------------------------------------------------------
 export const getCachedFCMToken = () => localStorage.getItem(STORAGE_KEY);

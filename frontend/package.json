@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
+    "dev:test": "vite --mode test",
+    "build": "vite build && node scripts/copy-404.js",
+    "build:test": "vite build --mode test && node scripts/copy-404.js",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },

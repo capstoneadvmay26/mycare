@@ -1,17 +1,3 @@
-/*
-
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-
-    base: "/mycare/frontend/",
-})
-*/
-
-
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -21,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,     // ← don't auto-register VitePWA's SW
       manifest: {
         name: 'MyCare Health Platform',
         short_name: 'MyCare',
@@ -28,24 +15,13 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/mycare/',
         icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
         ]
       }
     })
   ],
-
- // ✅ THIS: Set base to the repository name
-  base: '/mycare/',  // <-- THIS IS THE KEY FIX
-
+  base: '/mycare/',
 })

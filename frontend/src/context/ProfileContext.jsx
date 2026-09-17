@@ -7,7 +7,9 @@ import {
   useCallback,
 } from "react";
 import { useApp } from "./useApp";
-import { getProfiles, createProfile, updateProfile } from "../services/api";
+//import { getProfiles, createProfile, updateProfile } from "../services/api";
+
+import { getProfiles, createProfile, updateProfile, deleteProfile as deleteProfileApi } from "../services/api";
 
 const ProfileContext = createContext();
 
@@ -209,6 +211,47 @@ const addDependent = async (newDep) => {
   return response.data;
 };
 
+
+  // ============================================================
+  // DELETE PROFILE (dependent only — self cannot be deleted)
+  // ============================================================
+  const deleteProfile = async (profileId) => {
+    if (!profileId) {
+      throw new Error("Profile ID is required");
+    }
+
+    // Guard: never delete the self profile
+    const target = profiles.find((p) => p.id === profileId);
+    if (target?.isSelf) {
+      throw new Error("You cannot delete your own profile.");
+    }
+
+    // Optimistic update: remove from list
+    const previousProfiles = profiles;
+    setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+
+    // If the deleted profile was active, switch to self (or first)
+    if (activeProfile?.id === profileId) {
+      const fallback =
+        previousProfiles.find((p) => p.isSelf) ||
+        previousProfiles.find((p) => p.id !== profileId);
+      if (fallback) {
+        setActiveProfile(fallback);
+        localStorage.setItem("mycare_currentProfileId", fallback.id);
+      }
+    }
+
+    try {
+      await deleteProfileApi(profileId);
+      // Refetch to be safe
+      await fetchProfiles();
+    } catch (err) {
+      // Rollback on failure
+      setProfiles(previousProfiles);
+      console.error("[ProfileContext] delete error:", err);
+      throw err;
+    }
+  };
   // ============================================================
   // UPDATE ACTIVE PROFILE
   // ============================================================
@@ -245,7 +288,7 @@ const addDependent = async (newDep) => {
     }
   };
 
-  return (
+    return (
     <ProfileContext.Provider
       value={{
         profiles,
@@ -255,6 +298,7 @@ const addDependent = async (newDep) => {
         switchProfile,
         updateActiveProfile,
         addDependent,
+        deleteProfile,        // ← NEW
         refreshProfiles: fetchProfiles,
       }}
     >

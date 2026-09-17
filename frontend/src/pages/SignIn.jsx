@@ -4,13 +4,8 @@ import { useApp } from "../context/useApp";
 import Logo from "../components/ui/Logo";
 import { login } from "../services/api";
 
-
 const SignIn = () => {
-  const {
-    setUserName,
-    setAuthScreen,
-    setWelcomeName,
-  } = useApp();
+  const { setUserName, setAuthScreen, setWelcomeName } = useApp();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -37,10 +32,7 @@ const SignIn = () => {
         localStorage.setItem("mycare_token", response.data.token);
       }
       if (response.data.user) {
-        localStorage.setItem(
-          "mycare_user",
-          JSON.stringify(response.data.user)
-        );
+        localStorage.setItem("mycare_user", JSON.stringify(response.data.user));
       }
 
       const name = response.data.user?.full_name || "there";
@@ -53,7 +45,7 @@ const SignIn = () => {
       console.error("[SignIn] Error:", err);
       setError(
         err.response?.data?.message ||
-          "Sign in failed. Please check your credentials."
+          "Sign in failed. Please check your credentials.",
       );
     } finally {
       setLoading(false);
@@ -141,7 +133,7 @@ const SignIn = () => {
         <input
           type="password"
           style={inputStyle}
-          className="mb-4"
+          className="mb-2" // ← reduced from mb-4
           placeholder="Enter your password"
           value={password}
           onChange={(e) => {
@@ -152,11 +144,20 @@ const SignIn = () => {
           autoComplete="current-password"
         />
 
-        <button
-          type="submit"
-          style={primaryButtonStyle}
-          disabled={loading}
-        >
+        {/* 🆕 Forgot password link */}
+        <div className="d-flex justify-content-end mb-3">
+          <button
+            type="button"
+            className="btn p-0 border-0 fw-bold"
+            style={{ color: "#0033CC", fontSize: "13px" }}
+            onClick={() => setAuthScreen("forgot")}
+            disabled={loading}
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        <button type="submit" style={primaryButtonStyle} disabled={loading}>
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>

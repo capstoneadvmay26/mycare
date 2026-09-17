@@ -1,20 +1,26 @@
 // src/pages/Dependents.jsx
 import { useState } from "react";
-import { ChevronLeft, Plus } from "react-bootstrap-icons";
+import { ChevronLeft, Plus, Trash } from "react-bootstrap-icons";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import Toast from "../components/ui/Toast";
 import Avatar from "../components/ui/Avatar";
-import { useApp } from "../context/useApp"
-
+import { useApp } from "../context/useApp";
 
 const Dependents = ({ onBack }) => {
-  const { profiles, activeProfile, addDependent, loading } = useProfile();
+  const {
+    profiles,
+    activeProfile,
+    addDependent,
+    deleteProfile,
+    loading,
+  } = useProfile();
   const { isDark } = useTheme();
   const { user } = useApp() || {};
 
   const dependents = profiles.filter((p) => p.isDependent === true);
 
+  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
@@ -27,6 +33,13 @@ const Dependents = ({ onBack }) => {
   });
   const [formError, setFormError] = useState("");
 
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // ------------------------------------------------------------
+  // Add dependent
+  // ------------------------------------------------------------
   const handleAdd = async () => {
     setFormError("");
 
@@ -53,10 +66,38 @@ const Dependents = ({ onBack }) => {
       setFormError(
         err.response?.data?.message ||
           err.message ||
-          "Failed to add dependent. Please try again.",
+          "Failed to add dependent. Please try again."
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ------------------------------------------------------------
+  // Confirm delete
+  // ------------------------------------------------------------
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    try {
+      await deleteProfile(deleteTarget.id);
+      setToast({
+        message: `${deleteTarget.name} deleted successfully`,
+        type: "success",
+      });
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("[Dependents] Delete error:", err);
+      setToast({
+        message:
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to delete dependent",
+        type: "error",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -97,38 +138,38 @@ const Dependents = ({ onBack }) => {
         <p className="fw-bold mb-2" style={{ color: isDark ? "#FFF" : "#000" }}>
           Current Profile
         </p>
-       {activeProfile && (
-  <div
-    className="d-flex align-items-center border rounded-3 p-3 mb-4"
-    style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
-  >
-    <Avatar
-      src={activeProfile.avatarUrl}
-      name={
-        isSelf && activeProfile.name === "Me"
-          ? user?.full_name || activeProfile.name
-          : activeProfile.name
-      }
-      size={32}
-      color={activeProfile.color || "#0033CC"}
-      className="me-3"
-    />
-    <span
-      className="flex-grow-1 fw-bold"
-      style={{ color: isDark ? "#FFF" : "#000" }}
-    >
-      {isSelf && activeProfile.name === "Me"
-        ? `${user?.full_name || "Me"} (Me)`
-        : `${activeProfile.name}${isSelf ? " (Me)" : ""}`}
-    </span>
-    <div
-      className="border rounded px-3 py-1 text-secondary"
-      style={{ fontSize: "12px" }}
-    >
-      You
-    </div>
-  </div>
-)}
+        {activeProfile && (
+          <div
+            className="d-flex align-items-center border rounded-3 p-3 mb-4"
+            style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+          >
+            <Avatar
+              src={activeProfile.avatarUrl}
+              name={
+                isSelf && activeProfile.name === "Me"
+                  ? user?.full_name || activeProfile.name
+                  : activeProfile.name
+              }
+              size={32}
+              color={activeProfile.color || "#0033CC"}
+              className="me-3"
+            />
+            <span
+              className="flex-grow-1 fw-bold"
+              style={{ color: isDark ? "#FFF" : "#000" }}
+            >
+              {isSelf && activeProfile.name === "Me"
+                ? `${user?.full_name || "Me"} (Me)`
+                : `${activeProfile.name}${isSelf ? " (Me)" : ""}`}
+            </span>
+            <div
+              className="border rounded px-3 py-1 text-secondary"
+              style={{ fontSize: "12px" }}
+            >
+              You
+            </div>
+          </div>
+        )}
 
         {/* Dependents List */}
         <p className="fw-bold mb-2" style={{ color: isDark ? "#FFF" : "#000" }}>
@@ -175,6 +216,20 @@ const Dependents = ({ onBack }) => {
                 {dep.condition ? ` · ${dep.condition}` : ""}
               </p>
             </div>
+
+            {/* 🆕 Delete button */}
+            <button
+              className="btn p-2 border-0"
+              onClick={() => setDeleteTarget(dep)}
+              style={{
+                color: "#D92D20",
+                backgroundColor: "rgba(217, 45, 32, 0.08)",
+                borderRadius: "8px",
+              }}
+              aria-label={`Delete ${dep.name}`}
+            >
+              <Trash size={16} />
+            </button>
           </div>
         ))}
       </div>
@@ -198,7 +253,9 @@ const Dependents = ({ onBack }) => {
         </button>
       </div>
 
-      {/* Add Dependent Modal */}
+      {/* ------------------------------------------------------ */}
+      {/* Add Dependent Modal                                    */}
+      {/* ------------------------------------------------------ */}
       {showModal && (
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3"
@@ -308,6 +365,70 @@ const Dependents = ({ onBack }) => {
               }}
               onClick={() => setShowModal(false)}
               disabled={saving}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------ */}
+      {/* Delete Confirmation Modal                              */}
+      {/* ------------------------------------------------------ */}
+      {deleteTarget && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+          onClick={deleting ? null : () => setDeleteTarget(null)}
+        >
+          <div
+            className="p-4 rounded-3 w-100"
+            style={{
+              maxWidth: "400px",
+              backgroundColor: isDark ? "#1a1a1a" : "#FFF",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h5
+              className="fw-bold mb-3"
+              style={{ color: isDark ? "#FFF" : "#000" }}
+            >
+              Delete {deleteTarget.name}?
+            </h5>
+
+            <p
+              className="text-secondary mb-4"
+              style={{ fontSize: "14px" }}
+            >
+              This will permanently remove {deleteTarget.name}'s profile
+              and all associated medications and symptoms. This action
+              cannot be undone.
+            </p>
+
+            <button
+              className="btn w-100 text-white fw-bold mb-2"
+              style={{
+                backgroundColor: deleting ? "#999" : "#D92D20",
+                borderRadius: "8px",
+                padding: "12px",
+                border: "none",
+              }}
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Yes, delete"}
+            </button>
+            <button
+              className="btn w-100 fw-bold"
+              style={{
+                backgroundColor: "transparent",
+                border: "1px solid #0033CC",
+                color: "#0033CC",
+                borderRadius: "8px",
+                padding: "12px",
+              }}
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
             >
               Cancel
             </button>

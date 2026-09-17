@@ -7,7 +7,9 @@ import {
   GenderMale,
   Camera,
   Clock,
+  ChatHeart, // ← NEW
 } from "react-bootstrap-icons";
+
 import { useProfile } from "../context/ProfileContext";
 import { useApp } from "../context/useApp";
 import { useTheme } from "../context/ThemeContext";
@@ -58,14 +60,16 @@ const EditProfile = ({ onBack }) => {
     }
   });
   const [gender, setGender] = useState(
-    activeProfile?.gender || (isSelf ? user?.gender : "") || ""
+    activeProfile?.gender || (isSelf ? user?.gender : "") || "",
   );
+
+  const [condition, setCondition] = useState(activeProfile?.condition || "");
 
   // 🆕 Timezone state — defaults to the profile's current timezone
   const [timezone, setTimezone] = useState(
     activeProfile?.timezone ||
       Intl.DateTimeFormat().resolvedOptions().timeZone ||
-      "UTC"
+      "UTC",
   );
 
   const [avatarUrl, setAvatarUrl] = useState(activeProfile?.avatarUrl || "");
@@ -91,7 +95,7 @@ const EditProfile = ({ onBack }) => {
 
     if (!cloudinaryReady) {
       setError(
-        "Photo upload is not configured yet. Add Cloudinary keys to .env."
+        "Photo upload is not configured yet. Add Cloudinary keys to .env.",
       );
       return;
     }
@@ -124,6 +128,16 @@ const EditProfile = ({ onBack }) => {
   const handleSave = async () => {
     setError("");
 
+    // 3. Add to the `updates` object in handleSave
+    const updates = { name: name.trim() };
+    if (dob) updates.dateOfBirth = dob;
+    if (gender) updates.gender = gender;
+    if (timezone) updates.timezone = timezone;
+    if (condition.trim()) updates.condition = condition.trim(); // ← NEW
+    if (avatarUrl && avatarUrl !== activeProfile?.avatarUrl) {
+      updates.avatarUrl = avatarUrl;
+    }
+
     if (!name.trim() || name.trim().length < 2) {
       setError("Name must be at least 2 characters.");
       return;
@@ -147,7 +161,7 @@ const EditProfile = ({ onBack }) => {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Failed to save. Please try again."
+          "Failed to save. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -277,7 +291,11 @@ const EditProfile = ({ onBack }) => {
             className="d-flex align-items-center border rounded-3 p-2"
             style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
           >
-            <Person size={18} className="me-2" color={isDark ? "#FFF" : "#000"} />
+            <Person
+              size={18}
+              className="me-2"
+              color={isDark ? "#FFF" : "#000"}
+            />
             <input
               className="form-control border-0 shadow-none p-0"
               style={{
@@ -383,6 +401,38 @@ const EditProfile = ({ onBack }) => {
           </div>
         </div>
 
+        {/* 🆕 Medical Condition */}
+        <div className="mb-3">
+          <label
+            className="fw-bold mb-2"
+            style={{ color: isDark ? "#FFF" : "#000" }}
+          >
+            Medical Condition (optional)
+          </label>
+          <div
+            className="d-flex align-items-center border rounded-3 p-2"
+            style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+          >
+            <ChatHeart
+              size={18}
+              className="me-2"
+              color={isDark ? "#FFF" : "#000"}
+            />
+            <input
+              className="form-control border-0 shadow-none p-0"
+              style={{
+                backgroundColor: "transparent",
+                color: isDark ? "#FFF" : "#000",
+              }}
+              placeholder="e.g. Hypertension, Diabetes"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              disabled={saving}
+              maxLength={100}
+            />
+          </div>
+        </div>
+
         {/* 🆕 Timezone */}
         <div className="mb-3">
           <label
@@ -395,7 +445,11 @@ const EditProfile = ({ onBack }) => {
             className="d-flex align-items-center border rounded-3 p-2 position-relative"
             style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
           >
-            <Clock size={18} className="me-2" color={isDark ? "#FFF" : "#000"} />
+            <Clock
+              size={18}
+              className="me-2"
+              color={isDark ? "#FFF" : "#000"}
+            />
             <select
               className="form-control border-0 shadow-none p-0 pe-4"
               style={{
