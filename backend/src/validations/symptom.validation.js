@@ -5,7 +5,6 @@ const createSymptomSchema = Joi.object({
 
     symptoms: Joi.array()
         .items(Joi.string().trim().min(1))
-        .min(1)
         .required(),
 
     otherSymptom: Joi.string()
@@ -16,6 +15,22 @@ const createSymptomSchema = Joi.object({
     severity: Joi.string()
         .valid("mild", "moderate", "severe", "very_severe")
         .required(),
+})
+.custom((value, helpers) => {
+    const hasSymptoms = value.symptoms.length > 0;
+    const hasOtherSymptom =
+        typeof value.otherSymptom === "string" &&
+        value.otherSymptom.trim().length > 0;
+
+    // At least one symptom must be provided.
+    // "Others" is represented by otherSymptom instead.
+    if (!hasSymptoms && !hasOtherSymptom) {
+        return helpers.message(
+            "Either a symptom must be selected or otherSymptom must be provided."
+        );
+    }
+
+    return value;
 });
 
 const checkInSchema = Joi.object({
@@ -35,7 +50,6 @@ const doctorFollowUpSchema = Joi.object({
 const updateSymptomSchema = Joi.object({
     symptoms: Joi.array()
         .items(Joi.string().trim().min(1))
-        .min(1)
         .optional(),
 
     otherSymptom: Joi.string()
