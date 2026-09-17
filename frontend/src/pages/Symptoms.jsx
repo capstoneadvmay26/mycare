@@ -63,7 +63,7 @@ const Symptoms = () => {
           } catch {
             return { ...s, status: null };
           }
-        })
+        }),
       );
 
       setSymptoms(enriched);
@@ -98,9 +98,7 @@ const Symptoms = () => {
     } catch (err) {
       console.error("[Symptoms] fetch error:", err);
       setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to load symptoms"
+        err.response?.data?.message || err.message || "Failed to load symptoms",
       );
     } finally {
       setLoading(false);
@@ -194,7 +192,7 @@ const Symptoms = () => {
       </div>
 
       {/* Check-in banner */}
-      {checkInDueFor && (
+      {checkInDueFor ? (
         <div
           className="d-flex align-items-center p-3 mb-3 rounded-3"
           style={{
@@ -234,7 +232,7 @@ const Symptoms = () => {
             onClick={() => {
               localStorage.setItem(
                 "mycare_checkin_symptom_id",
-                checkInDueFor._id
+                checkInDueFor._id,
               );
               setCurrentTab("CheckIn");
             }}
@@ -242,16 +240,31 @@ const Symptoms = () => {
             Check in
           </button>
         </div>
+      ) : (
+        <div
+          className="text-center p-3 mb-3 rounded-3"
+          style={{
+            backgroundColor: "rgba(0, 51, 204, 0.04)",
+            border: "1px solid rgba(0, 51, 204, 0.15)",
+          }}
+        >
+          <p
+            className="m-0 fw-bold"
+            style={{ fontSize: "14px", color: isDark ? "#FFF" : "#000" }}
+          >
+            No check-ins due today
+          </p>
+          <p className="m-0 text-secondary" style={{ fontSize: "12px" }}>
+            We'll prompt you when it's time to check in.
+          </p>
+        </div>
       )}
 
       {/* Loading */}
       {loading && (
         <div className="text-center py-4">
           <div className="spinner-border text-primary" role="status" />
-          <p
-            className="text-secondary mt-2"
-            style={{ fontSize: "14px" }}
-          >
+          <p className="text-secondary mt-2" style={{ fontSize: "14px" }}>
             Loading symptoms...
           </p>
         </div>
@@ -259,10 +272,7 @@ const Symptoms = () => {
 
       {/* Error */}
       {error && !loading && (
-        <div
-          className="alert alert-danger py-2"
-          style={{ fontSize: "14px" }}
-        >
+        <div className="alert alert-danger py-2" style={{ fontSize: "14px" }}>
           {error}
         </div>
       )}
@@ -276,10 +286,7 @@ const Symptoms = () => {
           <p className="fw-bold mb-1" style={{ fontSize: "16px" }}>
             No symptoms logged yet
           </p>
-          <p
-            className="text-secondary mb-3"
-            style={{ fontSize: "14px" }}
-          >
+          <p className="text-secondary mb-3" style={{ fontSize: "14px" }}>
             Tap "Log" to record your first symptom.
           </p>
         </div>
@@ -293,17 +300,12 @@ const Symptoms = () => {
               key={s._id}
               className="d-flex align-items-center justify-content-between p-3"
               style={{
-                border: `1px solid ${
-                  isDark ? "#333" : "rgba(0,0,0,0.1)"
-                }`,
+                border: `1px solid ${isDark ? "#333" : "rgba(0,0,0,0.1)"}`,
                 borderRadius: "12px",
                 cursor: "pointer",
               }}
               onClick={() => {
-                localStorage.setItem(
-                  "mycare_checkin_symptom_id",
-                  s._id
-                );
+                localStorage.setItem("mycare_checkin_symptom_id", s._id);
                 setCurrentTab("SymptomHistory");
               }}
             >
@@ -317,10 +319,7 @@ const Symptoms = () => {
                 >
                   {symptomName(s)}
                 </p>
-                <p
-                  className="m-0"
-                  style={{ fontSize: "13px", color: "#888" }}
-                >
+                <p className="m-0" style={{ fontSize: "13px", color: "#888" }}>
                   {formatTime(s.loggedAt)}
                   {s.checkIns?.length > 0
                     ? ` · ${s.checkIns.length}/3 check-ins`

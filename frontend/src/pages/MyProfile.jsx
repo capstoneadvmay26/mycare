@@ -11,6 +11,7 @@ import { useProfile } from "../context/ProfileContext";
 import { useApp } from "../context/useApp";
 import { useTheme } from "../context/ThemeContext";
 import Avatar from "../components/ui/Avatar";
+import { Clock } from "react-bootstrap-icons";
 
 const formatDate = (isoDate) => {
   if (!isoDate) return "Not provided";
@@ -115,6 +116,14 @@ const MyProfile = ({ onBack, onEdit }) => {
           icon={<GenderMale size={20} color={isDark ? "#FFF" : "#000"} />}
           label="Gender"
           value={gender}
+          isDark={isDark}
+          noBorder
+        />
+
+        <InfoRow
+          icon={<Clock size={20} color={isDark ? "#FFF" : "#000"} />}
+          label="Timezone"
+          value={activeProfile?.timezone || "UTC"}
           isDark={isDark}
           noBorder
         />

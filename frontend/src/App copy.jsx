@@ -4,31 +4,26 @@ import Onboarding from "./pages/Onboarding";
 import SignIn from "./pages/SignIn";
 import WelcomeBack from "./pages/WelcomeBack";
 import AccountCreated from "./pages/AccountCreated";
-import MedicationWizard from "./pages/MedicationWizard";
 import TrialFraming from "./pages/TrialFraming";
-import MedicationHistory from "./pages/MedicationHistory";
-import LogSymptom from "./pages/LogSymptom";
-import SymptomHistory from "./pages/SymptomHistory";
-import CheckIn from "./pages/CheckIn";
-import DoctorNudge from "./pages/DoctorNudge";
-import Notifications from "./pages/Notifications";
 import AppShell from "./components/layout/AppShell";
 import Medications from "./pages/Medications";
+import MedicationWizard from "./pages/MedicationWizard";
 import Symptoms from "./pages/Symptoms";
 import History from "./pages/History";
 import Profiles from "./pages/Profiles";
 import Settings from "./pages/Settings";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
+import MedicationHistory from "./pages/MedicationHistory";
 import { ReminderProvider } from "./context/ReminderContext";
 import GlobalReminderOverlay from "./components/layout/GlobalReminderOverlay";
 import { AppProvider } from "./context/AppContext";
 import { useApp } from "./context/useApp";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
-import { useFCM } from "./hooks/useFCM";
-import { useEffect } from "react";
-import { primeAudio } from "./services/audioUnlock";
+import LogSymptom from "./pages/LogSymptom";
+import SymptomHistory from "./pages/SymptomHistory";
+import CheckIn from "./pages/CheckIn";
+import DoctorNudge from "./pages/DoctorNudge";
+import Notifications from "./pages/Notifications";
 
 import {
   House,
@@ -52,31 +47,11 @@ const AppContent = () => {
   const {
     isOnboarded,
     authScreen,
-    setAuthScreen,     
     onboardingStage,
     currentTab,
     setCurrentTab,
     userName,
   } = useApp();
-
-  useEffect(() => {
-    primeAudio();
-  }, []);
-
-  // 🆕 Handle password-reset deep-link
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hasResetToken =
-      params.has("token") &&
-      window.location.pathname.includes("reset-password");
-    if (hasResetToken && !isOnboarded) {
-      setAuthScreen("reset-password");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 🆕 Mount FCM hook — handles token + foreground messages
-  useFCM();
 
   const navItems = [
     { id: "Home", label: "Home", icon: <House size={24} /> },
@@ -118,21 +93,30 @@ const AppContent = () => {
     }
   };
 
-  // Not onboarded — auth flow
+  // 🚧 Not onboarded — show auth flow
   if (!isOnboarded) {
     if (authScreen === "signin") return <SignIn />;
     if (authScreen === "welcome") return <WelcomeBack />;
-    if (authScreen === "forgot") return <ForgotPassword />;
-    if (authScreen === "reset-password") return <ResetPassword />;
-    return <Onboarding />;
+    return <Onboarding />; // signup
   }
 
-  // Post-signup onboarding stages
-  if (onboardingStage === "account-created") return <AccountCreated />;
-  if (onboardingStage === "medication-wizard") return <MedicationWizard />;
-  if (onboardingStage === "trial") return <TrialFraming />;
+  // 🎬 Post-signup onboarding stages
+  // These run BEFORE the main app shell, only for new users.
+  if (onboardingStage === "account-created") {
+    return <AccountCreated />;
+  }
 
-  // Fully onboarded — main app
+  // "medication-wizard"
+  if (onboardingStage === "medication-wizard") {
+    return <MedicationWizard />;
+  }
+
+  // "trial-framing"
+  if (onboardingStage === "trial") {
+    return <TrialFraming />;
+  }
+
+  // ✅ Onboarded — show main app
   return (
     <AppShell
       navItems={navItems}

@@ -1,15 +1,97 @@
 // src/hooks/useTodaySchedule.js
 import { useState, useEffect, useCallback } from "react";
 import { getMedications, getMedicationHistory } from "../services/api";
-import {
-  getSnoozeState,
-  clearExpiredSnoozes,
-} from "../utils/snoozeStore";
+import { getSnoozeState, clearExpiredSnoozes } from "../utils/snoozeStore";
+import { useProfile } from "../context/ProfileContext";
+
+// ------------------------------------------------------------
+// Date helpers — all in profile timezone
+// ------------------------------------------------------------
+
+const isoToDateStrInZone = (iso, timeZone) => {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: timeZone || undefined,
+    }).format(new Date(iso));
+  } catch {
+    return String(iso).split("T")[0];
+  }
+};
+// eslint-disable-next-line no-unused-vars
+const isoToHHMMInZone = (iso, timeZone) => {
+  if (!iso) return "";
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timeZone || undefined,
+    }).formatToParts(new Date(iso));
+    const hour = parts.find((p) => p.type === "hour")?.value || "00";
+    const minute = parts.find((p) => p.type === "minute")?.value || "00";
+    return `${hour}:${minute}`;
+  } catch {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(
+      d.getMinutes()
+    ).padStart(2, "0")}`;
+  }
+};
+
+const nowMinutesInZone = (timeZone) => {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timeZone || undefined,
+    }).formatToParts(new Date());
+    const h = parseInt(
+      parts.find((p) => p.type === "hour")?.value || "0",
+      10
+    );
+    const m = parseInt(
+      parts.find((p) => p.type === "minute")?.value || "0",
+      10
+    );
+    return h * 60 + m;
+  } catch {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+};
+
+const toScheduleArray = (scheduleTime) => {
+  if (!scheduleTime) return [];
+  if (Array.isArray(scheduleTime)) return scheduleTime.filter(Boolean);
+  return [scheduleTime];
+};
+
+const getLogMedicationIdentity = (log) => {
+  const m = log?.medication;
+  if (!m) return { id: null, name: null };
+  if (typeof m === "object") {
+    return { id: m._id || m.id || null, name: m.name || null };
+  }
+  return { id: null, name: String(m) };
+};
+
+// ------------------------------------------------------------
+// Hook
+// ------------------------------------------------------------
 
 export const useTodaySchedule = (profileId) => {
+  const { activeProfile } = useProfile();
+  const profileTimezone = activeProfile?.timezone || null;
+
   const [state, setState] = useState({
     dueNow: [],
     upcoming: [],
+    missed: [],
     completed: [],
     total: 0,
     taken: 0,
@@ -26,6 +108,7 @@ export const useTodaySchedule = (profileId) => {
         error: "",
         dueNow: [],
         upcoming: [],
+        missed: [],
         completed: [],
         total: 0,
         taken: 0,
@@ -37,7 +120,6 @@ export const useTodaySchedule = (profileId) => {
     setState((s) => ({ ...s, loading: true, error: "" }));
 
     try {
-      // Housekeeping: remove expired snoozes
       clearExpiredSnoozes();
 
       const [medsResponse, historyResponse] = await Promise.all([
@@ -45,87 +127,120 @@ export const useTodaySchedule = (profileId) => {
         getMedicationHistory(profileId, "week"),
       ]);
 
-      const medications = medsResponse.data?.data || medsResponse.data || [];
+      const medications =
+        medsResponse.data?.data || medsResponse.data || [];
       const allLogs =
-        historyResponse.data?.history || historyResponse.data?.data || [];
+        historyResponse.data?.history ||
+        historyResponse.data?.data ||
+        [];
 
-      const today = new Date();
-      const todayStart = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-      );
-      const todayEnd = new Date(todayStart);
-      todayEnd.setDate(todayEnd.getDate() + 1);
+      const todayDateStr = isoToDateStrInZone(new Date(), profileTimezone);
 
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
       const todayMidnight = todayStart.getTime();
-      const todayDateStr = today.toISOString().split("T")[0];
 
-      // Filter logs to today via raw ISO date string
       const todayLogs = allLogs.filter((log) => {
         const iso = log.scheduledFor || log.date;
         if (!iso) return false;
-        return String(iso).split("T")[0] === todayDateStr;
+        return isoToDateStrInZone(iso, profileTimezone) === todayDateStr;
       });
 
-      const now = new Date();
-      const nowHHMM = `${String(now.getHours()).padStart(2, "0")}:${String(
-        now.getMinutes()
-      ).padStart(2, "0")}`;
+      const logsByMedKey = new Map();
+
+      const medKeyForLog = (log) => {
+        const { id, name } = getLogMedicationIdentity(log);
+        return id
+          ? `id:${id}`
+          : `name:${(name || "").trim().toLowerCase()}`;
+      };
+
+      todayLogs.forEach((log) => {
+        const key = medKeyForLog(log);
+        if (!logsByMedKey.has(key)) logsByMedKey.set(key, []);
+        logsByMedKey.get(key).push(log);
+      });
+
+      logsByMedKey.forEach((arr) => {
+        arr.sort(
+          (a, b) =>
+            new Date(a.scheduledFor || a.date) -
+            new Date(b.scheduledFor || b.date)
+        );
+      });
+
+      const nowMinutes = nowMinutesInZone(profileTimezone);
 
       const slots = [];
 
       medications.forEach((med) => {
-        const times = Array.isArray(med.scheduleTime) ? med.scheduleTime : [];
+        const times = toScheduleArray(med.scheduleTime);
         if (times.length === 0) return;
 
         if (med.startDate) {
           const ms = new Date(med.startDate);
-          const msMid = new Date(ms.getFullYear(), ms.getMonth(), ms.getDate()).getTime();
+          const msMid = new Date(
+            ms.getFullYear(),
+            ms.getMonth(),
+            ms.getDate()
+          ).getTime();
           if (msMid > todayMidnight) return;
         }
 
         if (med.endDate) {
           const me = new Date(med.endDate);
-          const meMid = new Date(me.getFullYear(), me.getMonth(), me.getDate()).getTime();
+          const meMid = new Date(
+            me.getFullYear(),
+            me.getMonth(),
+            me.getDate()
+          ).getTime();
           if (meMid < todayMidnight) return;
         }
 
         const medId = med._id || med.id;
+        const medName = med.name || "";
 
-        times.forEach((timeStr) => {
-          const [hh, mm] = timeStr.split(":").map(Number);
+        const idKey = medId ? `id:${medId}` : null;
+        const nameKey = `name:${medName.trim().toLowerCase()}`;
 
-          const matchingLog = todayLogs.find((log) => {
-            const logMedId =
-              typeof log.medication === "object"
-                ? log.medication?._id || log.medication?.id
-                : log.medication;
+        const medLogs =
+          (idKey && logsByMedKey.get(idKey)) ||
+          logsByMedKey.get(nameKey) ||
+          [];
 
-            if (String(logMedId) !== String(medId)) return false;
+        const sortedTimes = [...times].sort((a, b) => {
+          const [ah, am] = a.split(":").map(Number);
+          const [bh, bm] = b.split(":").map(Number);
+          return ah * 60 + am - (bh * 60 + bm);
+        });
 
-            const iso = log.scheduledFor || log.date;
-            if (!iso) return false;
+        sortedTimes.forEach((timeStr, index) => {
+          const [slotHH, slotMM] = timeStr.split(":").map(Number);
+          const slotMinutes = slotHH * 60 + slotMM;
+          const minutesPast = nowMinutes - slotMinutes;
 
-            const timePart = String(iso).split("T")[1] || "";
-            const logHHMM = timePart.substring(0, 5);
-
-            return logHHMM === timeStr;
-          });
+          const matchingLog = medLogs[index] || null;
 
           let status;
-          if (matchingLog?.status === "taken") status = "taken";
-          else if (matchingLog?.status === "skipped") status = "skipped";
-          else {
-            status = timeStr <= nowHHMM ? "due-now" : "upcoming";
+          if (matchingLog?.status === "taken") {
+            status = "taken";
+          } else if (matchingLog?.status === "skipped") {
+            status = "skipped";
+          } else if (minutesPast < 0) {
+            status = "upcoming";
+          } else if (minutesPast <= 30) {
+            status = "due-now";
+          } else {
+            status = "missed";
           }
 
           const scheduledFor = new Date(todayStart);
-          scheduledFor.setHours(hh, mm, 0, 0);
+          scheduledFor.setHours(slotHH, slotMM, 0, 0);
 
-          // 🆕 Read snooze state for this dose
-          const logId = matchingLog?._id || null;
-          const snoozeState = logId ? getSnoozeState(logId) : { isSnoozed: false };
+          const logId = matchingLog?._id || matchingLog?.id || null;
+          const snoozeState = logId
+            ? getSnoozeState(logId)
+            : { isSnoozed: false };
 
           slots.push({
             id: `${medId}-${timeStr}`,
@@ -137,27 +252,31 @@ export const useTodaySchedule = (profileId) => {
             scheduledFor,
             status,
             logStatus: matchingLog?.status || null,
-            // 🆕 Snooze fields
+            hasLog: !!logId,
             isSnoozed: snoozeState.isSnoozed,
             snoozedUntil: snoozeState.until || null,
             snoozeMinutes: snoozeState.minutes || null,
+            minutesPast: Math.max(0, minutesPast),
           });
         });
       });
 
       const dueNow = slots.filter((s) => s.status === "due-now");
       const upcoming = slots.filter((s) => s.status === "upcoming");
+      const missed = slots.filter((s) => s.status === "missed");
       const completed = slots.filter(
         (s) => s.status === "taken" || s.status === "skipped"
       );
 
       const taken = completed.filter((s) => s.status === "taken").length;
       const total = slots.length;
-      const adherence = total > 0 ? Math.round((taken / total) * 100) : 0;
+      const adherence =
+        total > 0 ? Math.round((taken / total) * 100) : 0;
 
       setState({
         dueNow,
         upcoming,
+        missed,
         completed,
         total,
         taken,
@@ -176,7 +295,7 @@ export const useTodaySchedule = (profileId) => {
           "Failed to load schedule",
       }));
     }
-  }, [profileId]);
+  }, [profileId, profileTimezone]);
 
   useEffect(() => {
     fetchSchedule();

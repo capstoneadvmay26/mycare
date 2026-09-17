@@ -1,5 +1,5 @@
 // src/services/api.js
-import axios from 'axios';
+import axios from "axios";
 
 // ============================================================
 // ✅ API SERVICE — COMPLETE WORKING VERSION
@@ -7,14 +7,20 @@ import axios from 'axios';
 
 const BASE_URL =
   import.meta.env.VITE_API_URL ||
-  'https://mycare-backend-23oc.onrender.com/api/v1';
+  "https://mycare-backend-23oc.onrender.com/api/v1";
+
+// ─── Log once at startup for easy debugging ───
+console.log(
+  `%c[API] Base URL: ${BASE_URL}`,
+  "color: #0033CC; font-weight: bold;",
+);
 
 // --- Axios Instance ---
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
   timeout: 30000,
 });
@@ -24,11 +30,11 @@ const api = axios.create({
 // ============================================================
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('mycare_token');
+    const token = localStorage.getItem("mycare_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log('[API] Request:', {
+    console.log("[API] Request:", {
       method: config.method?.toUpperCase(),
       url: config.url,
       params: config.params,
@@ -37,9 +43,9 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('[API] Request Error:', error);
+    console.error("[API] Request Error:", error);
     return Promise.reject(error);
-  }
+  },
 );
 
 // ============================================================
@@ -47,7 +53,7 @@ api.interceptors.request.use(
 // ============================================================
 api.interceptors.response.use(
   (response) => {
-    console.log('[API] Response:', {
+    console.log("[API] Response:", {
       status: response.status,
       url: response.config.url,
       data: response.data,
@@ -56,7 +62,7 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response) {
-      console.error('[API] Response Error:', {
+      console.error("[API] Response Error:", {
         status: error.response.status,
         statusText: error.response.statusText,
         data: error.response.data,
@@ -65,34 +71,34 @@ api.interceptors.response.use(
 
       // Auto-logout on 401 (except for auth endpoints)
       if (error.response.status === 401) {
-        const isAuthEndpoint = error.config?.url?.includes('/auth/');
+        const isAuthEndpoint = error.config?.url?.includes("/auth/");
         if (!isAuthEndpoint) {
-          localStorage.removeItem('mycare_token');
-          localStorage.removeItem('mycare_user');
-          if (window.location.pathname !== '/onboarding') {
-            window.location.href = '/onboarding';
+          localStorage.removeItem("mycare_token");
+          localStorage.removeItem("mycare_user");
+          if (window.location.pathname !== "/onboarding") {
+            window.location.href = "/onboarding";
           }
         }
       }
 
       if (error.response.status === 429) {
-        console.warn('[API] Rate limit exceeded. Please wait a moment.');
+        console.warn("[API] Rate limit exceeded. Please wait a moment.");
       }
 
       if (error.response.status >= 500) {
-        console.error('[API] Server error. Please try again later.');
+        console.error("[API] Server error. Please try again later.");
       }
     } else if (error.request) {
-      console.error('[API] No Response Error:', {
+      console.error("[API] No Response Error:", {
         message: error.message,
         url: error.config?.url,
       });
     } else {
-      console.error('[API] Setup Error:', error.message);
+      console.error("[API] Setup Error:", error.message);
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // ============================================================
@@ -106,14 +112,14 @@ api.interceptors.response.use(
 export const requestOtp = async (method, identifier) => {
   const body = { method };
   body[method] = identifier; // dynamically sets `email` or `phone`
-  return api.post('/auth/request-otp', body);
+  return api.post("/auth/request-otp", body);
 };
 
 /**
  * Verify OTP — sends { method, identifier, otp }
  */
 export const verifyOtp = async (method, identifier, otp) => {
-  return api.post('/auth/verify-otp', { method, identifier, otp });
+  return api.post("/auth/verify-otp", { method, identifier, otp });
 };
 
 /**
@@ -121,33 +127,52 @@ export const verifyOtp = async (method, identifier, otp) => {
  * ⚠️ Requires Bearer token from verify-otp
  */
 export const register = async (userData) => {
-  return api.post('/auth/register', userData);
+  return api.post("/auth/register", userData);
 };
 
 /**
  * Login with password — Body: { identifier, password }
  */
 export const login = async (identifier, password) => {
-  return api.post('/auth/login', { identifier, password });
+  return api.post("/auth/login", { identifier, password });
 };
 
 export const forgotPassword = async (identifier) => {
-  return api.post('/auth/forgot-password', { identifier });
+  return api.post("/auth/forgot-password", { identifier });
 };
 
 export const resetPassword = async (token, newPassword) => {
-  return api.post('/auth/reset-password', {
+  return api.post("/auth/reset-password", {
     token,
     new_password: newPassword,
   });
 };
 
 // ============================================================
+// NOTIFICATION ENDPOINTS
+// ============================================================
+
+/**
+ * Register an FCM token for the currently authenticated user.
+ * Backend associates it with req.user.id via the Bearer token.
+ * No profileId needed — one token per browser/device.
+ */
+export const registerFCMToken = async (fcmToken) => {
+  return api.post("/notifications/register-token", { fcmToken });
+};
+
+/**
+ * Unregister an FCM token (called on logout).
+ */
+export const unregisterFCMToken = async (fcmToken) => {
+  return api.post("/notifications/unregister-token", { fcmToken });
+};
+// ============================================================
 // PROFILE ENDPOINTS
 // ============================================================
 
 export const getProfiles = async () => {
-  return api.get('/profiles');
+  return api.get("/profiles");
 };
 
 export const getProfile = async (profileId) => {
@@ -155,7 +180,7 @@ export const getProfile = async (profileId) => {
 };
 
 export const createProfile = async (profileData) => {
-  return api.post('/profiles', profileData);
+  return api.post("/profiles", profileData);
 };
 
 export const updateProfile = async (profileId, profileData) => {
@@ -167,7 +192,7 @@ export const deleteProfile = async (profileId) => {
 };
 
 export const switchProfile = async (profileId) => {
-  return api.post('/profiles/switch', { profile_id: profileId });
+  return api.post("/profiles/switch", { profile_id: profileId });
 };
 
 // ============================================================
@@ -175,7 +200,7 @@ export const switchProfile = async (profileId) => {
 // ============================================================
 
 export const getMedications = async (profileId) => {
-  return api.get('/medications', { params: { profile_id: profileId } });
+  return api.get("/medications", { params: { profile_id: profileId } });
 };
 
 export const getMedication = async (medicationId) => {
@@ -183,7 +208,7 @@ export const getMedication = async (medicationId) => {
 };
 
 export const addMedication = async (medicationData) => {
-  return api.post('/medications', medicationData);
+  return api.post("/medications", medicationData);
 };
 
 export const updateMedication = async (medicationId, medicationData) => {
@@ -198,7 +223,11 @@ export const markMedicationTaken = async (medicationId, timestamp) => {
   return api.post(`/medications/${medicationId}/taken`, { timestamp });
 };
 
-export const markMedicationSkipped = async (medicationId, timestamp, reason) => {
+export const markMedicationSkipped = async (
+  medicationId,
+  timestamp,
+  reason,
+) => {
   return api.post(`/medications/${medicationId}/skipped`, {
     timestamp,
     reason,
@@ -210,15 +239,14 @@ export const markMedicationSkipped = async (medicationId, timestamp, reason) => 
 // ============================================================
 
 export const getAdherenceSummary = async (profileId) => {
-  return api.get('/adherence/summary', { params: { profile_id: profileId } });
+  return api.get("/adherence/summary", { params: { profile_id: profileId } });
 };
 
-export const getAdherenceHistory = async (profileId, period = 'week') => {
-  return api.get('/adherence/history', {
+export const getAdherenceHistory = async (profileId, period = "week") => {
+  return api.get("/adherence/history", {
     params: { profile_id: profileId, period },
   });
 };
-
 
 // ============================================================
 // HISTORY ENDPOINTS — Matches latest backend contract
@@ -228,8 +256,8 @@ export const getAdherenceHistory = async (profileId, period = 'week') => {
  * Get all history events (symptoms, medications, check-ins)
  * Params: { profile_id, type: "all" | "symptoms" | "medications" | "check-ins" }
  */
-export const getHistory = async (profileId, type = 'all') => {
-  return api.get('/history', {
+export const getHistory = async (profileId, type = "all") => {
+  return api.get("/history", {
     params: { profile_id: profileId, type },
   });
 };
@@ -238,19 +266,18 @@ export const getHistory = async (profileId, type = 'all') => {
  * Get medication adherence history
  * Params: { profile_id, period: "week" | "month" }
  */
-export const getMedicationHistory = async (profileId, period = 'week') => {
-  return api.get('/medications/history', {
+export const getMedicationHistory = async (profileId, period = "week") => {
+  return api.get("/medications/history", {
     params: { profile_id: profileId, period },
   });
 };
-
 
 /**
  * Generate consult brief JSON
  * Params: { profile_id }
  */
 export const getConsultBrief = async (profileId) => {
-  return api.get('/reports/consult-brief', {
+  return api.get("/reports/consult-brief", {
     params: { profile_id: profileId },
   });
 };
@@ -260,19 +287,19 @@ export const getConsultBrief = async (profileId) => {
 // ============================================================
 
 export const getNotificationSettings = async () => {
-  return api.get('/settings/notifications');
+  return api.get("/settings/notifications");
 };
 
 export const updateNotificationSettings = async (settings) => {
-  return api.put('/settings/notifications', settings);
+  return api.put("/settings/notifications", settings);
 };
 
 export const getSubscriptionStatus = async () => {
-  return api.get('/account/subscription');
+  return api.get("/account/subscription");
 };
 
 export const initializePayment = async (profileId) => {
-  return api.post('/billing/paystack/initialize', {
+  return api.post("/billing/paystack/initialize", {
     profile_id: profileId,
   });
 };
@@ -282,11 +309,11 @@ export const initializePayment = async (profileId) => {
 // ============================================================
 
 export const exportData = async () => {
-  return api.get('/data/export');
+  return api.get("/data/export");
 };
 
 export const deleteAccount = async () => {
-  return api.delete('/account');
+  return api.delete("/account");
 };
 
 // ============================================================
@@ -296,13 +323,13 @@ export const deleteAccount = async () => {
 // ⚠️ The backend does NOT expose GET /symptoms (only /symptoms/history)
 // Use the history endpoint for listing.
 export const getSymptoms = async (profileId) => {
-  return api.get('/symptoms/history', {
+  return api.get("/symptoms/history", {
     params: { profile_id: profileId },
   });
 };
 
 export const logSymptom = async (symptomData) => {
-  return api.post('/symptoms/log', symptomData);
+  return api.post("/symptoms/log", symptomData);
 };
 
 export const getSymptomStatus = async (symptomId) => {
@@ -314,17 +341,17 @@ export const submitCheckIn = async (symptomId, status) => {
 };
 
 export const getSymptomOptions = async () => {
-  return api.get('/symptoms/options');
+  return api.get("/symptoms/options");
 };
 
-export const getSymptomHistory = async (profileId, period = 'month') => {
-  return api.get('/symptoms/history', {
+export const getSymptomHistory = async (profileId, period = "month") => {
+  return api.get("/symptoms/history", {
     params: { profile_id: profileId, period },
   });
 };
 
 export const recordDoctorFollowUp = async (symptomId, response) => {
-  return api.post('/notifications/doctor-follow-up', {
+  return api.post("/notifications/doctor-follow-up", {
     symptomId,
     response,
   });

@@ -1,19 +1,17 @@
 // src/pages/Home.jsx
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "../context/useApp";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import { useTodaySchedule } from "../hooks/useTodaySchedule";
-import {
-  markMedicationTaken,
-  markMedicationSkipped,
-} from "../services/api";
+import { markMedicationTaken, markMedicationSkipped } from "../services/api";
 import HomeGreeting from "../components/home/HomeGreeting";
 import AdherenceDonut from "../components/home/AdherenceDonut";
 import ScheduleSection from "../components/home/ScheduleSection";
 import DoseActionSheet from "../components/home/DoseActionSheet";
 import SkipReasonSheet from "../components/home/SkipReasonSheet";
 import SnoozeSheet from "../components/home/SnoozeSheet";
+import DoseReminderBanner from "../components/home/DoseReminderBanner";
 import { snoozeDose, clearSnooze } from "../utils/snoozeStore";
 import Toast from "../components/ui/Toast";
 import Avatar from "../components/ui/Avatar";
@@ -24,16 +22,27 @@ const Home = () => {
   const { activeProfile, profiles, switchProfile } = useProfile();
   const { isDark } = useTheme();
 
+  // ------------------------------------------------------------
+  // State
+  // ------------------------------------------------------------
   const [selectedDose, setSelectedDose] = useState(null);
   const [skipMode, setSkipMode] = useState(false);
   const [snoozeMode, setSnoozeMode] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
 
+  // Reminder banner state
+  const [activeReminder, setActiveReminder] = useState(null);
+  const dismissedRef = useRef(new Set());
+
+  // ------------------------------------------------------------
+  // Schedule hook
+  // ------------------------------------------------------------
   const profileId = activeProfile?.id || activeProfile?._id;
   const {
     dueNow,
     upcoming,
+    missed,
     completed,
     taken,
     total,
@@ -46,9 +55,60 @@ const Home = () => {
   const isDependent = activeProfile && !activeProfile.isSelf;
 
   // ------------------------------------------------------------
+  // 🆕 Auto-trigger reminder banner
+  // Only for "due-now" doses (not "missed")
+  // ------------------------------------------------------------
+  const dueSignature = dueNow.map((d) => d.id).join("|");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const computeReminder = () => {
+      if (cancelled) return;
+
+      if (!dueNow?.length) {
+        setActiveReminder(null);
+        return;
+      }
+
+      // Find the first due dose that hasn't been dismissed in this session
+      const nextReminder = dueNow.find(
+        (dose) => !dismissedRef.current.has(dose.id)
+      );
+
+      setActiveReminder((prev) => {
+        if (prev?.id === nextReminder?.id) return prev;
+        return nextReminder || null;
+      });
+    };
+
+    computeReminder();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dueSignature]);
+
+  const handleDismissReminder = () => {
+    if (activeReminder) {
+      dismissedRef.current.add(activeReminder.id);
+    }
+    setActiveReminder(null);
+  };
+
+  // ------------------------------------------------------------
   // Dose sheet handlers
   // ------------------------------------------------------------
   const handleSelectDose = (dose) => {
+    if (!dose.logId) {
+      setToast({
+        message: "Server is still syncing this dose. Try again in a moment.",
+        type: "info",
+      });
+      setTimeout(() => refresh(), 1500);
+      return;
+    }
     setSelectedDose(dose);
     setSkipMode(false);
     setSnoozeMode(false);
@@ -63,9 +123,14 @@ const Home = () => {
   const handleTaken = async (dose) => {
     if (!dose.logId) {
       setToast({
-        message: "No log for this dose. Try reloading.",
-        type: "error",
+        message: "Server is still syncing this dose. Try again in a moment.",
+        type: "info",
       });
+      if (activeReminder?.id === dose.id) {
+        dismissedRef.current.add(dose.id);
+        setActiveReminder(null);
+      }
+      setTimeout(() => refresh(), 1500);
       return;
     }
 
@@ -74,6 +139,12 @@ const Home = () => {
       await markMedicationTaken(dose.logId, new Date().toISOString());
       clearSnooze(dose.logId);
       setToast({ message: `${dose.name} marked as taken`, type: "success" });
+
+      if (activeReminder?.id === dose.id) {
+        dismissedRef.current.add(dose.id);
+        setActiveReminder(null);
+      }
+
       closeSheet();
       await refresh();
     } catch (err) {
@@ -90,21 +161,28 @@ const Home = () => {
   const handleSkip = async (dose, reason) => {
     if (!dose.logId) {
       setToast({
-        message: "No log for this dose. Try reloading.",
-        type: "error",
+        message: "Server is still syncing this dose. Try again in a moment.",
+        type: "info",
       });
+      if (activeReminder?.id === dose.id) {
+        dismissedRef.current.add(dose.id);
+        setActiveReminder(null);
+      }
+      setTimeout(() => refresh(), 1500);
       return;
     }
 
     setActionSaving(true);
     try {
-      await markMedicationSkipped(
-        dose.logId,
-        new Date().toISOString(),
-        reason
-      );
+      await markMedicationSkipped(dose.logId, new Date().toISOString(), reason);
       clearSnooze(dose.logId);
       setToast({ message: `${dose.name} skipped`, type: "info" });
+
+      if (activeReminder?.id === dose.id) {
+        dismissedRef.current.add(dose.id);
+        setActiveReminder(null);
+      }
+
       closeSheet();
       await refresh();
     } catch (err) {
@@ -121,9 +199,14 @@ const Home = () => {
   const handleSnooze = (dose, minutes) => {
     if (!dose.logId) {
       setToast({
-        message: "No log for this dose. Try reloading.",
-        type: "error",
+        message: "Server is still syncing this dose. Try again in a moment.",
+        type: "info",
       });
+      if (activeReminder?.id === dose.id) {
+        dismissedRef.current.add(dose.id);
+        setActiveReminder(null);
+      }
+      setTimeout(() => refresh(), 1500);
       return;
     }
 
@@ -133,6 +216,12 @@ const Home = () => {
         message: `Snoozed for ${minutes} minutes`,
         type: "info",
       });
+
+      if (activeReminder?.id === dose.id) {
+        dismissedRef.current.add(dose.id);
+        setActiveReminder(null);
+      }
+
       closeSheet();
       refresh();
     } catch (err) {
@@ -144,6 +233,9 @@ const Home = () => {
     }
   };
 
+  // ------------------------------------------------------------
+  // Profile switch
+  // ------------------------------------------------------------
   const handleSwitch = () => {
     if (!profiles?.length) return;
     const currentIndex = profiles.findIndex(
@@ -153,8 +245,38 @@ const Home = () => {
     switchProfile(nextProfile.id || nextProfile._id);
   };
 
+  // ------------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------------
   return (
     <div className="d-flex flex-column h-100 p-3">
+      {/* Reminder banner */}
+      {activeReminder && (
+        <DoseReminderBanner
+          dose={activeReminder}
+          onTaken={handleTaken}
+          onSnooze={(dose) => {
+            handleDismissReminder();
+            if (dose.logId) {
+              setSelectedDose(dose);
+              setSnoozeMode(true);
+            } else {
+              handleSnooze(dose, 10);
+            }
+          }}
+          onSkip={(dose) => {
+            handleDismissReminder();
+            if (dose.logId) {
+              setSelectedDose(dose);
+              setSkipMode(true);
+            } else {
+              handleSkip(dose, "other");
+            }
+          }}
+          onDismiss={handleDismissReminder}
+        />
+      )}
+
       <HomeGreeting />
 
       {/* Dependent Profile Card */}
@@ -291,6 +413,11 @@ const Home = () => {
           <ScheduleSection
             type="upcoming"
             doses={upcoming}
+            onSelectDose={handleSelectDose}
+          />
+          <ScheduleSection
+            type="missed"
+            doses={missed}
             onSelectDose={handleSelectDose}
           />
           <ScheduleSection
