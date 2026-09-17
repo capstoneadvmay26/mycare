@@ -25,6 +25,16 @@ const medicationLogSchema = new mongoose.Schema({
         required: true
     },
 
+    reminder30MinSent: {
+        type: Boolean,
+        default: false
+    },
+    
+    dueReminderSent: {
+        type: Boolean,
+        default: false
+    },
+
     takenAt: {
         type: Date
     },

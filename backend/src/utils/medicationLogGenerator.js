@@ -1,6 +1,11 @@
 const { DateTime } = require("luxon");
 
-function generateScheduledOccurrences(medication, startDate, endDate, timezone = "UTC") {
+function generateScheduledOccurrences(
+    medication,
+    startDate,
+    endDate,
+    timezone = "UTC"
+) {
     // as_needed medications don't have automatic schedules
     if (medication.frequency === "as_needed") {
         return [];
@@ -15,7 +20,7 @@ function generateScheduledOccurrences(medication, startDate, endDate, timezone =
         once_daily: 1,
         twice_daily: 2,
         three_times_daily: 3,
-        weekly: 1
+        weekly: 1,
     };
 
     const expectedCount =
@@ -37,7 +42,7 @@ function generateScheduledOccurrences(medication, startDate, endDate, timezone =
         once_daily: 1,
         twice_daily: 1,
         three_times_daily: 1,
-        weekly: 7
+        weekly: 7,
     };
 
     const daysToAdd =
@@ -45,35 +50,70 @@ function generateScheduledOccurrences(medication, startDate, endDate, timezone =
 
     const occurrences = [];
 
-    let currentDate = new Date(startDate);
+    /*
+     * startDate and endDate represent calendar dates.
+     *
+     * We use their UTC date components to determine the intended
+     * calendar dates, then create the scheduled time in the
+     * user's timezone.
+     */
+    let currentDate = DateTime.fromObject(
+        {
+            year: startDate.getUTCFullYear(),
+            month: startDate.getUTCMonth() + 1,
+            day: startDate.getUTCDate(),
+        },
+        {
+            zone: timezone,
+        }
+    );
 
-    while (currentDate <= endDate) {
+    const endCalendarDate = DateTime.fromObject(
+        {
+            year: endDate.getUTCFullYear(),
+            month: endDate.getUTCMonth() + 1,
+            day: endDate.getUTCDate(),
+        },
+        {
+            zone: timezone,
+        }
+    );
+
+    while (
+        currentDate.startOf("day").toMillis() <=
+        endCalendarDate.startOf("day").toMillis()
+    ) {
         for (const time of medication.scheduleTime) {
             const [hours, minutes] = time.split(":");
 
-            const scheduledDateTime = DateTime.fromObject(
-                {
-                    year: currentDate.getUTCFullYear(),
-                    month: currentDate.getUTCMonth() + 1,
-                    day: currentDate.getUTCDate(),
-                    hour: Number(hours),
-                    minute: Number(minutes),
-                    second: 0,
-                    millisecond: 0,
-                }, {zone: timezone}
-            );
-            
-            const scheduledDate = scheduledDateTime.toJSDate();
+            const scheduledDateTime = currentDate.set({
+                hour: Number(hours),
+                minute: Number(minutes),
+                second: 0,
+                millisecond: 0,
+            });
 
-            if (scheduledDate >= startDate && scheduledDate <= endDate) {
-                occurrences.push(scheduledDate);
+            if (!scheduledDateTime.isValid) {
+                throw new Error(
+                    `Invalid scheduled time: ${time}`
+                );
             }
+
+            /*
+             * Do not compare the resulting UTC instant against
+             * startDate/endDate here.
+             *
+             * The calendar-date loop already determines whether
+             * this occurrence belongs to the requested date range.
+             */
+            occurrences.push(
+                scheduledDateTime.toJSDate()
+            );
         }
 
-        // Keep date iteration in UTC as well.
-        currentDate.setUTCDate(
-            currentDate.getUTCDate() + daysToAdd
-        );
+        currentDate = currentDate.plus({
+            days: daysToAdd,
+        });
     }
 
     return occurrences;
