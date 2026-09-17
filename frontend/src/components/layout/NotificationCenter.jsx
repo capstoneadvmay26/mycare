@@ -1,75 +1,181 @@
 // src/components/layout/NotificationCenter.jsx
-import { useState } from 'react'; // <-- ONLY useState, NO useEffect!
-import { Bell, Clock } from 'react-bootstrap-icons'; 
-import { useReminder } from '../../context/ReminderContext';
+import { useState, useRef, useEffect } from "react";
+import {
+  Bell,
+  Clock,
+  ExclamationTriangle,
+  ExclamationCircle,
+  HeartPulse,
+} from "react-bootstrap-icons";
+import { useApp } from "../../context/useApp";
+import { useTheme } from "../../context/ThemeContext";
+import { useNotifications } from "../../hooks/useNotifications";
 
 const NotificationCenter = () => {
+  const { setCurrentTab } = useApp();
+  const { isDark } = useTheme();
+  const { notifications, unreadCount } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Fetch due medication from context
-  const { dueMedication } = useReminder();
+  const dropdownRef = useRef(null);
 
-  // FIX: Calculate notifications directly without useEffect
-  const baseNotifications = [
-    { id: 1, type: 'Reminder', title: 'Amlodipine due now', time: '8:00 AM', icon: <Clock size={16} color="#F7C81B" /> },
-    { id: 2, type: 'Alert', title: 'Your trial ends in 3 days', time: 'Today', icon: <Clock size={16} color="#D92D20" /> },
-  ];
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
 
-  const notifications = dueMedication
-    ? [
-        { id: 99, type: 'Reminder', title: `Time for ${dueMedication.name}`, time: 'Now', icon: <Clock size={16} color="#0033CC" /> },
-        ...baseNotifications
-      ]
-    : baseNotifications;
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
 
-  const unreadCount = notifications.length;
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  const getIcon = (notif) => {
+    switch (notif.type) {
+      case "missed":
+        return <ExclamationTriangle size={16} color="#D92D20" />;
+      case "due-now":
+        return <Clock size={16} color="#F7C81B" />;
+      case "upcoming":
+        return <Clock size={16} color="#666" />;
+      case "check-in-due":
+        return <HeartPulse size={16} color="#0033CC" />;
+      default:
+        return <ExclamationCircle size={16} color="#666" />;
+    }
+  };
+
+  const getAccent = (notif) => {
+    switch (notif.type) {
+      case "missed":
+        return "#D92D20";
+      case "due-now":
+        return "#B45309";
+      case "check-in-due":
+        return "#0033CC";
+      default:
+        return "#666";
+    }
+  };
+
+  const handleNotifClick = (notif) => {
+    setIsOpen(false);
+
+    if (notif.type === "check-in-due" && notif.symptomId) {
+      localStorage.setItem("mycare_checkin_symptom_id", notif.symptomId);
+      setCurrentTab("CheckIn");
+      return;
+    }
+
+    if (notif.actionTarget?.tab) {
+      setCurrentTab(notif.actionTarget.tab);
+    }
+  };
 
   return (
-    <div className="position-relative">
-      {/* Bell Button */}
-      <button 
-        className="btn position-relative p-0 border-0" 
+    <div className="position-relative" ref={dropdownRef}>
+      {/* Bell button */}
+      <button
+        className="btn position-relative p-0 border-0"
         onClick={() => setIsOpen(!isOpen)}
-        style={{ outline: 'none' }}
+        style={{ outline: "none", color: isDark ? "#FFF" : "#000" }}
+        aria-label="Notifications"
       >
-        <Bell size={24} color="currentColor" />
+        <Bell size={24} />
         {unreadCount > 0 && (
-          <span 
-            className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
-            style={{ backgroundColor: '#D92D20', fontSize: '10px', color: '#fff', transform: 'translate(-50%, -50%)' }}
+          <span
+            className="position-absolute rounded-pill d-flex align-items-center justify-content-center"
+            style={{
+              top: "-4px",
+              right: "-6px",
+              backgroundColor: "#D92D20",
+              color: "#FFF",
+              fontSize: "10px",
+              fontWeight: "700",
+              minWidth: "18px",
+              height: "18px",
+              padding: "0 5px",
+            }}
           >
-            {unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Dropdown Panel */}
+      {/* Dropdown */}
       {isOpen && (
-        <div 
-          className="position-absolute p-3 shadow-lg"
-          style={{ 
-            top: '40px', 
-            right: '-10px', 
-            width: '320px', 
-            maxHeight: '400px', 
-            overflowY: 'auto',
-            backgroundColor: '#fff', 
-            borderRadius: '12px',
-            border: '1px solid rgba(0,0,0,0.1)',
-            zIndex: 1060
+        <div
+          className="position-absolute shadow-lg"
+          style={{
+            top: "40px",
+            right: "-8px",
+            width: "340px",
+            maxWidth: "calc(100vw - 24px)",
+            maxHeight: "420px",
+            overflowY: "auto",
+            backgroundColor: isDark ? "#1a1a1a" : "#FFF",
+            borderRadius: "12px",
+            border: `1px solid ${isDark ? "#333" : "rgba(0,0,0,0.1)"}`,
+            zIndex: 1060,
           }}
         >
-          <h6 className="fw-bold mb-3" style={{ color: '#000' }}>Notifications</h6>
-          
+          <div
+            className="p-3 border-bottom"
+            style={{ borderColor: isDark ? "#333" : "#DEDFE2" }}
+          >
+            <h6
+              className="fw-bold m-0"
+              style={{ color: isDark ? "#FFF" : "#000" }}
+            >
+              Notifications
+            </h6>
+          </div>
+
           {notifications.length === 0 ? (
-            <p className="text-secondary m-0 text-center" style={{ fontSize: '13px' }}>You're all caught up!</p>
+            <div className="p-4 text-center">
+              <p className="text-secondary m-0" style={{ fontSize: "13px" }}>
+                You're all caught up!
+              </p>
+            </div>
           ) : (
             notifications.map((notif) => (
-              <div key={notif.id} className="d-flex align-items-start border-bottom py-2" style={{ borderColor: 'rgba(0,0,0,0.05)' }}>
-                <div className="me-2 mt-1">{notif.icon}</div>
+              <div
+                key={notif.id}
+                className="d-flex align-items-start p-3 border-bottom"
+                style={{
+                  borderColor: isDark ? "#333" : "rgba(0,0,0,0.05)",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleNotifClick(notif)}
+              >
+                <div className="me-3 mt-1 flex-shrink-0">{getIcon(notif)}</div>
                 <div className="flex-grow-1">
-                  <p className="m-0 fw-bold" style={{ fontSize: '14px', color: '#000' }}>{notif.title}</p>
-                  <p className="m-0" style={{ fontSize: '12px', color: '#888' }}>{notif.time}</p>
+                  <p
+                    className="m-0 fw-bold"
+                    style={{
+                      fontSize: "14px",
+                      color: getAccent(notif),
+                    }}
+                  >
+                    {notif.title}
+                  </p>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "12px",
+                      color: isDark ? "#A0A0A0" : "#666",
+                    }}
+                  >
+                    {notif.body}
+                  </p>
+                  <p
+                    className="m-0 mt-1"
+                    style={{ fontSize: "11px", color: "#999" }}
+                  >
+                    {notif.relativeTime || "Just now"}
+                  </p>
                 </div>
               </div>
             ))

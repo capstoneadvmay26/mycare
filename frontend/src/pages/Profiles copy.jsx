@@ -1,10 +1,8 @@
 // src/pages/Profiles.jsx
 import { useState } from "react";
-import {
-  ChevronRight,
-  People,
-  ArrowLeftRight,
-} from "react-bootstrap-icons";
+
+// AFTER
+import { ChevronRight, People, ArrowLeftRight } from "react-bootstrap-icons";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/useApp";
@@ -20,7 +18,6 @@ const Profiles = () => {
   const { user } = useApp() || {};
   const [view, setView] = useState("dashboard");
 
-  // Sub-views
   if (view === "my-profile") {
     return (
       <MyProfile
@@ -39,7 +36,6 @@ const Profiles = () => {
     return <SwitchProfile onBack={() => setView("dashboard")} />;
   }
 
-  // Loading
   if (loading && !activeProfile) {
     return (
       <div className="d-flex flex-column h-100 justify-content-center align-items-center bg-white">
@@ -54,6 +50,7 @@ const Profiles = () => {
   const isSelf =
     activeProfile?.isSelf || activeProfile?.relationship === "Self";
 
+  // Display name for the self profile
   const selfDisplayName =
     isSelf && activeProfile?.name === "Me"
       ? user?.full_name || activeProfile.name
@@ -77,15 +74,15 @@ const Profiles = () => {
         </h1>
       </div>
 
-      {/* Menu list */}
+      {/* Menu List */}
       <div className="mt-2">
-        {/* My Profile — user's avatar */}
+        {/* My Profile — with user's avatar */}
         <MenuRow
           icon={
             <Avatar
               src={activeProfile?.avatarUrl}
               name={selfDisplayName}
-              size={44}
+              size={40}
               color={activeProfile?.color || "#0033CC"}
             />
           }
@@ -94,17 +91,14 @@ const Profiles = () => {
           onClick={() => setView("my-profile")}
           isDark={isDark}
         />
-
-        {/* Dependents — outline icon */}
+        // AFTER
         <MenuRow
-          icon={<People size={26} color={isDark ? "#FFF" : "#000"} />}
+          icon={<People size={24} color={isDark ? "#FFF" : "#000"} />}
           title="Dependents"
           subtitle="Manage your dependents and their profiles"
           onClick={() => setView("dependents")}
           isDark={isDark}
         />
-
-        {/* Switch Profile */}
         <MenuRow
           icon={<ArrowLeftRight size={24} color={isDark ? "#FFF" : "#000"} />}
           title="Switch Profile"

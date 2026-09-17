@@ -142,6 +142,26 @@ export const resetPassword = async (token, newPassword) => {
   });
 };
 
+
+// ============================================================
+// NOTIFICATION ENDPOINTS
+// ============================================================
+
+/**
+ * Register an FCM token for the currently authenticated user.
+ * Backend associates it with req.user.id via the Bearer token.
+ * No profileId needed — one token per browser/device.
+ */
+export const registerFCMToken = async (fcmToken) => {
+  return api.post("/notifications/register-token", { fcmToken });
+};
+
+/**
+ * Unregister an FCM token (called on logout).
+ */
+export const unregisterFCMToken = async (fcmToken) => {
+  return api.post("/notifications/unregister-token", { fcmToken });
+};
 // ============================================================
 // PROFILE ENDPOINTS
 // ============================================================

@@ -7,11 +7,7 @@ import {
   useCallback,
 } from "react";
 import { useApp } from "./useApp";
-import {
-  getProfiles,
-  createProfile,
-  updateProfile,
-} from "../services/api";
+import { getProfiles, createProfile, updateProfile } from "../services/api";
 
 const ProfileContext = createContext();
 
@@ -29,21 +25,25 @@ const initialOf = (name) => {
   return name.trim().charAt(0).toUpperCase();
 };
 
-const normalizeProfile = (p, index) => ({
-  id: p.id || p._id,
-  name: p.name || "Unnamed",
-  relationship: p.relationship || "Self",
-  condition: p.condition || null,
-  isSelf: p.relationship === "Self" || p.isSelf === true,
-  isDependent: p.relationship !== "Self" && p.isSelf !== true,
-  initial: initialOf(p.name),
-  color: PROFILE_COLORS[index % PROFILE_COLORS.length],
-  // Avatar and profile-level fields
-  avatarUrl: p.avatarUrl || null,
-  avatarPublicId: p.avatarPublicId || null,
-  dateOfBirth: p.dateOfBirth || null,
-  gender: p.gender || null,
-});
+const normalizeProfile = (p, index) => {
+  const profileId = p.id || p._id;
+  const cachedAvatar = localStorage.getItem(`mycare_avatar_${profileId}`);
+  return {
+    id: profileId,
+    name: p.name || "Unnamed",
+    relationship: p.relationship || "Self",
+    condition: p.condition || null,
+    isSelf: p.relationship === "Self" || p.isSelf === true,
+    isDependent: p.relationship !== "Self" && p.isSelf !== true,
+    initial: initialOf(p.name),
+    color: PROFILE_COLORS[index % PROFILE_COLORS.length],
+    avatarUrl: cachedAvatar || p.avatarUrl || null,
+    avatarPublicId: p.avatarPublicId || null,
+    dateOfBirth: p.dateOfBirth || null,
+    gender: p.gender || null,
+    timezone: p.timezone || "UTC",   // NEW
+  };
+};
 
 export const ProfileProvider = ({ children }) => {
   const { isOnboarded, userName } = useApp();
@@ -69,8 +69,7 @@ export const ProfileProvider = ({ children }) => {
 
     try {
       const response = await getProfiles();
-      let rawProfiles =
-        response.data?.profiles || response.data?.data || [];
+      let rawProfiles = response.data?.profiles || response.data?.data || [];
 
       console.log("[ProfileContext] GET /profiles →", rawProfiles.length);
 
@@ -79,14 +78,17 @@ export const ProfileProvider = ({ children }) => {
       // ============================================================
       if (rawProfiles.length === 0) {
         console.warn(
-          "[ProfileContext] No profiles found — bootstrapping 'Me'..."
+          "[ProfileContext] No profiles found — bootstrapping 'Me'...",
         );
 
         try {
-          const profileName = (userName || "").trim() || "Me";
+          const profileName = userName && userName.trim().length >= 2 ? userName.trim() : "Me";
+          const userTimezone =
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
           await createProfile({
             name: profileName,
             relationship: "Self",
+            timezone: userTimezone, // 🆕
           });
 
           // Refetch to get the canonical list
@@ -108,7 +110,7 @@ export const ProfileProvider = ({ children }) => {
       // SELF-HEAL: rename "Me" placeholder profile to user's real name
       // ============================================================
       const selfProfile = rawProfiles.find(
-        (p) => p.relationship === "Self" || p.isSelf === true
+        (p) => p.relationship === "Self" || p.isSelf === true,
       );
 
       if (
@@ -123,17 +125,16 @@ export const ProfileProvider = ({ children }) => {
           await updateProfile(profileId, { name: userName.trim() });
           console.log(
             "[ProfileContext] Auto-renamed 'Me' profile to:",
-            userName
+            userName,
           );
 
           // Refetch to get the updated name
           const refreshed = await getProfiles();
-          rawProfiles =
-            refreshed.data?.profiles || refreshed.data?.data || [];
+          rawProfiles = refreshed.data?.profiles || refreshed.data?.data || [];
         } catch (renameErr) {
           console.warn(
             "[ProfileContext] Could not rename 'Me' profile:",
-            renameErr.response?.data?.message || renameErr.message
+            renameErr.response?.data?.message || renameErr.message,
           );
           // Continue with the un-renamed profile — UI handles the display
         }
@@ -161,9 +162,7 @@ export const ProfileProvider = ({ children }) => {
     } catch (err) {
       console.error("[ProfileContext] fetch error:", err);
       setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to load profiles"
+        err.response?.data?.message || err.message || "Failed to load profiles",
       );
     } finally {
       setLoading(false);
@@ -198,56 +197,51 @@ export const ProfileProvider = ({ children }) => {
   // ============================================================
   // ADD DEPENDENT
   // ============================================================
-  const addDependent = async (newDep) => {
-    try {
-      const response = await createProfile({
-        name: newDep.name,
-        relationship: newDep.relationship,
-        condition: newDep.condition || null,
-      });
-      await fetchProfiles();
-      return response.data;
-    } catch (err) {
-      console.error("[ProfileContext] addDependent error:", err);
-      throw err;
-    }
-  };
+const addDependent = async (newDep) => {
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const response = await createProfile({
+    name: newDep.name,
+    relationship: newDep.relationship,
+    condition: newDep.condition || null,
+    timezone: userTimezone,   // 🆕
+  });
+  await fetchProfiles();
+  return response.data;
+};
 
   // ============================================================
   // UPDATE ACTIVE PROFILE
   // ============================================================
   const updateActiveProfile = async (updatedData) => {
     if (!activeProfile) return;
-
     const id = activeProfile.id || activeProfile._id;
 
-    // Optimistic local update — UI changes instantly
+    // 🆕 Persist avatar locally as fallback
+    if (updatedData.avatarUrl) {
+      localStorage.setItem(`mycare_avatar_${id}`, updatedData.avatarUrl);
+    }
+
+    // Optimistic local update
     setProfiles((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p))
+      prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p)),
     );
     setActiveProfile((prev) => ({ ...prev, ...updatedData }));
 
     // Attempt backend sync
     try {
       await updateProfile(id, updatedData);
-      console.log("[ProfileContext] Profile updated on backend:", id);
-
-      // Refetch to keep data consistent
       const refreshed = await getProfiles();
       const refreshedProfiles =
         refreshed.data?.profiles || refreshed.data?.data || [];
       const normalized = refreshedProfiles.map(normalizeProfile);
       setProfiles(normalized);
-
-      // Preserve active selection
       const stillActive = normalized.find((p) => p.id === id);
       if (stillActive) setActiveProfile(stillActive);
     } catch (err) {
       console.warn(
-        "[ProfileContext] Backend update not fully supported yet:",
-        err.response?.data?.message || err.message
+        "[ProfileContext] Backend update partial:",
+        err.response?.data?.message || err.message,
       );
-      // Keep optimistic local change — UX is smooth, sync happens when backend is ready
     }
   };
 

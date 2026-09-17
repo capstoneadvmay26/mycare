@@ -1,5 +1,5 @@
 // src/components/home/ScheduleSection.jsx
-import { Alarm, Clock, CheckCircle, ChevronRight } from "react-bootstrap-icons";
+import { Alarm, Clock, CheckCircle, ChevronRight,ExclamationTriangle } from "react-bootstrap-icons";
 import { useTheme } from "../../context/ThemeContext";
 
 const SECTION_CONFIG = {
@@ -24,6 +24,13 @@ const SECTION_CONFIG = {
     border: "rgba(76, 187, 23, 0.3)",
     Icon: CheckCircle,
   },
+  missed: {
+  label: "Missed",
+  accent: "#D92D20",
+  bg: "rgba(217, 45, 32, 0.08)",
+  border: "rgba(217, 45, 32, 0.3)",
+  Icon: ExclamationTriangle,
+},
 };
 
 const ScheduleSection = ({ type, doses = [], onSelectDose }) => {

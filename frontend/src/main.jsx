@@ -1,14 +1,18 @@
+// src/main.jsx
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
-// If you want a global CSS file, put it here. 
-// (For now, we are using inline styles from the Figma, so this can be empty or just resets)
-//import "./styles/mycare.css"; 
+import "./index.css";
 
-import "./index.css"; // Import the index.css file for global styles
+// ------------------------------------------------------------
+// Initialize Firebase early — before React mounts
+// ------------------------------------------------------------
+import { getFirebaseApp } from "./services/firebase";
+getFirebaseApp();
+console.log("[main] Firebase initialized");
 
 import App from "./App.jsx";
 

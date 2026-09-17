@@ -30,8 +30,6 @@ const OPTIONS = [
   },
 ];
 
-
-
 const CheckIn = () => {
   const { setCurrentTab } = useApp();
   const { isDark } = useTheme();
@@ -39,15 +37,14 @@ const CheckIn = () => {
   const [symptomId] = useState(() =>
     localStorage.getItem("mycare_checkin_symptom_id")
   );
-  const [symptom, setSymptom] = useState(null);
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ message: "", type: "success" });
-  const [availableIn, setAvailableIn] = useState(null); // countdown text
 
   // ------------------------------------------------------------
-  // Load symptom + determine if check-in is available
+  // Load symptom status
   // ------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
@@ -64,41 +61,8 @@ const CheckIn = () => {
       setLoading(true);
 
       try {
-        // Fetch status AND full symptom to know loggedAt + check-ins
-        const statusResp = await getSymptomStatus(symptomId);
-        if (cancelled) return;
-
-        // The status endpoint gives us the day + progress.
-        // We also need the loggedAt + checkIns timestamps to
-        // decide if the next check-in is available.
-
-        // For availability, we can look at what the backend tells us
-        // and infer from the current_day + checkIns.
-        // Simplest: use status endpoint's returned day.
-        const status = statusResp.data;
-
-        // Determine if a check-in is available based on backend logic:
-        // - currentDay is min(checkInCount + 1, 3)
-        // - If we're at day 1 with 0 check-ins, need 24h since logging
-        // - If we're at day 2/3, need 24h since the last check-in
-        //
-        // Since the status endpoint doesn't return loggedAt or
-        // check-in timestamps, we compute availability by making a
-        // separate probe: attempt to fetch symptom history and find ours.
-        //
-        // Simpler approach: use the status endpoint to see if backend
-        // considers it due. If not, we disable buttons.
-
-        setSymptom({ ...status, id: symptomId });
-
-        // Compute countdown if not available
-        // We rely on the backend to tell us if this is a valid check-in window.
-        // Since the status endpoint only tells us the day number,
-        // we do a "speculative check" via the History endpoint to find
-        // our symptom's loggedAt + checkIns.
-        setAvailableIn(null); // will be set if the API rejects
-
-        setLoading(false);
+        const resp = await getSymptomStatus(symptomId);
+        if (!cancelled) setStatus(resp.data);
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -106,8 +70,9 @@ const CheckIn = () => {
               err.message ||
               "Failed to load check-in status."
           );
-          setLoading(false);
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -118,10 +83,10 @@ const CheckIn = () => {
   }, [symptomId]);
 
   // ------------------------------------------------------------
-  // Submit check-in
+  // 3-tap response — one tap = one submission
   // ------------------------------------------------------------
   const handleSelect = async (selectedStatus) => {
-    if (!symptomId) return;
+    if (!symptomId || submitting) return;
 
     setSubmitting(true);
     setError("");
@@ -130,6 +95,7 @@ const CheckIn = () => {
       const resp = await submitCheckIn(symptomId, selectedStatus);
       const nudge = resp.data?.professionalCareNudge;
 
+      // Nudge fired → go to DoctorNudge
       if (nudge?.shown) {
         setToast({
           message: "Check-in recorded — take a moment",
@@ -139,7 +105,8 @@ const CheckIn = () => {
         return;
       }
 
-      const day = symptom?.current_day || 1;
+      // Normal completion
+      const day = status?.current_day || 1;
       setToast({
         message:
           day >= 3
@@ -151,21 +118,18 @@ const CheckIn = () => {
       setTimeout(() => setCurrentTab("Symptoms"), 1200);
     } catch (err) {
       console.error("[CheckIn] submit error:", err);
-      const msg = err.response?.data?.message || err.message;
-
-      // Detect the "available tomorrow" case → show countdown
-      if (msg?.toLowerCase().includes("tomorrow")) {
-        setAvailableIn(msg);
-      } else {
-        setError(msg || "Failed to submit check-in.");
-      }
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to submit check-in."
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   // ------------------------------------------------------------
-  // Loading
+  // Loading state
   // ------------------------------------------------------------
   if (loading) {
     return (
@@ -202,8 +166,7 @@ const CheckIn = () => {
     );
   }
 
-  const currentDay = symptom?.current_day || 1;
-  const isBlocked = !!availableIn;
+  const currentDay = status?.current_day || 1;
 
   // ------------------------------------------------------------
   // RENDER
@@ -233,18 +196,9 @@ const CheckIn = () => {
         </h1>
       </div>
 
-      <div className="d-flex flex-column justify-content-center flex-grow-1 p-4">
-        {/* Show "not yet available" banner if blocked */}
-        {isBlocked && (
-          <div
-            className="alert alert-warning py-2 mb-4"
-            style={{ fontSize: "13px" }}
-          >
-            {availableIn}
-          </div>
-        )}
-
-        {error && !isBlocked && (
+      {/* Content */}
+      <div className="d-flex flex-column flex-grow-1 p-4">
+        {error && (
           <div
             className="alert alert-danger py-2 mb-3"
             style={{ fontSize: "13px" }}
@@ -253,30 +207,28 @@ const CheckIn = () => {
           </div>
         )}
 
-        <p className="text-secondary mb-2" style={{ fontSize: "14px" }}>
-          Your logged symptom
-        </p>
         <h2
           className="fw-bold mb-4"
-          style={{ fontSize: "24px", color: isDark ? "#FFF" : "#000" }}
+          style={{ fontSize: "22px", color: isDark ? "#FFF" : "#000" }}
         >
           How are you feeling compared to yesterday?
         </h2>
 
+        {/* 3-tap options — one tap submits */}
         <div className="d-flex flex-column gap-3">
           {OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => handleSelect(opt.value)}
-              disabled={submitting || isBlocked}
+              disabled={submitting}
               className="d-flex align-items-center p-3"
               style={{
                 backgroundColor: isDark ? "#2a2a2a" : "#FFF",
-                border: `1px solid ${isDark ? "#444" : "rgba(0,0,0,0.1)"}`,
+                border: `1px solid ${isDark ? "#444" : "rgba(0,0,0,0.15)"}`,
                 borderRadius: "12px",
                 textAlign: "left",
-                opacity: submitting || isBlocked ? 0.5 : 1,
-                cursor: isBlocked ? "not-allowed" : "pointer",
+                opacity: submitting ? 0.5 : 1,
+                cursor: submitting ? "not-allowed" : "pointer",
               }}
             >
               <span style={{ fontSize: "42px", marginRight: "16px" }}>
@@ -300,12 +252,19 @@ const CheckIn = () => {
           ))}
         </div>
 
-        <p
-          className="text-secondary text-center mt-4"
-          style={{ fontSize: "12px" }}
+        {/* Info banner (matches Figma) */}
+        <div
+          className="d-flex align-items-center p-3 mt-4 rounded-3"
+          style={{ backgroundColor: isDark ? "#2a2a2a" : "#F3F4F6" }}
         >
-          Your response is private and helps us guide you better.
-        </p>
+          <span style={{ fontSize: "20px", marginRight: "12px" }}>ℹ️</span>
+          <p
+            className="m-0 text-secondary"
+            style={{ fontSize: "13px", lineHeight: 1.4 }}
+          >
+            Your response is private and helps us guide you better.
+          </p>
+        </div>
       </div>
 
       <Toast

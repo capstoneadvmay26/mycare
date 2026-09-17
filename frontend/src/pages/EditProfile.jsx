@@ -6,6 +6,7 @@ import {
   CalendarEvent,
   GenderMale,
   Camera,
+  Clock,
 } from "react-bootstrap-icons";
 import { useProfile } from "../context/ProfileContext";
 import { useApp } from "../context/useApp";
@@ -13,6 +14,25 @@ import { useTheme } from "../context/ThemeContext";
 import { uploadImage, isCloudinaryConfigured } from "../services/cloudinary";
 import Avatar from "../components/ui/Avatar";
 import Toast from "../components/ui/Toast";
+
+// Common timezone options (a small curated list for UX)
+const TIMEZONE_OPTIONS = [
+  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+  { value: "Africa/Lagos", label: "Africa/Lagos (GMT+1)" },
+  { value: "Africa/Accra", label: "Africa/Accra (GMT)" },
+  { value: "Africa/Cairo", label: "Africa/Cairo (GMT+2)" },
+  { value: "Africa/Nairobi", label: "Africa/Nairobi (GMT+3)" },
+  { value: "Africa/Johannesburg", label: "Africa/Johannesburg (GMT+2)" },
+  { value: "Europe/London", label: "Europe/London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Europe/Paris (GMT+1/2)" },
+  { value: "America/New_York", label: "America/New_York (EST/EDT)" },
+  { value: "America/Chicago", label: "America/Chicago (CST/CDT)" },
+  { value: "America/Los_Angeles", label: "America/Los_Angeles (PST/PDT)" },
+  { value: "Asia/Dubai", label: "Asia/Dubai (GMT+4)" },
+  { value: "Asia/Kolkata", label: "Asia/Kolkata (GMT+5:30)" },
+  { value: "Asia/Singapore", label: "Asia/Singapore (GMT+8)" },
+  { value: "Asia/Tokyo", label: "Asia/Tokyo (GMT+9)" },
+];
 
 const EditProfile = ({ onBack }) => {
   const { activeProfile, updateActiveProfile } = useProfile();
@@ -40,19 +60,28 @@ const EditProfile = ({ onBack }) => {
   const [gender, setGender] = useState(
     activeProfile?.gender || (isSelf ? user?.gender : "") || ""
   );
-  const [avatarUrl, setAvatarUrl] = useState(activeProfile?.avatarUrl || "");
 
+  // 🆕 Timezone state — defaults to the profile's current timezone
+  const [timezone, setTimezone] = useState(
+    activeProfile?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      "UTC"
+  );
+
+  const [avatarUrl, setAvatarUrl] = useState(activeProfile?.avatarUrl || "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
   const [error, setError] = useState("");
 
   const fileInputRef = useRef(null);
-
   const cloudinaryReady = isCloudinaryConfigured();
 
+  // Detect user's current timezone as a suggestion
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   // ------------------------------------------------------------
-  // Handle photo selection → upload to Cloudinary
+  // Photo change
   // ------------------------------------------------------------
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
@@ -80,7 +109,6 @@ const EditProfile = ({ onBack }) => {
       setError(err.message || "Failed to upload photo. Try again.");
     } finally {
       setUploading(false);
-      // Reset file input so picking the same file again works
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -91,7 +119,7 @@ const EditProfile = ({ onBack }) => {
   };
 
   // ------------------------------------------------------------
-  // Save profile updates
+  // Save
   // ------------------------------------------------------------
   const handleSave = async () => {
     setError("");
@@ -106,6 +134,7 @@ const EditProfile = ({ onBack }) => {
       const updates = { name: name.trim() };
       if (dob) updates.dateOfBirth = dob;
       if (gender) updates.gender = gender;
+      if (timezone) updates.timezone = timezone; // 🆕
       if (avatarUrl && avatarUrl !== activeProfile?.avatarUrl) {
         updates.avatarUrl = avatarUrl;
       }
@@ -160,7 +189,7 @@ const EditProfile = ({ onBack }) => {
           </div>
         )}
 
-        {/* Avatar with upload */}
+        {/* Avatar */}
         <div className="d-flex flex-column justify-content-center align-items-center mb-4">
           <div className="position-relative">
             <Avatar
@@ -171,7 +200,6 @@ const EditProfile = ({ onBack }) => {
               border="2px solid #DEDFE2"
             />
 
-            {/* Upload badge */}
             {cloudinaryReady && (
               <button
                 type="button"
@@ -264,7 +292,7 @@ const EditProfile = ({ onBack }) => {
           </div>
         </div>
 
-        {/* DOB */}
+        {/* Date of Birth */}
         <div className="mb-3">
           <label
             className="fw-bold mb-2"
@@ -296,66 +324,140 @@ const EditProfile = ({ onBack }) => {
         </div>
 
         {/* Gender */}
-       {/* Gender */}
-<div className="mb-3">
-  <label
-    className="fw-bold mb-2"
-    style={{ color: isDark ? "#FFF" : "#000" }}
-  >
-    Gender
-  </label>
-  <div
-    className="d-flex align-items-center border rounded-3 p-2 position-relative"
-    style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
-  >
-    <GenderMale
-      size={18}
-      className="me-2"
-      color={isDark ? "#FFF" : "#000"}
-    />
-    <select
-      className="form-control border-0 shadow-none p-0 pe-4"
-      style={{
-        backgroundColor: "transparent",
-        color: isDark ? "#FFF" : "#000",
-        appearance: "none",
-        WebkitAppearance: "none",
-        MozAppearance: "none",
-        cursor: "pointer",
-      }}
-      value={gender}
-      onChange={(e) => setGender(e.target.value)}
-      disabled={saving}
-    >
-      <option value="">Not specified</option>
-      <option value="Male">Male</option>
-      <option value="Female">Female</option>
-      <option value="Other">Other</option>
-      <option value="Prefer not to say">Prefer not to say</option>
-    </select>
-    {/* Custom chevron */}
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      style={{
-        position: "absolute",
-        right: "14px",
-        pointerEvents: "none",
-        opacity: 0.6,
-      }}
-    >
-      <path
-        d="M6 9l6 6 6-6"
-        stroke={isDark ? "#FFF" : "#000"}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  </div>
-</div>
+        <div className="mb-3">
+          <label
+            className="fw-bold mb-2"
+            style={{ color: isDark ? "#FFF" : "#000" }}
+          >
+            Gender
+          </label>
+          <div
+            className="d-flex align-items-center border rounded-3 p-2 position-relative"
+            style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+          >
+            <GenderMale
+              size={18}
+              className="me-2"
+              color={isDark ? "#FFF" : "#000"}
+            />
+            <select
+              className="form-control border-0 shadow-none p-0 pe-4"
+              style={{
+                backgroundColor: "transparent",
+                color: isDark ? "#FFF" : "#000",
+                appearance: "none",
+                WebkitAppearance: "none",
+                MozAppearance: "none",
+                cursor: "pointer",
+              }}
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              disabled={saving}
+            >
+              <option value="">Not specified</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{
+                position: "absolute",
+                right: "14px",
+                pointerEvents: "none",
+                opacity: 0.6,
+              }}
+            >
+              <path
+                d="M6 9l6 6 6-6"
+                stroke={isDark ? "#FFF" : "#000"}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* 🆕 Timezone */}
+        <div className="mb-3">
+          <label
+            className="fw-bold mb-2"
+            style={{ color: isDark ? "#FFF" : "#000" }}
+          >
+            Timezone
+          </label>
+          <div
+            className="d-flex align-items-center border rounded-3 p-2 position-relative"
+            style={{ borderColor: isDark ? "#333" : "rgba(0,0,0,0.2)" }}
+          >
+            <Clock size={18} className="me-2" color={isDark ? "#FFF" : "#000"} />
+            <select
+              className="form-control border-0 shadow-none p-0 pe-4"
+              style={{
+                backgroundColor: "transparent",
+                color: isDark ? "#FFF" : "#000",
+                appearance: "none",
+                WebkitAppearance: "none",
+                MozAppearance: "none",
+                cursor: "pointer",
+              }}
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              disabled={saving}
+            >
+              {/* Include detected timezone if not in the list */}
+              {detectedTimezone &&
+                !TIMEZONE_OPTIONS.some((t) => t.value === detectedTimezone) && (
+                  <option value={detectedTimezone}>
+                    {detectedTimezone} (detected)
+                  </option>
+                )}
+              {/* Include current timezone if not in the list */}
+              {timezone &&
+                !TIMEZONE_OPTIONS.some((t) => t.value === timezone) &&
+                timezone !== detectedTimezone && (
+                  <option value={timezone}>{timezone}</option>
+                )}
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{
+                position: "absolute",
+                right: "14px",
+                pointerEvents: "none",
+                opacity: 0.6,
+              }}
+            >
+              <path
+                d="M6 9l6 6 6-6"
+                stroke={isDark ? "#FFF" : "#000"}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <p
+            className="text-secondary mt-1 mb-0"
+            style={{ fontSize: "11px", fontStyle: "italic" }}
+          >
+            Determines when your medication reminders fire. Detected:{" "}
+            {detectedTimezone}
+          </p>
+        </div>
 
         <p
           className="text-secondary mt-3"
@@ -366,7 +468,7 @@ const EditProfile = ({ onBack }) => {
         </p>
       </div>
 
-      {/* Bottom Buttons */}
+      {/* Bottom buttons */}
       <div
         className="p-3 border-top"
         style={{ borderColor: isDark ? "#333" : "#DEDFE2" }}

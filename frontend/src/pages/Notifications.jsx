@@ -1,86 +1,170 @@
 // src/pages/Notifications.jsx
-import { useState } from 'react';
-import { ChevronLeft, Bell, BellFill, Envelope } from 'react-bootstrap-icons';
+import { useApp } from "../context/useApp";
+import { useTheme } from "../context/ThemeContext";
+import { useNotifications } from "../hooks/useNotifications";
+import {
+  Bell,
+  Clock,
+  ExclamationTriangle,
+  ExclamationCircle,
+  HeartPulse,
+} from "react-bootstrap-icons";
 
-const RenderToggle = ({ isOn, onClick }) => (
-  <div 
-    onClick={onClick}
-    className="rounded-pill d-flex align-items-center"
-    style={{
-      width: '48px',
-      height: '28px',
-      backgroundColor: isOn ? '#0033CC' : 'rgba(107,114,128,0.5)',
-      justifyContent: isOn ? 'flex-end' : 'flex-start',
-      padding: '2px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease'
-    }}
-  >
-    <div className="rounded-circle bg-white shadow-sm" style={{ width: '24px', height: '24px' }}></div>
-  </div>
-);
+const Notifications = () => {
+  const { setCurrentTab } = useApp();
+  const { isDark } = useTheme();
+  const { notifications, loading } = useNotifications();
 
-const Notifications = ({ onBack }) => {
-  const [settings, setSettings] = useState({
-    push: true,
-    email: false,
-    sms: false,
-  });
+  const getIcon = (notif) => {
+    switch (notif.type) {
+      case "missed":
+        return <ExclamationTriangle size={24} color="#D92D20" />;
+      case "due-now":
+        return <Clock size={24} color="#F7C81B" />;
+      case "upcoming":
+        return <Clock size={24} color="#666" />;
+      case "check-in-due":
+        return <HeartPulse size={24} color="#0033CC" />;
+      default:
+        return <ExclamationCircle size={24} color="#666" />;
+    }
+  };
 
-  const toggleSetting = (key) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  const getAccent = (notif) => {
+    switch (notif.type) {
+      case "missed":
+        return "#D92D20";
+      case "due-now":
+        return "#B45309";
+      case "check-in-due":
+        return "#0033CC";
+      default:
+        return "#666";
+    }
+  };
+
+  const handleNotifClick = (notif) => {
+    if (notif.type === "check-in-due" && notif.symptomId) {
+      localStorage.setItem("mycare_checkin_symptom_id", notif.symptomId);
+      setCurrentTab("CheckIn");
+      return;
+    }
+    if (notif.actionTarget?.tab) {
+      setCurrentTab(notif.actionTarget.tab);
+    }
+  };
+
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return d.toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
-    <div className="d-flex flex-column h-100 bg-white">
+    <div
+      className="d-flex flex-column h-100 p-3"
+      style={{ backgroundColor: isDark ? "#1a1a1a" : "#FFF" }}
+    >
       {/* Header */}
-      <div className="d-flex align-items-center p-3 border-bottom" style={{ position: 'relative' }}>
-        <button className="btn p-0 border-0" onClick={onBack}>
-          <ChevronLeft size={28} />
-        </button>
-        <h1 className="fw-bold m-0 ms-3" style={{ fontSize: '24px' }}>Notifications</h1>
+      <div className="d-flex align-items-center mb-4">
+        <Bell
+          size={28}
+          color={isDark ? "#FFF" : "#000"}
+          className="me-3"
+        />
+        <h1
+          className="fw-bold m-0"
+          style={{ fontSize: "24px", color: isDark ? "#FFF" : "#000" }}
+        >
+          Notifications
+        </h1>
       </div>
 
-      <div className="p-3">
-        <p className="text-secondary fw-bold mb-3" style={{ fontSize: '16px' }}>Manage your alerts & reminders</p>
-
-        {/* In-App Notifications */}
-        <div className="d-flex align-items-center py-3 border-bottom" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-          <BellFill size={24} className="me-3" color="#000" />
-          <div className="flex-grow-1">
-            <p className="m-0 fw-bold" style={{ fontSize: '16px' }}>In-App Notification</p>
-            <p className="m-0 text-secondary" style={{ fontSize: '12px' }}>Medication & symptom reminders</p>
-          </div>
-          <RenderToggle isOn={settings.push} onClick={() => toggleSetting('push')} />
+      {/* Loading */}
+      {loading && (
+        <div className="text-center py-4">
+          <div className="spinner-border text-primary" role="status" />
         </div>
+      )}
 
-        {/* Email Notifications */}
-        <div className="d-flex align-items-center py-3 border-bottom" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-          <Envelope size={24} className="me-3" color="#000" />
-          <div className="flex-grow-1">
-            <p className="m-0 fw-bold" style={{ fontSize: '16px' }}>Email Notification</p>
-            <p className="m-0 text-secondary" style={{ fontSize: '12px' }}>Send updates to your email</p>
+      {/* Empty */}
+      {!loading && notifications.length === 0 && (
+        <div className="text-center py-5">
+          <div
+            className="d-flex justify-content-center align-items-center rounded-circle mx-auto mb-4"
+            style={{
+              width: "80px",
+              height: "80px",
+              backgroundColor: "rgba(0, 51, 204, 0.08)",
+            }}
+          >
+            <Bell size={40} color="#0033CC" />
           </div>
-          <RenderToggle isOn={settings.email} onClick={() => toggleSetting('email')} />
-        </div>
-
-        {/* SMS Notifications */}
-        <div className="d-flex align-items-center py-3">
-          <Bell size={24} className="me-3" color="#000" />
-          <div className="flex-grow-1">
-            <p className="m-0 fw-bold" style={{ fontSize: '16px' }}>SMS Notifications</p>
-            <p className="m-0 text-secondary" style={{ fontSize: '12px' }}>Text message alerts</p>
-          </div>
-          <RenderToggle isOn={settings.sms} onClick={() => toggleSetting('sms')} />
-        </div>
-
-        {/* Info note */}
-        <div className="rounded-3 p-3 mt-4" style={{ backgroundColor: '#F8F9FA', border: '1px solid rgba(0,0,0,0.1)' }}>
-          <p className="m-0 text-secondary" style={{ fontSize: '12px' }}>
-            *Note: Per our v1 PRD, SMS reminders are currently out of scope. Push and Email notifications are fully supported.
+          <p
+            className="fw-bold mb-1"
+            style={{ fontSize: "16px", color: isDark ? "#FFF" : "#000" }}
+          >
+            You're all caught up!
+          </p>
+          <p className="text-secondary" style={{ fontSize: "14px" }}>
+            We'll notify you when a dose is due or a check-in is needed.
           </p>
         </div>
-      </div>
+      )}
+
+      {/* List */}
+      {!loading && notifications.length > 0 && (
+        <div className="d-flex flex-column gap-2 overflow-auto">
+          {notifications.map((notif) => (
+            <div
+              key={notif.id}
+              className="d-flex align-items-start p-3 rounded-3"
+              style={{
+                backgroundColor: isDark ? "#2a2a2a" : "#F9FAFB",
+                border: `1px solid ${
+                  isDark ? "#444" : "rgba(0,0,0,0.08)"
+                }`,
+                cursor: "pointer",
+              }}
+              onClick={() => handleNotifClick(notif)}
+            >
+              <div className="me-3 flex-shrink-0 mt-1">
+                {getIcon(notif)}
+              </div>
+              <div className="flex-grow-1">
+                <p
+                  className="m-0 fw-bold"
+                  style={{
+                    fontSize: "15px",
+                    color: getAccent(notif),
+                  }}
+                >
+                  {notif.title}
+                </p>
+                <p
+                  className="m-0 mt-1"
+                  style={{
+                    fontSize: "13px",
+                    color: isDark ? "#A0A0A0" : "#666",
+                  }}
+                >
+                  {notif.body}
+                </p>
+                <p
+                  className="m-0 mt-1"
+                  style={{ fontSize: "11px", color: "#999" }}
+                >
+                  {formatDate(notif.createdAt)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

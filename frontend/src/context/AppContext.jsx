@@ -1,4 +1,5 @@
 // src/context/AppContext.jsx
+import { clearFCMToken } from "../services/fcm";
 import { createContext, useState, useEffect } from 'react';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -58,28 +59,31 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem('mycare_onboarding_stage');
     }
   }, [onboardingStage]);
+const handleLogout = () => {
+  // 🆕 Clean up FCM token in the background (fire-and-forget)
+  clearFCMToken().catch((err) =>
+    console.warn("[AppContext] FCM cleanup failed:", err.message)
+  );
 
-  const handleLogout = () => {
-    // Reset in-memory state
-    setUserName('');
-    setCurrentTab('Home');
-    setIsOnboarded(false);
-    setIsMenuOpen(false);
-    setAuthScreen('signup');
-    setWelcomeName('');
-    setOnboardingStage(null);
-    setCurrentProfile('Tolu (Me)');
+  // Reset in-memory state
+  setUserName("");
+  setCurrentTab("Home");
+  setIsOnboarded(false);
+  setIsMenuOpen(false);
+  setAuthScreen("signup");
+  setWelcomeName("");
+  setOnboardingStage(null);
+  setCurrentProfile("Tolu (Me)");
 
-    // Clear persisted state
-    localStorage.removeItem('mycare_onboarded');
-    localStorage.removeItem('mycare_userName');
-    localStorage.removeItem('mycare_currentProfile');
-    localStorage.removeItem('mycare_currentProfileId'); // 🔥 profile_id
-    localStorage.removeItem('mycare_token');
-    localStorage.removeItem('mycare_user');
-    localStorage.removeItem('mycare_onboarding_stage');
-  };
-
+  // Clear persisted state
+  localStorage.removeItem("mycare_onboarded");
+  localStorage.removeItem("mycare_userName");
+  localStorage.removeItem("mycare_currentProfile");
+  localStorage.removeItem("mycare_currentProfileId");
+  localStorage.removeItem("mycare_token");
+  localStorage.removeItem("mycare_user");
+  localStorage.removeItem("mycare_onboarding_stage");
+};
   return (
     <AppContext.Provider
       value={{
