@@ -329,4 +329,14 @@ export const recordDoctorFollowUp = async (symptomId, response) => {
   });
 };
 
+
+// 🆕 Update an existing symptom
+export const updateSymptom = async (symptomId, updates) => {
+  return api.patch(`/symptoms/${symptomId}`, updates);
+};
+
+// 🆕 Delete a symptom
+export const deleteSymptom = async (symptomId) => {
+  return api.delete(`/symptoms/${symptomId}`);
+};
 export default api;

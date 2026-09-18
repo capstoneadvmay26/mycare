@@ -4,10 +4,34 @@ import { Plus, ExclamationCircle } from "react-bootstrap-icons";
 import { useApp } from "../context/useApp";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
-import { getSymptoms, getSymptomStatus } from "../services/api";
+import {
+  getSymptoms,
+  getSymptomStatus,
+  updateSymptom,
+  deleteSymptom,
+} from "../services/api";
+import SymptomViewModal from "../components/symptoms/SymptomViewModal";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Derive a displayable status from check-ins
+const deriveStatus = (symptom) => {
+  const checkIns = symptom.checkIns || [];
+  if (checkIns.length === 0) return { key: "pending", label: "Pending", color: "#666" };
+  if (checkIns.length < 3) {
+    return {
+      key: "in_progress",
+      label: `Day ${checkIns.length}/3`,
+      color: "#0033CC",
+    };
+  }
+  const hasWorse = checkIns.some((c) => c.status === "worse");
+  const hasBetter = checkIns.some((c) => c.status === "better");
+  if (hasWorse) return { key: "worsening", label: "Worsening", color: "#D92D20" };
+  if (hasBetter) return { key: "improving", label: "Improving", color: "#4CBB17" };
+  return { key: "same", label: "No change", color: "#666" };
+};
 
 const Symptoms = () => {
   const { setCurrentTab } = useApp();
@@ -19,10 +43,11 @@ const Symptoms = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [checkInDueFor, setCheckInDueFor] = useState(null);
+  const [viewingSymptom, setViewingSymptom] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   // ------------------------------------------------------------
   // Fetch + filter + compute check-in availability
-  // All setState happens inside the async fetchData (via useCallback)
   // ------------------------------------------------------------
   const fetchData = useCallback(async () => {
     if (!profileId) {
@@ -39,22 +64,15 @@ const Symptoms = () => {
       const response = await getSymptoms(profileId);
       const allSymptoms = response.data?.symptoms || [];
 
-      // 🆕 Symptoms tab = active symptoms only
-      // (still in 3-day cycle OR logged within last 7 days)
       const now = Date.now();
 
       const recentSymptoms = allSymptoms.filter((s) => {
         const checkIns = s.checkIns?.length || 0;
-
-        // Keep if check-in cycle is still active
         if (checkIns < 3) return true;
-
-        // Otherwise keep only if logged within last 7 days
         const loggedAt = new Date(s.loggedAt).getTime();
         return now - loggedAt <= SEVEN_DAYS_MS;
       });
 
-      // Enrich each with status (for check-in availability)
       const enriched = await Promise.all(
         recentSymptoms.map(async (s) => {
           try {
@@ -68,25 +86,14 @@ const Symptoms = () => {
 
       setSymptoms(enriched);
 
-      // 🆕 Only show check-in banner if the day is actually available
-      // Backend rule: first check-in available 24h after logging;
-      //               subsequent check-ins available 24h after previous
       const isCheckInAvailable = (symptom) => {
         const checkIns = symptom.checkIns?.length || 0;
-
-        // Cycle complete
         if (checkIns >= 3) return false;
-
-        // Not started (no loggedAt) — shouldn't happen
         if (!symptom.loggedAt) return false;
-
-        // Day 1: need 24h since logging
         if (checkIns === 0) {
           const loggedAt = new Date(symptom.loggedAt).getTime();
           return now - loggedAt >= ONE_DAY_MS;
         }
-
-        // Day 2/3: need 24h since the previous check-in
         const lastCheckIn = symptom.checkIns[checkIns - 1];
         if (!lastCheckIn?.checkedInAt) return false;
         const lastAt = new Date(lastCheckIn.checkedInAt).getTime();
@@ -105,20 +112,52 @@ const Symptoms = () => {
     }
   }, [profileId]);
 
-  // Effect wraps the async call — no sync setState in the body
   useEffect(() => {
     let cancelled = false;
-
     const load = async () => {
       if (cancelled) return;
       await fetchData();
     };
-
     load();
     return () => {
       cancelled = true;
     };
   }, [fetchData]);
+
+  // ------------------------------------------------------------
+  // Update + delete handlers
+  // ------------------------------------------------------------
+const handleUpdate = async (updates) => {
+  if (!viewingSymptom) return;
+  setSaving(true);
+  try {
+    // Send full current state + updates, in case backend requires all fields
+    const payload = {
+      symptoms: viewingSymptom.symptoms || [],
+      otherSymptom: updates.otherSymptom !== undefined 
+        ? updates.otherSymptom 
+        : viewingSymptom.otherSymptom || "",
+      severity: updates.severity || viewingSymptom.severity,
+    };
+    await updateSymptom(viewingSymptom._id, payload);
+    await fetchData();
+    setViewingSymptom((prev) => ({ ...prev, ...updates }));
+  } finally {
+    setSaving(false);
+  }
+};
+
+  const handleDelete = async () => {
+    if (!viewingSymptom) return;
+    setSaving(true);
+    try {
+      await deleteSymptom(viewingSymptom._id);
+      setViewingSymptom(null);
+      await fetchData();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ------------------------------------------------------------
   // Helpers
@@ -208,10 +247,7 @@ const Symptoms = () => {
           <div className="flex-grow-1">
             <p
               className="m-0 fw-bold"
-              style={{
-                fontSize: "14px",
-                color: isDark ? "#FFF" : "#000",
-              }}
+              style={{ fontSize: "14px", color: isDark ? "#FFF" : "#000" }}
             >
               Check-in due: {symptomName(checkInDueFor)}
             </p>
@@ -295,49 +331,85 @@ const Symptoms = () => {
       {/* List */}
       {!loading && !error && symptoms.length > 0 && (
         <div className="d-flex flex-column gap-2 overflow-auto flex-grow-1">
-          {symptoms.map((s) => (
-            <div
-              key={s._id}
-              className="d-flex align-items-center justify-content-between p-3"
-              style={{
-                border: `1px solid ${isDark ? "#333" : "rgba(0,0,0,0.1)"}`,
-                borderRadius: "12px",
-                cursor: "pointer",
-              }}
-              onClick={() => {
-                localStorage.setItem("mycare_checkin_symptom_id", s._id);
-                setCurrentTab("SymptomHistory");
-              }}
-            >
-              <div className="flex-grow-1">
-                <p
-                  className="m-0 fw-bold"
-                  style={{
-                    fontSize: "16px",
-                    color: isDark ? "#FFF" : "#000",
-                  }}
-                >
-                  {symptomName(s)}
-                </p>
-                <p className="m-0" style={{ fontSize: "13px", color: "#888" }}>
-                  {formatTime(s.loggedAt)}
-                  {s.checkIns?.length > 0
-                    ? ` · ${s.checkIns.length}/3 check-ins`
-                    : ""}
-                </p>
-              </div>
+          {symptoms.map((s) => {
+            const status = deriveStatus(s);
+            return (
               <div
-                className="px-3 py-1 rounded-pill fw-bold"
+                key={s._id}
+                className="p-3"
                 style={{
-                  backgroundColor: `${severityColor(s.severity)}20`,
-                  color: severityColor(s.severity),
-                  fontSize: "12px",
+                  border: `1px solid ${isDark ? "#333" : "rgba(0,0,0,0.1)"}`,
+                  borderRadius: "12px",
+                  cursor: "pointer",
                 }}
+                onClick={() => setViewingSymptom(s)}
               >
-                {severityLabel(s.severity)}
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div className="flex-grow-1">
+                    <p
+                      className="m-0 fw-bold"
+                      style={{
+                        fontSize: "16px",
+                        color: isDark ? "#FFF" : "#000",
+                      }}
+                    >
+                      {symptomName(s)}
+                    </p>
+                    <p
+                      className="m-0"
+                      style={{ fontSize: "13px", color: "#888" }}
+                    >
+                      {formatTime(s.loggedAt)}
+                      {s.checkIns?.length > 0
+                        ? ` · ${s.checkIns.length}/3 check-ins`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Chips row */}
+                <div className="d-flex gap-2 flex-wrap">
+                  {/* Severity chip */}
+                  <span
+                    className="px-2 py-1 rounded-pill fw-bold"
+                    style={{
+                      backgroundColor: `${severityColor(s.severity)}20`,
+                      color: severityColor(s.severity),
+                      fontSize: "11px",
+                    }}
+                  >
+                    {severityLabel(s.severity)}
+                  </span>
+
+                  {/* Status chip */}
+                  <span
+                    className="px-2 py-1 rounded-pill fw-bold"
+                    style={{
+                      backgroundColor: `${status.color}20`,
+                      color: status.color,
+                      fontSize: "11px",
+                    }}
+                  >
+                    {status.label}
+                  </span>
+
+                  {/* Doctor nudge chip */}
+                  {s.professionalCareNudge?.shown && (
+                    <span
+                      className="px-2 py-1 rounded-pill fw-bold"
+                      style={{
+                        backgroundColor: "rgba(217,45,32,0.15)",
+                        color: "#D92D20",
+                        fontSize: "11px",
+                      }}
+                    >
+                      ⚕️ See doctor
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -356,6 +428,17 @@ const Symptoms = () => {
           View Symptom History
         </button>
       </div>
+
+      {/* View modal */}
+      {viewingSymptom && (
+        <SymptomViewModal
+          symptom={viewingSymptom}
+          onClose={() => setViewingSymptom(null)}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          saving={saving}
+        />
+      )}
     </div>
   );
 };

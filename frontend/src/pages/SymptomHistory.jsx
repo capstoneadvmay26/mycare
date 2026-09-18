@@ -6,6 +6,20 @@ import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import { getSymptomHistory } from "../services/api";
 
+const PERIOD_OPTIONS = [
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "2months", label: "2 Months" },
+];
+
+const SEVERITY_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "mild", label: "Mild" },
+  { value: "moderate", label: "Moderate" },
+  { value: "severe", label: "Severe" },
+  { value: "very_severe", label: "Very severe" },
+];
+
 const SymptomHistory = () => {
   const { setCurrentTab } = useApp();
   const { activeProfile } = useProfile();
@@ -16,8 +30,11 @@ const SymptomHistory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all"); // all | mild | moderate | severe | very_severe
+  const [period, setPeriod] = useState("month"); // week | month | 2months
 
-  // Fetch — all setState inside async load
+  // ------------------------------------------------------------
+  // Fetch — re-runs when profile OR period changes
+  // ------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -34,7 +51,7 @@ const SymptomHistory = () => {
       setError("");
 
       try {
-        const resp = await getSymptomHistory(profileId);
+        const resp = await getSymptomHistory(profileId, period);
         const items = resp.data?.symptoms || [];
         if (!cancelled) setSymptoms(items);
       } catch (err) {
@@ -54,9 +71,11 @@ const SymptomHistory = () => {
     return () => {
       cancelled = true;
     };
-  }, [profileId]);
+  }, [profileId, period]);
 
-  // 🆕 Filter + group by date
+  // ------------------------------------------------------------
+  // Filter + group by date (client-side)
+  // ------------------------------------------------------------
   const groupedSymptoms = useMemo(() => {
     const filtered =
       filter === "all"
@@ -66,7 +85,6 @@ const SymptomHistory = () => {
               (s.severity || "").toLowerCase() === filter.toLowerCase()
           );
 
-    // Group by date (YYYY-MM-DD)
     const groups = {};
     filtered.forEach((s) => {
       const d = new Date(s.loggedAt);
@@ -82,7 +100,9 @@ const SymptomHistory = () => {
     return groups;
   }, [symptoms, filter]);
 
+  // ------------------------------------------------------------
   // Helpers
+  // ------------------------------------------------------------
   const severityColor = (s) => {
     const l = (s || "").toLowerCase();
     if (l === "mild") return "#4CBB17";
@@ -143,29 +163,68 @@ const SymptomHistory = () => {
         </h1>
       </div>
 
-      {/* Severity filter */}
-      <div className="d-flex gap-2 mb-4 overflow-auto pb-2">
-        {["all", "mild", "moderate", "severe", "very_severe"].map((f) => {
-          const isActive = filter === f;
+      {/* 🆕 Period filter — polished */}
+      <div className="d-flex gap-2 mb-3">
+        {PERIOD_OPTIONS.map((p) => {
+          const active = period === p.value;
           return (
             <button
-              key={f}
-              className="btn fw-semibold flex-shrink-0"
+              key={p.value}
+              onClick={() => setPeriod(p.value)}
               style={{
-                backgroundColor: isActive
+                flex: 1,
+                padding: "10px 0",
+                borderRadius: "10px",
+                border: active
+                  ? "2px solid #0033CC"
+                  : `1px solid ${isDark ? "#444" : "rgba(0,0,0,0.12)"}`,
+                backgroundColor: active
                   ? "#0033CC"
                   : isDark
-                  ? "#333"
-                  : "#F3F4F6",
-                color: isActive ? "#FFF" : isDark ? "#FFF" : "#000",
-                borderRadius: "20px",
-                padding: "6px 16px",
-                border: "none",
+                  ? "#1a1a1a"
+                  : "#FFFFFF",
+                color: active ? "#FFFFFF" : isDark ? "#FFF" : "#333",
+                fontWeight: "600",
                 fontSize: "13px",
+                transition: "all 0.15s ease",
+                cursor: "pointer",
               }}
-              onClick={() => setFilter(f)}
             >
-              {f === "all" ? "All" : severityLabel(f)}
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 🆕 Severity filter — polished, horizontally scrollable */}
+      <div className="d-flex gap-2 mb-4 overflow-auto pb-1">
+        {SEVERITY_OPTIONS.map((f) => {
+          const active = filter === f.value;
+          return (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className="flex-shrink-0"
+              style={{
+                minWidth: "70px",
+                padding: "8px 14px",
+                borderRadius: "10px",
+                border: active
+                  ? "2px solid #0033CC"
+                  : `1px solid ${isDark ? "#444" : "rgba(0,0,0,0.12)"}`,
+                backgroundColor: active
+                  ? "#0033CC"
+                  : isDark
+                  ? "#1a1a1a"
+                  : "#FFFFFF",
+                color: active ? "#FFFFFF" : isDark ? "#FFF" : "#333",
+                fontWeight: "600",
+                fontSize: "12px",
+                transition: "all 0.15s ease",
+                cursor: "pointer",
+              }}
+            >
+              {f.label}
             </button>
           );
         })}
@@ -189,7 +248,8 @@ const SymptomHistory = () => {
       {!loading && !error && !hasAnyResults && (
         <div className="text-center mt-5 text-muted px-4">
           <p className="fw-bold mb-1" style={{ fontSize: "16px" }}>
-            No symptom history{filter !== "all" ? ` for ${severityLabel(filter)}` : ""}
+            No symptom history
+            {filter !== "all" ? ` for ${severityLabel(filter)}` : ""}
           </p>
           <p style={{ fontSize: "14px" }}>
             Symptoms you log will appear here.

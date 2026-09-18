@@ -1,7 +1,6 @@
 // src/components/medications/AddMedicationModal.jsx
 import { useState, useEffect } from "react";
 
-
 // Convert an ISO date string to YYYY-MM-DD in LOCAL timezone
 const formatDateForInput = (isoString) => {
   if (!isoString) return "";
@@ -75,6 +74,9 @@ const AddMedicationModal = ({
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const [showWarning, setShowWarning] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
 
   // ----------------------------------------
   // Prefill when modal opens or editingMedication changes
@@ -194,7 +196,6 @@ const AddMedicationModal = ({
       return;
     }
 
-    // Build scheduleTime array from all slots
     const scheduleTime = timeSlots.map((s) =>
       to24Hour(s.hour, s.minute, s.period),
     );
@@ -211,6 +212,18 @@ const AddMedicationModal = ({
 
     console.log("[AddMedicationModal] Payload:", payload);
 
+    // 🆕 For NEW medications, show the schedule-lock warning first
+    if (!isEditMode) {
+      setPendingPayload(payload);
+      setShowWarning(true);
+      return;
+    }
+
+    // Edit mode goes straight through (though we won't use this path anymore)
+    await actuallySave(payload);
+  };
+
+  const actuallySave = async (payload) => {
     setSaving(true);
     try {
       await onSave(payload);
@@ -225,7 +238,6 @@ const AddMedicationModal = ({
       setSaving(false);
     }
   };
-
   // ----------------------------------------
   // Picker options
   // ----------------------------------------
@@ -500,6 +512,87 @@ const AddMedicationModal = ({
                     : "Add Medication"}
               </button>
             </form>
+
+            {/* 🆕 Schedule-lock warning modal */}
+            {showWarning && (
+              <div
+                className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3"
+                style={{
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  zIndex: 1070,
+                  borderRadius: "16px",
+                }}
+              >
+                <div
+                  className="p-4 bg-white"
+                  style={{
+                    maxWidth: "380px",
+                    borderRadius: "16px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  <div className="text-center mb-3">
+                    <span style={{ fontSize: "36px" }}>⚠️</span>
+                  </div>
+
+                  <h5
+                    className="fw-bold text-center mb-3"
+                    style={{ fontSize: "18px" }}
+                  >
+                    One moment
+                  </h5>
+
+                  <p
+                    className="text-center text-secondary mb-4"
+                    style={{ fontSize: "14px", lineHeight: 1.5 }}
+                  >
+                    Once you add this medication, its{" "}
+                    <strong>
+                      schedule (time, frequency, start date) becomes locked
+                    </strong>{" "}
+                    to keep your adherence records accurate.
+                    <br />
+                    <br />
+                    You can still update the medication{" "}
+                    <strong>name and dosage</strong>, or{" "}
+                    <strong>archive it</strong> at any time.
+                  </p>
+
+                  <button
+                    className="btn w-100 text-white fw-bold py-3 mb-2"
+                    style={{
+                      backgroundColor: saving ? "#999" : "#0033CC",
+                      borderRadius: "8px",
+                      border: "none",
+                    }}
+                    onClick={async () => {
+                      setShowWarning(false);
+                      await actuallySave(pendingPayload);
+                    }}
+                    disabled={saving}
+                  >
+                    {saving ? "Adding..." : "Got it, add medication"}
+                  </button>
+
+                  <button
+                    className="btn w-100 fw-bold py-3"
+                    style={{
+                      backgroundColor: "transparent",
+                      border: "1px solid #0033CC",
+                      color: "#0033CC",
+                      borderRadius: "8px",
+                    }}
+                    onClick={() => {
+                      setShowWarning(false);
+                      setPendingPayload(null);
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus } from "react-bootstrap-icons";
 import MedicationCard from "../components/ui/MedicationCard";
 import AddMedicationModal from "../components/medications/AddMedicationModal";
+import MedicationViewModal from "../components/medications/MedicationViewModal";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -11,13 +12,10 @@ import {
   updateMedication,
   deleteMedication,
 } from "../services/api";
-
 import { useApp } from "../context/useApp";
 
 const Medications = () => {
-
   const { setCurrentTab } = useApp();
-
   const { activeProfile, loading: profileLoading } = useProfile();
   const { isDark } = useTheme();
   const profileId = activeProfile?.id || activeProfile?._id;
@@ -26,9 +24,9 @@ const Medications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("active");
-  const [showModal, setShowModal] = useState(false);
-  const [editingMed, setEditingMed] = useState(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [viewingMed, setViewingMed] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   // ----------------------------------------
   // FETCH
@@ -61,14 +59,11 @@ const Medications = () => {
 
   useEffect(() => {
     let cancelled = false;
-
     const load = async () => {
       if (cancelled) return;
       await fetchMeds();
     };
-
     load();
-
     return () => {
       cancelled = true;
     };
@@ -77,37 +72,44 @@ const Medications = () => {
   // ----------------------------------------
   // HANDLERS
   // ----------------------------------------
-  const handleSave = async (payload) => {
+  const handleAdd = async (payload) => {
     if (!payload.profile_id) {
       throw new Error("Profile not loaded. Please wait and try again.");
     }
-
-    if (editingMed) {
-      const id = editingMed._id || editingMed.id;
-      // eslint-disable-next-line no-unused-vars
-      const { profile_id, ...updateData } = payload;
-      await updateMedication(id, updateData);
-    } else {
-      await addMedication(payload);
-    }
-    setShowModal(false);
-    setEditingMed(null);
+    await addMedication(payload);
+    setShowAddModal(false);
     await fetchMeds();
   };
 
   const handleCardClick = (med) => {
-    setEditingMed(med);
-    setShowModal(true);
+    setViewingMed(med);
   };
 
-  const handleArchive = async (med) => {
-    const id = med._id || med.id;
+  // 🆕 Cosmetic-only update (name + dosage)
+  const handleUpdateCosmetic = async (updates) => {
+    if (!viewingMed) return;
+    setSaving(true);
     try {
-      await deleteMedication(id);
+      const id = viewingMed._id || viewingMed.id;
+      await updateMedication(id, updates);
       await fetchMeds();
-    } catch (err) {
-      console.error("[Medications] archive error:", err);
-      setError(err.response?.data?.message || "Failed to archive medication");
+      // Update the viewing med locally so the modal reflects the change
+      setViewingMed((prev) => ({ ...prev, ...updates }));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 🆕 Archive (soft delete)
+  const handleArchive = async (med) => {
+    setSaving(true);
+    try {
+      const id = med._id || med.id;
+      await deleteMedication(id);
+      setViewingMed(null);
+      await fetchMeds();
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -143,10 +145,7 @@ const Medications = () => {
               borderRadius: "8px",
               border: "none",
             }}
-            onClick={() => {
-              setEditingMed(null);
-              setShowModal(true);
-            }}
+            onClick={() => setShowAddModal(true)}
             disabled={!profileId}
           >
             <Plus size={16} className="me-1" /> Add
@@ -252,17 +251,13 @@ const Medications = () => {
             <MedicationCard
               key={med._id || med.id}
               medication={med}
-              onClick={() =>
-                activeTab === "active"
-                  ? handleCardClick(med)
-                  : handleArchive(med)
-              }
+              onClick={handleCardClick}
             />
           ))}
         </div>
       )}
 
-      {/* Bottom History Button — navigates to real page */}
+      {/* Bottom History Button */}
       <div className="mt-auto pt-4 pb-2">
         <button
           className="btn w-100 fw-bold py-3"
@@ -279,165 +274,26 @@ const Medications = () => {
         </button>
       </div>
 
-      {/* Add/Edit modal — only render when profileId is ready */}
+      {/* Add modal */}
       {profileId && (
         <AddMedicationModal
-          isOpen={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setEditingMed(null);
-          }}
-          onSave={handleSave}
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAdd}
           profile_id={profileId}
-          editingMedication={editingMed}
         />
       )}
 
-      {/* History modal */}
-      {historyOpen && profileId && (
-        <MedicationHistoryModal
-          profileId={profileId}
-          onClose={() => setHistoryOpen(false)}
+      {/* 🆕 View modal */}
+      {viewingMed && (
+        <MedicationViewModal
+          medication={viewingMed}
+          onClose={() => setViewingMed(null)}
+          onArchive={handleArchive}
+          onUpdateCosmetic={handleUpdateCosmetic}
+          saving={saving}
         />
       )}
-    </div>
-  );
-};
-
-// ============================================================
-// Inline Medication History Modal
-// ============================================================
-const MedicationHistoryModal = ({ profileId, onClose }) => {
-  const [period, setPeriod] = useState("week");
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const { getMedicationHistory } = await import("../services/api");
-        const response = await getMedicationHistory(profileId, period);
-        const items =
-          response.data?.history ||
-          response.data?.data ||
-          response.data ||
-          [];
-        if (!cancelled) setLogs(items);
-      } catch (err) {
-        console.error("[History] fetch error:", err);
-        if (!cancelled) {
-          setError(
-            err.response?.data?.message ||
-              err.message ||
-              "Failed to load history"
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [profileId, period]);
-
-  return (
-    <div
-      className="modal fade show d-block"
-      tabIndex="-1"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-      onClick={onClose}
-    >
-      <div
-        className="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto px-3"
-        style={{ maxWidth: "480px" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="modal-content border-0 shadow-lg"
-          style={{ borderRadius: "16px", overflow: "hidden" }}
-        >
-          <div className="modal-header border-0 pb-0 pt-3 px-4 d-flex justify-content-between">
-            <h5 className="modal-title fw-bold m-0">Medication History</h5>
-            <button
-              type="button"
-              className="btn-close ms-0"
-              onClick={onClose}
-            />
-          </div>
-
-          <div className="modal-body px-4 py-3">
-            {/* Period toggle */}
-            <div className="d-flex gap-2 mb-3">
-              {["week", "month"].map((p) => (
-                <button
-                  key={p}
-                  className="btn flex-grow-1 fw-semibold"
-                  style={{
-                    backgroundColor:
-                      period === p ? "#0033CC" : "rgba(0, 51, 204, 0.08)",
-                    color: period === p ? "#FFF" : "#0033CC",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "8px",
-                  }}
-                  onClick={() => setPeriod(p)}
-                >
-                  {p === "week" ? "Week" : "Month"}
-                </button>
-              ))}
-            </div>
-
-            {loading && (
-              <div className="text-center py-4">
-                <div className="spinner-border text-primary" role="status" />
-              </div>
-            )}
-
-            {error && (
-              <div className="alert alert-danger py-2" style={{ fontSize: "13px" }}>
-                {error}
-              </div>
-            )}
-
-            {!loading && !error && logs.length === 0 && (
-              <div className="text-center text-muted py-4">
-                <p className="mb-0">No history for this period.</p>
-              </div>
-            )}
-
-            {!loading && !error && logs.length > 0 && (
-              <div className="d-flex flex-column gap-2">
-                {logs.map((log, idx) => (
-                  <div
-                    key={log.id || idx}
-                    className="p-2 rounded-3"
-                    style={{ backgroundColor: "rgba(0, 51, 204, 0.04)" }}
-                  >
-                    <p className="m-0 fw-bold" style={{ fontSize: "14px" }}>
-                      {log.medication || log.title || "Medication"}
-                    </p>
-                    <p className="m-0 text-secondary" style={{ fontSize: "12px" }}>
-                      {log.status || ""}{" "}
-                      {log.date
-                        ? `· ${new Date(log.date).toLocaleString()}`
-                        : ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
