@@ -4,13 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:test": "vite --mode test",
-    "build": "vite build && node scripts/copy-404.js",
-    "build:test": "vite build --mode test && node scripts/copy-404.js",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
-  },
+  "dev": "vite",
+  "dev:test": "vite --mode test",
+  "build": "vite build && node scripts/copy-404.js",
+  "build:test": "vite build --mode test && node scripts/copy-404.js",
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d dist",
+  "predeploy:test": "npm run build:test",
+  "deploy:test": "gh-pages -d dist"
+},
   "homepage": "https://capstoneadvmay26.github.io/mycare/",
   "dependencies": {
     "axios": "^1.19.0",
