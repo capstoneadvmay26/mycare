@@ -14,12 +14,28 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem("mycare_userName") || "";
   });
 
+
+  // In the state declarations, add:
+const [user, setUser] = useState(() => {
+  try {
+    const raw = localStorage.getItem("mycare_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+});
+
+
+
+
   const [currentProfile, setCurrentProfile] = useState(() => {
     return localStorage.getItem("mycare_currentProfile") || "Tolu (Me)";
   });
 
   const [currentTab, setCurrentTab] = useState("Home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  
 
   // 🆕 Which auth screen to show when not onboarded:
   //   - If the user has EVER signed up before → "signin"
@@ -64,10 +80,13 @@ export const AppProvider = ({ children }) => {
   const handleLogout = () => {
     // Clean up FCM token in the background
     clearFCMToken().catch((err) =>
-      console.warn("[AppContext] FCM cleanup failed:", err.message)
+      console.warn("[AppContext] FCM cleanup failed:", err.message),
     );
 
+
     // Reset in-memory state
+
+    setUser(null);
     setUserName("");
     setCurrentTab("Home");
     setIsOnboarded(false);
@@ -106,6 +125,8 @@ export const AppProvider = ({ children }) => {
         setOnboardingStage,
 
         // user
+        user, 
+        setUser,
         userName,
         setUserName,
         currentProfile,

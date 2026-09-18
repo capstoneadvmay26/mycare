@@ -6,12 +6,12 @@ import {
   Telephone,
   CalendarEvent,
   GenderMale,
+  Clock,
 } from "react-bootstrap-icons";
 import { useProfile } from "../context/ProfileContext";
 import { useApp } from "../context/useApp";
 import { useTheme } from "../context/ThemeContext";
 import Avatar from "../components/ui/Avatar";
-import { Clock } from "react-bootstrap-icons";
 
 const formatDate = (isoDate) => {
   if (!isoDate) return "Not provided";
@@ -28,24 +28,38 @@ const formatDate = (isoDate) => {
 
 const MyProfile = ({ onBack, onEdit }) => {
   const { activeProfile } = useProfile();
-  const { user } = useApp() || {};
+  const { user: userFromContext } = useApp() || {};
   const { isDark } = useTheme();
+
+  // 🆕 Fallback: read from localStorage if context is empty
+  const user = (() => {
+    if (userFromContext) return userFromContext;
+    try {
+      const raw = localStorage.getItem("mycare_user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
 
   const isSelf =
     activeProfile?.isSelf || activeProfile?.relationship === "Self";
 
-  // 🆕 For self profile, prefer user's name over the profile's placeholder name
   const rawName = activeProfile?.name || "";
   const selfName = user?.full_name || rawName;
   const displayName =
     isSelf && rawName === "Me" ? selfName : rawName || selfName;
 
+  // 🆕 All fields from user, with fallbacks
   const email = user?.email || "Not provided";
   const phone = user?.phone || "Not provided";
   const dob =
     activeProfile?.dateOfBirth || (isSelf ? user?.date_of_birth : null);
   const gender =
     activeProfile?.gender || (isSelf ? user?.gender : null) || "Not provided";
+
+  console.log("[MyProfile] user from context:", userFromContext);
+  console.log("[MyProfile] user resolved:", user);
 
   return (
     <div
@@ -117,9 +131,7 @@ const MyProfile = ({ onBack, onEdit }) => {
           label="Gender"
           value={gender}
           isDark={isDark}
-          noBorder
         />
-
         <InfoRow
           icon={<Clock size={20} color={isDark ? "#FFF" : "#000"} />}
           label="Timezone"

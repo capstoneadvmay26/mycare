@@ -38,7 +38,20 @@ const TIMEZONE_OPTIONS = [
 
 const EditProfile = ({ onBack }) => {
   const { activeProfile, updateActiveProfile } = useProfile();
-  const { user } = useApp() || {};
+
+  const { user: userFromContext } = useApp() || {};
+const user = (() => {
+  if (userFromContext) return userFromContext;
+  try {
+    const raw = localStorage.getItem("mycare_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+})();
+  
+
+
   const { isDark } = useTheme();
 
   const isSelf =
