@@ -75,8 +75,15 @@ api.interceptors.response.use(
         if (!isAuthEndpoint) {
           localStorage.removeItem("mycare_token");
           localStorage.removeItem("mycare_user");
-          if (window.location.pathname !== "/onboarding") {
-            window.location.href = "/onboarding";
+          localStorage.removeItem("mycare_currentProfileId");
+          localStorage.removeItem("mycare_onboarded");
+
+          // 🆕 Correct path — respects Vite's BASE_URL (/mycare/)
+          const base = import.meta.env.BASE_URL || "/mycare/";
+          const onboardingPath = `${base}onboarding`.replace(/\/+/g, "/");
+
+          if (window.location.pathname !== onboardingPath) {
+            window.location.href = onboardingPath;
           }
         }
       }
@@ -105,34 +112,20 @@ api.interceptors.response.use(
 // AUTH ENDPOINTS
 // ============================================================
 
-/**
- * Request OTP — sends { method, email } OR { method, phone }
- * (Backend requires email/phone fields, NOT identifier)
- */
 export const requestOtp = async (method, identifier) => {
   const body = { method };
-  body[method] = identifier; // dynamically sets `email` or `phone`
+  body[method] = identifier;
   return api.post("/auth/request-otp", body);
 };
 
-/**
- * Verify OTP — sends { method, identifier, otp }
- */
 export const verifyOtp = async (method, identifier, otp) => {
   return api.post("/auth/verify-otp", { method, identifier, otp });
 };
 
-/**
- * Register new user — Body: { full_name, date_of_birth, gender, password }
- * ⚠️ Requires Bearer token from verify-otp
- */
 export const register = async (userData) => {
   return api.post("/auth/register", userData);
 };
 
-/**
- * Login with password — Body: { identifier, password }
- */
 export const login = async (identifier, password) => {
   return api.post("/auth/login", { identifier, password });
 };
@@ -152,21 +145,14 @@ export const resetPassword = async (token, newPassword) => {
 // NOTIFICATION ENDPOINTS
 // ============================================================
 
-/**
- * Register an FCM token for the currently authenticated user.
- * Backend associates it with req.user.id via the Bearer token.
- * No profileId needed — one token per browser/device.
- */
 export const registerFCMToken = async (fcmToken) => {
   return api.post("/notifications/register-token", { fcmToken });
 };
 
-/**
- * Unregister an FCM token (called on logout).
- */
 export const unregisterFCMToken = async (fcmToken) => {
   return api.post("/notifications/unregister-token", { fcmToken });
 };
+
 // ============================================================
 // PROFILE ENDPOINTS
 // ============================================================
@@ -249,33 +235,21 @@ export const getAdherenceHistory = async (profileId, period = "week") => {
 };
 
 // ============================================================
-// HISTORY ENDPOINTS — Matches latest backend contract
+// HISTORY ENDPOINTS
 // ============================================================
 
-/**
- * Get all history events (symptoms, medications, check-ins)
- * Params: { profile_id, type: "all" | "symptoms" | "medications" | "check-ins" }
- */
 export const getHistory = async (profileId, type = "all") => {
   return api.get("/history", {
     params: { profile_id: profileId, type },
   });
 };
 
-/**
- * Get medication adherence history
- * Params: { profile_id, period: "week" | "month" }
- */
 export const getMedicationHistory = async (profileId, period = "week") => {
   return api.get("/medications/history", {
     params: { profile_id: profileId, period },
   });
 };
 
-/**
- * Generate consult brief JSON
- * Params: { profile_id }
- */
 export const getConsultBrief = async (profileId) => {
   return api.get("/reports/consult-brief", {
     params: { profile_id: profileId },
@@ -320,8 +294,6 @@ export const deleteAccount = async () => {
 // SYMPTOM ENDPOINTS
 // ============================================================
 
-// ⚠️ The backend does NOT expose GET /symptoms (only /symptoms/history)
-// Use the history endpoint for listing.
 export const getSymptoms = async (profileId) => {
   return api.get("/symptoms/history", {
     params: { profile_id: profileId },
@@ -356,9 +328,5 @@ export const recordDoctorFollowUp = async (symptomId, response) => {
     response,
   });
 };
-
-// ============================================================
-// DEFAULT EXPORT
-// ============================================================
 
 export default api;

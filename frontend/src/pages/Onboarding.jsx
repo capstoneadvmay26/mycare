@@ -5,12 +5,8 @@ import Logo from "../components/ui/Logo";
 import { requestOtp, verifyOtp, register, login } from "../services/api";
 
 const Onboarding = () => {
-  const {
-    setUserName,
-    setIsOnboarded,
-    setAuthScreen,
-    setOnboardingStage, 
-  } = useApp();
+  const { setUserName, setIsOnboarded, setAuthScreen, setOnboardingStage } =
+    useApp();
 
   // ============================================================
   // STATE
@@ -20,6 +16,8 @@ const Onboarding = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const inputRefs = useRef([]);
 
   const [timer, setTimer] = useState(50);
@@ -748,34 +746,64 @@ const Onboarding = () => {
             <label className="fw-bold mb-2" style={{ fontSize: "15px" }}>
               Password
             </label>
-            <input
-              type="password"
-              style={inputStyle}
-              className="mb-3"
-              placeholder="**********"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
-              disabled={loading}
-            />
+            <div className="position-relative mb-3">
+              <input
+                type={showPassword ? "text" : "password"}
+                style={{ ...inputStyle, paddingRight: "60px" }}
+                placeholder="**********"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="btn position-absolute top-50 end-0 translate-middle-y border-0 fw-bold"
+                style={{
+                  color: "#0033CC",
+                  fontSize: "13px",
+                  padding: "0 14px",
+                }}
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={loading}
+                tabIndex={-1}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
 
             <label className="fw-bold mb-2" style={{ fontSize: "15px" }}>
               Confirm Password
             </label>
-            <input
-              type="password"
-              style={inputStyle}
-              className="mb-3"
-              placeholder="**********"
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                setError("");
-              }}
-              disabled={loading}
-            />
+            <div className="position-relative mb-3">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                style={{ ...inputStyle, paddingRight: "60px" }}
+                placeholder="**********"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setError("");
+                }}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="btn position-absolute top-50 end-0 translate-middle-y border-0 fw-bold"
+                style={{
+                  color: "#0033CC",
+                  fontSize: "13px",
+                  padding: "0 14px",
+                }}
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                disabled={loading}
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? "Hide" : "Show"}
+              </button>
+            </div>
 
             <p className="mb-0" style={{ fontSize: "13px", color: "#0033CC" }}>
               Password should be at least 8 characters

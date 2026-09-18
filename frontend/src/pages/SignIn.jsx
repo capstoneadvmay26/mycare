@@ -9,6 +9,7 @@ const SignIn = () => {
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);   // 🆕
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,7 +28,6 @@ const SignIn = () => {
       const response = await login(identifier, password);
       console.log("[SignIn] Success:", response.data);
 
-      // Save token + user
       if (response.data.token) {
         localStorage.setItem("mycare_token", response.data.token);
       }
@@ -35,10 +35,12 @@ const SignIn = () => {
         localStorage.setItem("mycare_user", JSON.stringify(response.data.user));
       }
 
+      // 🆕 Persist that this user has an account
+      localStorage.setItem("mycare_hasAccount", "true");
+
       const name = response.data.user?.full_name || "there";
       setUserName(name);
 
-      // 👉 Show the WelcomeBack transition screen
       setWelcomeName(name);
       setAuthScreen("welcome");
     } catch (err) {
@@ -130,21 +132,37 @@ const SignIn = () => {
         <label className="fw-bold mb-2" style={{ fontSize: "15px" }}>
           Password
         </label>
-        <input
-          type="password"
-          style={inputStyle}
-          className="mb-2" // ← reduced from mb-4
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            setError("");
-          }}
-          disabled={loading}
-          autoComplete="current-password"
-        />
 
-        {/* 🆕 Forgot password link */}
+        {/* 🆕 Password with Show/Hide */}
+        <div className="position-relative mb-2">
+          <input
+            type={showPassword ? "text" : "password"}
+            style={{ ...inputStyle, paddingRight: "60px" }}
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
+            disabled={loading}
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            className="btn position-absolute top-50 end-0 translate-middle-y border-0 fw-bold"
+            style={{
+              color: "#0033CC",
+              fontSize: "13px",
+              padding: "0 14px",
+            }}
+            onClick={() => setShowPassword((v) => !v)}
+            disabled={loading}
+            tabIndex={-1}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
+
         <div className="d-flex justify-content-end mb-3">
           <button
             type="button"
