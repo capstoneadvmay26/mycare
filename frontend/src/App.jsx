@@ -29,6 +29,8 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { useFCM } from "./hooks/useFCM";
 import { useEffect } from "react";
 import { primeAudio } from "./services/audioUnlock";
+import ConsultBrief from "./pages/ConsultBrief";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 import {
   House,
@@ -52,7 +54,7 @@ const AppContent = () => {
   const {
     isOnboarded,
     authScreen,
-    setAuthScreen,     
+    setAuthScreen,
     onboardingStage,
     currentTab,
     setCurrentTab,
@@ -113,6 +115,10 @@ const AppContent = () => {
         return <DoctorNudge />;
       case "Notifications":
         return <Notifications />;
+      case "ConsultBrief":
+        return <ConsultBrief />;
+      case "PrivacyPolicy":
+        return <PrivacyPolicy />;
       default:
         return <Home />;
     }

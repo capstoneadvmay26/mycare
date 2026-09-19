@@ -141,6 +141,22 @@ export const resetPassword = async (token, newPassword) => {
   });
 };
 
+/*
+export const changePassword = async (currentPassword, newPassword) => {
+  return api.post("/auth/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+};
+*/
+// ⚠️ Backend endpoint pending — will 404 until deployed
+export const changePassword = async (currentPassword, newPassword) => {
+  return api.post("/auth/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+};
+
 // ============================================================
 // NOTIFICATION ENDPOINTS
 // ============================================================
@@ -150,8 +166,13 @@ export const registerFCMToken = async (fcmToken) => {
 };
 
 export const unregisterFCMToken = async (fcmToken) => {
-  return api.post("/notifications/unregister-token", { fcmToken });
+  return api.delete("/notifications/register-token", {
+    data: { fcmToken },
+  });
 };
+
+
+
 
 // ============================================================
 // PROFILE ENDPOINTS

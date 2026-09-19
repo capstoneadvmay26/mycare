@@ -50,7 +50,7 @@ const Medications = () => {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Failed to load medications"
+          "Failed to load medications",
       );
     } finally {
       setLoading(false);
@@ -196,11 +196,7 @@ const Medications = () => {
                   : "2px solid transparent",
               background: "transparent",
               color:
-                activeTab === "archived"
-                  ? "#0033CC"
-                  : isDark
-                  ? "#FFF"
-                  : "#000",
+                activeTab === "archived" ? "#0033CC" : isDark ? "#FFF" : "#000",
               fontSize: "15px",
             }}
             onClick={() => setActiveTab("archived")}
@@ -271,6 +267,20 @@ const Medications = () => {
           disabled={!profileId}
         >
           View Medication History
+        </button>
+
+        <button
+          className="btn w-100 fw-bold py-3 mt-2"
+          style={{
+            backgroundColor: "rgba(0, 51, 204, 0.08)",
+            color: "#0033CC",
+            borderRadius: "8px",
+            border: "none",
+          }}
+          onClick={() => setCurrentTab("ConsultBrief")}
+          disabled={!profileId}
+        >
+          📄 Generate Consult Brief
         </button>
       </div>
 

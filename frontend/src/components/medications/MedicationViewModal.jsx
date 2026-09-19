@@ -1,5 +1,5 @@
 // src/components/medications/MedicationViewModal.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Pencil, Trash, X, Check } from "react-bootstrap-icons";
 
 // Format a "HH:MM" 24h string into "H:MM AM/PM"
@@ -49,6 +49,19 @@ const MedicationViewModal = ({
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [localError, setLocalError] = useState("");
 
+  // "now" — updated every 60s to keep refill estimate fresh.
+  // Using setInterval defers the setState call, avoiding the
+  // "setState synchronously within an effect" ESLint warning.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 60_000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Prefill state from medication whenever it changes
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -61,6 +74,25 @@ const MedicationViewModal = ({
     setLocalError("");
   }, [medication]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Refill estimate — computed with useMemo, no impure call during render
+  const refillEstimate = useMemo(() => {
+    if (!medication) return null;
+    if (medication.frequency === "as_needed") return null;
+
+    const startDate = medication.startDate
+      ? new Date(medication.startDate)
+      : new Date();
+
+    const daysSinceStart = Math.max(
+      0,
+      Math.floor((now - startDate.getTime()) / (24 * 60 * 60 * 1000))
+    );
+
+    const daysUntilRefill = Math.max(0, 30 - daysSinceStart);
+
+    return { daysSinceStart, daysUntilRefill };
+  }, [medication, now]);
 
   if (!medication) return null;
 
@@ -348,6 +380,45 @@ const MedicationViewModal = ({
               )}
             </div>
 
+            {/* Refill estimate */}
+            {refillEstimate && (
+              <div
+                className="rounded-3 p-3 mb-3"
+                style={{
+                  backgroundColor: "rgba(76, 187, 23, 0.06)",
+                  border: "1px solid rgba(76, 187, 23, 0.2)",
+                }}
+              >
+                <p
+                  className="fw-bold small mb-2"
+                  style={{ fontSize: "12px", color: "#4CBB17" }}
+                >
+                  💊 Refill estimate
+                </p>
+                <div className="d-flex align-items-baseline gap-2 mb-1">
+                  <span
+                    className="fw-bold"
+                    style={{ fontSize: "20px", color: "#4CBB17" }}
+                  >
+                    {refillEstimate.daysUntilRefill}
+                  </span>
+                  <span
+                    className="text-secondary"
+                    style={{ fontSize: "13px" }}
+                  >
+                    days until suggested refill
+                  </span>
+                </div>
+                <p
+                  className="m-0 text-secondary"
+                  style={{ fontSize: "11px" }}
+                >
+                  Based on a typical 30-day supply. Confirm with your
+                  pharmacist.
+                </p>
+              </div>
+            )}
+
             {/* Archive action */}
             {!showArchiveConfirm ? (
               <button
@@ -380,8 +451,8 @@ const MedicationViewModal = ({
                   className="text-secondary mb-3"
                   style={{ fontSize: "12px" }}
                 >
-                  This stops future reminders. Your adherence history
-                  stays intact. You can find it under the Archived tab.
+                  This stops future reminders. Your adherence history stays
+                  intact. You can find it under the Archived tab.
                 </p>
                 <div className="d-flex gap-2">
                   <button
