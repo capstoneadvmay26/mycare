@@ -14,13 +14,6 @@ const {
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 
-
-/**
- * Checks whether the current time is inside the user's quiet hours.
- *
- * Quiet hours only affect notification delivery.
- * They do NOT affect automatic dose skipping.
- */
 function isWithinQuietHours(
     now,
     timezone,
@@ -71,18 +64,10 @@ function isWithinQuietHours(
     const endMinutes =
         endHour * 60 + endMinute;
 
-    /*
-     * Same start/end means quiet hours are effectively
-     * active all day.
-     */
     if (startMinutes === endMinutes) {
         return true;
     }
 
-    /*
-     * Normal same-day quiet period.
-     * Example: 13:00 → 15:00
-     */
     if (startMinutes < endMinutes) {
         return (
             currentMinutes >= startMinutes &&
@@ -90,23 +75,15 @@ function isWithinQuietHours(
         );
     }
 
-    /*
-     * Overnight quiet period.
-     * Example: 22:00 → 07:00
-     */
     return (
         currentMinutes >= startMinutes ||
         currentMinutes < endMinutes
     );
 }
 
-
-/**
- * Gets the user's notification settings.
- *
- * If settings do not exist yet, use the model defaults in memory.
- */
-async function getUserNotificationSettings(userId) {
+async function getUserNotificationSettings(
+    userId
+) {
     const settings =
         await NotificationSettings.findOne({
             user: userId,
@@ -126,10 +103,6 @@ async function getUserNotificationSettings(userId) {
     };
 }
 
-
-/**
- * Builds the common notification data payload.
- */
 function buildNotificationData({
     log,
     profile,
@@ -153,16 +126,13 @@ function buildNotificationData({
     };
 }
 
-
-/**
- * Sends a medication reminder notification.
- */
 async function handleReminderJob(
     job,
     medicationLog
 ) {
     /*
-     * A reminder is only valid while the dose is pending.
+     * If the user has already taken or skipped the dose,
+     * no reminder should be sent.
      */
     if (medicationLog.status !== "pending") {
         return {
@@ -200,7 +170,7 @@ async function handleReminderJob(
     }
 
     /*
-     * Archived medications must not send reminders.
+     * Archived medications should not generate reminders.
      */
     if (medication.status !== "active") {
         return {
@@ -215,9 +185,6 @@ async function handleReminderJob(
             profile.owner
         );
 
-    /*
-     * Push notifications disabled.
-     */
     if (!settings.pushEnabled) {
         return {
             success: true,
@@ -227,11 +194,8 @@ async function handleReminderJob(
         };
     }
 
-    const now = new Date(Date.now());
+    const now = new Date();
 
-    /*
-     * Quiet hours affect notification delivery only.
-     */
     if (
         isWithinQuietHours(
             now,
@@ -302,7 +266,10 @@ async function handleReminderJob(
     });
 
     /*
-     * Keep track of reminder delivery state.
+     * Record which reminder has already been sent.
+     *
+     * These flags are also used by the scheduler during
+     * recovery so the same reminder is not recreated.
      */
     if (job.name === "reminder_30") {
         medicationLog.reminder30MinSent = true;
@@ -320,16 +287,11 @@ async function handleReminderJob(
     };
 }
 
-
-/**
- * Automatically skips a dose if it is still pending after
- * the 30-minute dose window.
- */
 async function handleAutoSkipJob(
     medicationLog
 ) {
     /*
-     * Always re-check the current database state.
+     * Do nothing if the user already acted on the dose.
      */
     if (medicationLog.status !== "pending") {
         return {
@@ -349,8 +311,8 @@ async function handleAutoSkipJob(
     const now = Date.now();
 
     /*
-     * If the worker runs early for any reason,
-     * don't skip yet.
+     * This protects against a job being executed before
+     * its intended +30 minute time.
      */
     if (now < autoSkipAt) {
         return {
@@ -360,7 +322,10 @@ async function handleAutoSkipJob(
     }
 
     medicationLog.status = "skipped";
-    medicationLog.skippedAt = new Date();
+
+    medicationLog.skippedAt =
+        new Date();
+
     medicationLog.takenAt = null;
     medicationLog.skipReason =
         "Dose was not marked as taken within 30 minutes of the scheduled time.";
@@ -373,14 +338,9 @@ async function handleAutoSkipJob(
     };
 }
 
-
-/**
- * Processes one BullMQ medication reminder job.
- *
- * Exported separately so the business logic can be tested
- * without creating a real BullMQ worker.
- */
-async function processMedicationReminderJob(job) {
+async function processMedicationReminderJob(
+    job
+) {
     const medicationLog =
         await MedicationLog.findById(
             job.data.medicationLogId
@@ -419,22 +379,18 @@ async function processMedicationReminderJob(job) {
     };
 }
 
-
-/**
- * Creates the BullMQ worker.
- *
- * Start with:
- * node src/workers/medicationReminder.worker.js
- */
 function createMedicationReminderWorker() {
     const worker = new Worker(
         "medication-reminders",
         async (job) => {
-            console.log("Job received:", {
-                id: job.id,
-                name: job.name,
-                data: job.data,
-            });
+            console.log(
+                "Job received:",
+                {
+                    id: job.id,
+                    name: job.name,
+                    data: job.data,
+                }
+            );
 
             return processMedicationReminderJob(
                 job
@@ -445,25 +401,34 @@ function createMedicationReminderWorker() {
         }
     );
 
-    worker.on("completed", (job) => {
-        console.log(
-            `Job ${job.id} completed.`
-        );
-    });
+    worker.on(
+        "completed",
+        (job) => {
+            console.log(
+                `Job ${job.id} completed.`
+            );
+        }
+    );
 
-    worker.on("failed", (job, error) => {
-        console.error(
-            `Job ${job?.id} failed:`,
-            error.message
-        );
-    });
+    worker.on(
+        "failed",
+        (job, error) => {
+            console.error(
+                `Job ${job?.id} failed:`,
+                error.message
+            );
+        }
+    );
 
-    worker.on("error", (error) => {
-        console.error(
-            "Worker error:",
-            error.message
-        );
-    });
+    worker.on(
+        "error",
+        (error) => {
+            console.error(
+                "Worker error:",
+                error.message
+            );
+        }
+    );
 
     console.log(
         "Medication reminder worker started."
@@ -472,12 +437,9 @@ function createMedicationReminderWorker() {
     return worker;
 }
 
-
-// Start the worker only when this file is executed directly.
 if (require.main === module) {
     createMedicationReminderWorker();
 }
-
 
 module.exports = {
     processMedicationReminderJob,
