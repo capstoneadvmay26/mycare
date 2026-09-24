@@ -1,6 +1,9 @@
 // public/firebase-messaging-sw.js
-// Firebase Cloud Messaging Service Worker
-// Handles background push notifications (app closed or in background)
+// Firebase Cloud Messaging handler
+//
+// ⚠️ IMPORTANT: This file is NOT a standalone service worker.
+// It is imported via `importScripts()` by VitePWA's auto-generated
+// service worker (sw.js), which handles caching + offline + this file.
 
 /* eslint-disable no-undef */
 
@@ -13,9 +16,7 @@ importScripts(
 );
 
 // ------------------------------------------------------------
-// Firebase config
-// NOTE: This is PUBLIC info (safe to hardcode in client code).
-// Service workers cannot read import.meta.env.
+// Firebase config (public, safe to hardcode)
 // ------------------------------------------------------------
 firebase.initializeApp({
   apiKey: "AIzaSyB9xSPMxWY_172d1aVS5QYOPBFGSbvFQns",
@@ -63,7 +64,7 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const action = event.action; // "taken" | "snooze" | "skip" | ""
+  const action = event.action;
   const data = event.notification.data || {};
   const doseId = data.doseId || "";
   const profileId = data.profileId || "";
@@ -76,24 +77,17 @@ self.addEventListener("notificationclick", (event) => {
   if (params.toString()) url += `?${params.toString()}`;
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      // If a window is already open, focus it
-      for (const client of list) {
-        if (client.url.includes("/mycare/") && "focus" in client) {
-          return client.focus();
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((list) => {
+        for (const client of list) {
+          if (client.url.includes("/mycare/") && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-      // Otherwise open a new window
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
-    })
+        if (clients.openWindow) {
+          return clients.openWindow(url);
+        }
+      })
   );
-});
-
-// ------------------------------------------------------------
-// Activate handler — claim clients on new SW install
-// ------------------------------------------------------------
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
 });

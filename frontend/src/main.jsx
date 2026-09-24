@@ -16,6 +16,10 @@ console.log("[main] Firebase initialized");
 
 import App from "./App.jsx";
 
+// 🆕 PWA service worker registration happens automatically
+// via VitePWA's `injectRegister: 'auto'` setting.
+// VitePWA injects a registration script into the built HTML.
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
