@@ -51,6 +51,52 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        screenshots: [
+          // ─── Mobile (narrow) ───
+          {
+            src: '/mycare/screenshots/mobile-onboarding.png',
+            sizes: '320x714',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Sign in to MyCare',
+          },
+          {
+            src: '/mycare/screenshots/mobile-home.png',
+            sizes: '320x714',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Medications list',
+          },
+          {
+            src: '/mycare/screenshots/mobile-symptoms.png',
+            sizes: '320x714',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Symptom tracking',
+          },
+          // ─── Desktop (wide) ───
+          {
+            src: '/mycare/screenshots/desktop-home.png',
+            sizes: '1280x1024',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'MyCare dashboard',
+          },
+          {
+            src: '/mycare/screenshots/desktop-medications.png',
+            sizes: '1280x1024',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Medications management',
+          },
+          {
+            src: '/mycare/screenshots/desktop-symptoms.png',
+            sizes: '1280x1024',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Symptoms overview',
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
