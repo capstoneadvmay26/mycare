@@ -31,6 +31,8 @@ import { useEffect } from "react";
 import { primeAudio } from "./services/audioUnlock";
 import ConsultBrief from "./pages/ConsultBrief";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import IdleWarningModal from "./components/layout/IdleWarningModal";
+import useIdleLogout from "./hooks/useIdleLogout";
 
 import {
   House,
@@ -59,6 +61,7 @@ const AppContent = () => {
     currentTab,
     setCurrentTab,
     userName,
+    handleLogout,
   } = useApp();
 
   useEffect(() => {
@@ -88,6 +91,37 @@ const AppContent = () => {
     { id: "Profiles", label: "Profiles", icon: <People size={24} /> },
     { id: "Settings", label: "Settings", icon: <Gear size={24} /> },
   ];
+
+  // 🆕 Idle auto-logout — 30 min of inactivity triggers logout
+  /*
+  const { isWarningVisible, resetTimer } = useIdleLogout({
+    onLogout: handleLogout,
+    onWarning: () => {
+      console.log("[Idle] Warning shown — user inactive for 29 min");
+    },
+    onActivity: () => {
+      console.log("[Idle] User active again — warning dismissed");
+    },
+    timeoutMs: 30 * 60 * 1000, // 30 min
+    warningMs: 60 * 1000, // 60 s warning
+    enabled: isOnboarded, // only when signed in
+  });
+*/
+
+   // 🆕 Idle auto-logout — 30 min of inactivity triggers logout
+  const { isWarningVisible, resetTimer } = useIdleLogout({
+    onLogout: handleLogout,
+    onWarning: () => {
+      console.log("[Idle] Warning shown — user inactive for 29 min");
+    },
+    onActivity: () => {
+      console.log("[Idle] User active again — warning dismissed");
+    },
+    timeoutMs: 60 * 1000, // 60s
+    warningMs: 20 * 1000, // 20s warning
+    enabled: isOnboarded, // only when signed in
+  });
+
 
   const renderScreen = () => {
     switch (currentTab) {
@@ -148,6 +182,12 @@ const AppContent = () => {
     >
       {renderScreen()}
       <GlobalReminderOverlay />
+      {isWarningVisible && (
+        <IdleWarningModal
+          onStaySignedIn={resetTimer}
+          onLogoutNow={handleLogout}
+        />
+      )}
     </AppShell>
   );
 };
