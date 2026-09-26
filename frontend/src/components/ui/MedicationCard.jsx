@@ -4,7 +4,10 @@ import { ChevronRight } from "react-bootstrap-icons";
 const MedicationCard = ({ medication, onClick }) => {
   // Format scheduleTime array → "8:00 AM" or "7:00 AM, 12:00 PM"
   const timeDisplay = (() => {
-    if (!Array.isArray(medication.scheduleTime) || medication.scheduleTime.length === 0) {
+    if (
+      !Array.isArray(medication.scheduleTime) ||
+      medication.scheduleTime.length === 0
+    ) {
       return "No time set";
     }
     return medication.scheduleTime
@@ -24,7 +27,7 @@ const MedicationCard = ({ medication, onClick }) => {
 
   return (
     <div
-      className="d-flex align-items-center justify-content-between bg-white p-3 mb-2"
+      className="d-flex align-items-center justify-content-between bg-white p-2 p-sm-3 mb-2"
       style={{
         border: "1px solid rgba(0, 0, 0, 0.15)",
         borderRadius: "8px",
@@ -34,12 +37,12 @@ const MedicationCard = ({ medication, onClick }) => {
       onClick={() => onClick && onClick(medication)}
     >
       <div className="d-flex align-items-center">
-        {/* Pill icon */}
+        {/* Pill icon — slightly smaller on mobile */}
         <div
-          className="d-flex justify-content-center align-items-center me-3"
+          className="d-flex justify-content-center align-items-center me-2 me-sm-3"
           style={{
-            width: "42px",
-            height: "42px",
+            width: "38px",
+            height: "38px",
             backgroundColor: "#FFFFFF",
             border: "1.5px solid #000",
             borderRadius: "8px",
@@ -47,8 +50,8 @@ const MedicationCard = ({ medication, onClick }) => {
           }}
         >
           <svg
-            width="22"
-            height="22"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -67,23 +70,32 @@ const MedicationCard = ({ medication, onClick }) => {
         </div>
 
         <div>
-          <p className="m-0" style={{ fontSize: "16px", color: "#000" }}>
+          <p
+            className="m-0"
+            style={{ fontSize: "15px", color: "#000", lineHeight: 1.3 }}
+          >
             <span className="fw-bold">{medication.name}</span>{" "}
             {dosageAmount || ""}
           </p>
-          <p className="m-0" style={{ fontSize: "13px", color: "#000" }}>
+          <p
+            className="m-0"
+            style={{ fontSize: "12px", color: "#666", lineHeight: 1.3 }}
+          >
             {dosageForm || ""}
           </p>
         </div>
       </div>
 
       <div className="d-flex align-items-center">
-        <div className="text-end me-2">
-          <p className="m-0" style={{ fontSize: "13px", color: "#000" }}>
+        <div className="text-end me-1 me-sm-2">
+          <p
+            className="m-0"
+            style={{ fontSize: "12px", color: "#000", lineHeight: 1.3 }}
+          >
             {timeDisplay}
           </p>
         </div>
-        <ChevronRight size={18} color="#000" />
+        <ChevronRight size={16} color="#000" />
       </div>
     </div>
   );

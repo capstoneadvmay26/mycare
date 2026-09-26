@@ -1,6 +1,6 @@
 // src/pages/Symptoms.jsx
 import { useState, useEffect, useCallback } from "react";
-import { Plus, ExclamationCircle } from "react-bootstrap-icons";
+import { Plus, ExclamationCircle, ArrowRight } from "react-bootstrap-icons";
 import { useApp } from "../context/useApp";
 import { useProfile } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
@@ -18,7 +18,8 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 // Derive a displayable status from check-ins
 const deriveStatus = (symptom) => {
   const checkIns = symptom.checkIns || [];
-  if (checkIns.length === 0) return { key: "pending", label: "Pending", color: "#666" };
+  if (checkIns.length === 0)
+    return { key: "pending", label: "Pending", color: "#666" };
   if (checkIns.length < 3) {
     return {
       key: "in_progress",
@@ -28,8 +29,10 @@ const deriveStatus = (symptom) => {
   }
   const hasWorse = checkIns.some((c) => c.status === "worse");
   const hasBetter = checkIns.some((c) => c.status === "better");
-  if (hasWorse) return { key: "worsening", label: "Worsening", color: "#D92D20" };
-  if (hasBetter) return { key: "improving", label: "Improving", color: "#4CBB17" };
+  if (hasWorse)
+    return { key: "worsening", label: "Worsening", color: "#D92D20" };
+  if (hasBetter)
+    return { key: "improving", label: "Improving", color: "#4CBB17" };
   return { key: "same", label: "No change", color: "#666" };
 };
 
@@ -81,7 +84,7 @@ const Symptoms = () => {
           } catch {
             return { ...s, status: null };
           }
-        }),
+        })
       );
 
       setSymptoms(enriched);
@@ -105,7 +108,7 @@ const Symptoms = () => {
     } catch (err) {
       console.error("[Symptoms] fetch error:", err);
       setError(
-        err.response?.data?.message || err.message || "Failed to load symptoms",
+        err.response?.data?.message || err.message || "Failed to load symptoms"
       );
     } finally {
       setLoading(false);
@@ -127,25 +130,25 @@ const Symptoms = () => {
   // ------------------------------------------------------------
   // Update + delete handlers
   // ------------------------------------------------------------
-const handleUpdate = async (updates) => {
-  if (!viewingSymptom) return;
-  setSaving(true);
-  try {
-    // Send full current state + updates, in case backend requires all fields
-    const payload = {
-      symptoms: viewingSymptom.symptoms || [],
-      otherSymptom: updates.otherSymptom !== undefined 
-        ? updates.otherSymptom 
-        : viewingSymptom.otherSymptom || "",
-      severity: updates.severity || viewingSymptom.severity,
-    };
-    await updateSymptom(viewingSymptom._id, payload);
-    await fetchData();
-    setViewingSymptom((prev) => ({ ...prev, ...updates }));
-  } finally {
-    setSaving(false);
-  }
-};
+  const handleUpdate = async (updates) => {
+    if (!viewingSymptom) return;
+    setSaving(true);
+    try {
+      const payload = {
+        symptoms: viewingSymptom.symptoms || [],
+        otherSymptom:
+          updates.otherSymptom !== undefined
+            ? updates.otherSymptom
+            : viewingSymptom.otherSymptom || "",
+        severity: updates.severity || viewingSymptom.severity,
+      };
+      await updateSymptom(viewingSymptom._id, payload);
+      await fetchData();
+      setViewingSymptom((prev) => ({ ...prev, ...updates }));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!viewingSymptom) return;
@@ -204,219 +207,219 @@ const handleUpdate = async (updates) => {
   // ------------------------------------------------------------
   return (
     <div
-      className="d-flex flex-column h-100 p-3"
+      className="d-flex flex-column h-100"
       style={{ backgroundColor: isDark ? "#1a1a1a" : "#FFF" }}
     >
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1
-          className="fw-bold m-0"
-          style={{ fontSize: "24px", color: isDark ? "#FFF" : "#000" }}
-        >
-          Symptoms
-        </h1>
-        <button
-          className="btn btn-sm d-flex align-items-center fw-bold"
-          style={{
-            backgroundColor: "rgba(0, 51, 204, 0.1)",
-            color: "#0033CC",
-            borderRadius: "8px",
-            border: "none",
-          }}
-          onClick={() => setCurrentTab("LogSymptom")}
-          disabled={!profileId}
-        >
-          <Plus size={16} className="me-1" /> Log
-        </button>
-      </div>
+      {/* Fixed header */}
+      <div className="p-3 pb-0">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h1
+            className="fw-bold m-0"
+            style={{ fontSize: "24px", color: isDark ? "#FFF" : "#000" }}
+          >
+            Symptoms
+          </h1>
+          <button
+            className="btn btn-sm d-flex align-items-center fw-bold"
+            style={{
+              backgroundColor: "rgba(0, 51, 204, 0.1)",
+              color: "#0033CC",
+              borderRadius: "8px",
+              border: "none",
+            }}
+            onClick={() => setCurrentTab("LogSymptom")}
+            disabled={!profileId}
+          >
+            <Plus size={16} className="me-1" /> Log
+          </button>
+        </div>
 
-      {/* Check-in banner */}
-      {checkInDueFor ? (
-        <div
-          className="d-flex align-items-center p-3 mb-3 rounded-3"
-          style={{
-            backgroundColor: "rgba(247, 200, 27, 0.12)",
-            border: "1px solid rgba(247, 200, 27, 0.4)",
-          }}
-        >
-          <ExclamationCircle
-            size={24}
-            color="#B45309"
-            className="me-3 flex-shrink-0"
-          />
-          <div className="flex-grow-1">
+        {/* Check-in banner */}
+        {checkInDueFor ? (
+          <div
+            className="d-flex align-items-center p-3 mb-3 rounded-3"
+            style={{
+              backgroundColor: "rgba(247, 200, 27, 0.12)",
+              border: "1px solid rgba(247, 200, 27, 0.4)",
+            }}
+          >
+            <ExclamationCircle
+              size={24}
+              color="#B45309"
+              className="me-3 flex-shrink-0"
+            />
+            <div className="flex-grow-1">
+              <p
+                className="m-0 fw-bold"
+                style={{ fontSize: "14px", color: isDark ? "#FFF" : "#000" }}
+              >
+                Check-in due: {symptomName(checkInDueFor)}
+              </p>
+              <p className="m-0 text-secondary" style={{ fontSize: "12px" }}>
+                How are you feeling today?
+              </p>
+            </div>
+            <button
+              className="btn fw-bold"
+              style={{
+                backgroundColor: "#0033CC",
+                color: "#FFF",
+                borderRadius: "8px",
+                padding: "6px 14px",
+                fontSize: "13px",
+                border: "none",
+              }}
+              onClick={() => {
+                localStorage.setItem(
+                  "mycare_checkin_symptom_id",
+                  checkInDueFor._id
+                );
+                setCurrentTab("CheckIn");
+              }}
+            >
+              Check in
+            </button>
+          </div>
+        ) : (
+          <div
+            className="text-center p-2 mb-3 rounded-3"
+            style={{
+              backgroundColor: "rgba(0, 51, 204, 0.04)",
+              border: "1px solid rgba(0, 51, 204, 0.15)",
+            }}
+          >
             <p
               className="m-0 fw-bold"
               style={{ fontSize: "14px", color: isDark ? "#FFF" : "#000" }}
             >
-              Check-in due: {symptomName(checkInDueFor)}
+              No check-ins due today
             </p>
             <p className="m-0 text-secondary" style={{ fontSize: "12px" }}>
-              How are you feeling today?
+              We'll prompt you when it's time to check in.
             </p>
           </div>
-          <button
-            className="btn fw-bold"
-            style={{
-              backgroundColor: "#0033CC",
-              color: "#FFF",
-              borderRadius: "8px",
-              padding: "6px 14px",
-              fontSize: "13px",
-              border: "none",
-            }}
-            onClick={() => {
-              localStorage.setItem(
-                "mycare_checkin_symptom_id",
-                checkInDueFor._id,
-              );
-              setCurrentTab("CheckIn");
-            }}
+        )}
+      </div>
+
+      {/* Scrollable list */}
+      <div className="flex-grow-1 overflow-auto px-3">
+        {loading && (
+          <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status" />
+            <p className="text-secondary mt-2" style={{ fontSize: "14px" }}>
+              Loading symptoms...
+            </p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="alert alert-danger py-2" style={{ fontSize: "14px" }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && symptoms.length === 0 && (
+          <div
+            className="text-center py-5 rounded-3 mb-4"
+            style={{ backgroundColor: "rgba(0, 51, 204, 0.04)" }}
           >
-            Check in
-          </button>
-        </div>
-      ) : (
-        <div
-          className="text-center p-3 mb-3 rounded-3"
-          style={{
-            backgroundColor: "rgba(0, 51, 204, 0.04)",
-            border: "1px solid rgba(0, 51, 204, 0.15)",
-          }}
-        >
-          <p
-            className="m-0 fw-bold"
-            style={{ fontSize: "14px", color: isDark ? "#FFF" : "#000" }}
-          >
-            No check-ins due today
-          </p>
-          <p className="m-0 text-secondary" style={{ fontSize: "12px" }}>
-            We'll prompt you when it's time to check in.
-          </p>
-        </div>
-      )}
+            <p className="fw-bold mb-1" style={{ fontSize: "16px" }}>
+              No symptoms logged yet
+            </p>
+            <p className="text-secondary mb-3" style={{ fontSize: "14px" }}>
+              Tap "Log" to record your first symptom.
+            </p>
+          </div>
+        )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="text-center py-4">
-          <div className="spinner-border text-primary" role="status" />
-          <p className="text-secondary mt-2" style={{ fontSize: "14px" }}>
-            Loading symptoms...
-          </p>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && !loading && (
-        <div className="alert alert-danger py-2" style={{ fontSize: "14px" }}>
-          {error}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && !error && symptoms.length === 0 && (
-        <div
-          className="text-center py-5 rounded-3 mb-4"
-          style={{ backgroundColor: "rgba(0, 51, 204, 0.04)" }}
-        >
-          <p className="fw-bold mb-1" style={{ fontSize: "16px" }}>
-            No symptoms logged yet
-          </p>
-          <p className="text-secondary mb-3" style={{ fontSize: "14px" }}>
-            Tap "Log" to record your first symptom.
-          </p>
-        </div>
-      )}
-
-      {/* List */}
-      {!loading && !error && symptoms.length > 0 && (
-        <div className="d-flex flex-column gap-2 overflow-auto flex-grow-1">
-          {symptoms.map((s) => {
-            const status = deriveStatus(s);
-            return (
-              <div
-                key={s._id}
-                className="p-3"
-                style={{
-                  border: `1px solid ${isDark ? "#333" : "rgba(0,0,0,0.1)"}`,
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                }}
-                onClick={() => setViewingSymptom(s)}
-              >
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <div className="flex-grow-1">
-                    <p
-                      className="m-0 fw-bold"
-                      style={{
-                        fontSize: "16px",
-                        color: isDark ? "#FFF" : "#000",
-                      }}
-                    >
-                      {symptomName(s)}
-                    </p>
-                    <p
-                      className="m-0"
-                      style={{ fontSize: "13px", color: "#888" }}
-                    >
-                      {formatTime(s.loggedAt)}
-                      {s.checkIns?.length > 0
-                        ? ` · ${s.checkIns.length}/3 check-ins`
-                        : ""}
-                    </p>
+        {!loading && !error && symptoms.length > 0 && (
+          <div className="d-flex flex-column gap-2 pb-2">
+            {symptoms.map((s) => {
+              const status = deriveStatus(s);
+              return (
+                <div
+                  key={s._id}
+                  className="p-3"
+                  style={{
+                    border: `1px solid ${isDark ? "#333" : "rgba(0,0,0,0.1)"}`,
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setViewingSymptom(s)}
+                >
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="flex-grow-1">
+                      <p
+                        className="m-0 fw-bold"
+                        style={{
+                          fontSize: "16px",
+                          color: isDark ? "#FFF" : "#000",
+                        }}
+                      >
+                        {symptomName(s)}
+                      </p>
+                      <p
+                        className="m-0"
+                        style={{ fontSize: "13px", color: "#888" }}
+                      >
+                        {formatTime(s.loggedAt)}
+                        {s.checkIns?.length > 0
+                          ? ` · ${s.checkIns.length}/3 check-ins`
+                          : ""}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Chips row */}
-                <div className="d-flex gap-2 flex-wrap">
-                  {/* Severity chip */}
-                  <span
-                    className="px-2 py-1 rounded-pill fw-bold"
-                    style={{
-                      backgroundColor: `${severityColor(s.severity)}20`,
-                      color: severityColor(s.severity),
-                      fontSize: "11px",
-                    }}
-                  >
-                    {severityLabel(s.severity)}
-                  </span>
-
-                  {/* Status chip */}
-                  <span
-                    className="px-2 py-1 rounded-pill fw-bold"
-                    style={{
-                      backgroundColor: `${status.color}20`,
-                      color: status.color,
-                      fontSize: "11px",
-                    }}
-                  >
-                    {status.label}
-                  </span>
-
-                  {/* Doctor nudge chip */}
-                  {s.professionalCareNudge?.shown && (
+                  <div className="d-flex gap-2 flex-wrap">
                     <span
                       className="px-2 py-1 rounded-pill fw-bold"
                       style={{
-                        backgroundColor: "rgba(217,45,32,0.15)",
-                        color: "#D92D20",
+                        backgroundColor: `${severityColor(s.severity)}20`,
+                        color: severityColor(s.severity),
                         fontSize: "11px",
                       }}
                     >
-                      ⚕️ See doctor
+                      {severityLabel(s.severity)}
                     </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* Bottom button */}
-      <div className="mt-auto pt-4 pb-2">
+                    <span
+                      className="px-2 py-1 rounded-pill fw-bold"
+                      style={{
+                        backgroundColor: `${status.color}20`,
+                        color: status.color,
+                        fontSize: "11px",
+                      }}
+                    >
+                      {status.label}
+                    </span>
+
+                    {s.professionalCareNudge?.shown && (
+                      <span
+                        className="px-2 py-1 rounded-pill fw-bold"
+                        style={{
+                          backgroundColor: "rgba(217,45,32,0.15)",
+                          color: "#D92D20",
+                          fontSize: "11px",
+                        }}
+                      >
+                        ⚕️ See doctor
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Sticky footer */}
+      <div
+        className="p-3 border-top"
+        style={{ borderColor: isDark ? "#333" : "#DEDFE2" }}
+      >
         <button
-          className="btn w-100 fw-bold py-3"
+          className="btn w-100 fw-bold py-3 d-flex align-items-center justify-content-center"
           style={{
             backgroundColor: "#DEDFE2",
             color: "#000",
@@ -426,10 +429,10 @@ const handleUpdate = async (updates) => {
           onClick={() => setCurrentTab("SymptomHistory")}
         >
           View Symptom History
+          <ArrowRight size={16} className="ms-2" />
         </button>
       </div>
 
-      {/* View modal */}
       {viewingSymptom && (
         <SymptomViewModal
           symptom={viewingSymptom}

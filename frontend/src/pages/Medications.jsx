@@ -269,19 +269,7 @@ const Medications = () => {
           View Medication History
         </button>
 
-        <button
-          className="btn w-100 fw-bold py-3 mt-2"
-          style={{
-            backgroundColor: "rgba(0, 51, 204, 0.08)",
-            color: "#0033CC",
-            borderRadius: "8px",
-            border: "none",
-          }}
-          onClick={() => setCurrentTab("ConsultBrief")}
-          disabled={!profileId}
-        >
-          📄 Generate Consult Brief
-        </button>
+       
       </div>
 
       {/* Add modal */}
