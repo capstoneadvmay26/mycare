@@ -92,7 +92,7 @@ const AppContent = () => {
     { id: "Settings", label: "Settings", icon: <Gear size={24} /> },
   ];
 
-  // 🆕 Idle auto-logout — 30 min of inactivity triggers logout
+  // 🆕 Idle auto-logout — 30 min of inactivity triggers logout of user
 
   const { isWarningVisible, resetTimer } = useIdleLogout({
     onLogout: handleLogout,
