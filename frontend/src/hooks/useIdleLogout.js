@@ -6,32 +6,61 @@ import { useEffect, useRef, useState, useCallback } from "react";
  *
  * Shows a warning modal WARNING_SECONDS before logout.
  * Any user interaction resets the timer.
+ *
+ * Callbacks are stored in refs so the hook doesn't reset on every
+ * parent render (which was the previous bug).
  */
-
 export const useIdleLogout = ({
   onLogout,
   onWarning,
   onActivity,
-  /*timeoutMs = 30 * 60 * 1000,   // 30 min*/
-  timeoutMs = 2 * 60 * 1000,   // 2 min
-  warningMs = 60 * 1000,        // 60 s
+  timeoutMs = 30 * 60 * 1000,
+  warningMs = 60 * 1000,
   enabled = true,
 }) => {
   const [isWarningVisible, setIsWarningVisible] = useState(false);
 
-  // Refs so we don't re-register listeners on every render
+  // ──────────────────────────────────────────────────────────
+  // Refs for values that shouldn't trigger effect re-runs
+  // ──────────────────────────────────────────────────────────
   const idleTimerRef = useRef(null);
   const warningTimerRef = useRef(null);
   const isWarningVisibleRef = useRef(false);
 
-  // Keep the ref in sync with state
+  const onLogoutRef = useRef(onLogout);
+  const onWarningRef = useRef(onWarning);
+  const onActivityRef = useRef(onActivity);
+  const timeoutMsRef = useRef(timeoutMs);
+  const warningMsRef = useRef(warningMs);
+
+  // Keep refs in sync with props
+  useEffect(() => {
+    onLogoutRef.current = onLogout;
+  }, [onLogout]);
+
+  useEffect(() => {
+    onWarningRef.current = onWarning;
+  }, [onWarning]);
+
+  useEffect(() => {
+    onActivityRef.current = onActivity;
+  }, [onActivity]);
+
+  useEffect(() => {
+    timeoutMsRef.current = timeoutMs;
+  }, [timeoutMs]);
+
+  useEffect(() => {
+    warningMsRef.current = warningMs;
+  }, [warningMs]);
+
   useEffect(() => {
     isWarningVisibleRef.current = isWarningVisible;
   }, [isWarningVisible]);
 
-  // ------------------------------------------------------------
+  // ──────────────────────────────────────────────────────────
   // Clear both timers
-  // ------------------------------------------------------------
+  // ──────────────────────────────────────────────────────────
   const clearTimers = useCallback(() => {
     if (idleTimerRef.current) {
       clearTimeout(idleTimerRef.current);
@@ -43,58 +72,56 @@ export const useIdleLogout = ({
     }
   }, []);
 
-  // ------------------------------------------------------------
+  // ──────────────────────────────────────────────────────────
   // Reset the idle timer
-  // ------------------------------------------------------------
+  // Reads from refs so it never needs to be recreated
+  // ──────────────────────────────────────────────────────────
   const resetTimer = useCallback(() => {
     clearTimers();
+
+    const timeout = timeoutMsRef.current;
+    const warning = warningMsRef.current;
 
     // If warning is currently visible and user became active → dismiss warning
     if (isWarningVisibleRef.current) {
       setIsWarningVisible(false);
-      onActivity?.();
+      onActivityRef.current?.();
     }
 
-    // Start the idle countdown
+    // Show warning (timeoutMs - warningMs) after activity
+    const warningDelay = Math.max(0, timeout - warning);
+
     idleTimerRef.current = setTimeout(() => {
-      // Idle timeout hit → show warning
       setIsWarningVisible(true);
-      onWarning?.();
+      onWarningRef.current?.();
 
-      // Start the warning countdown
+      // Log out after warning period
       warningTimerRef.current = setTimeout(() => {
-        // Warning expired → log out
         setIsWarningVisible(false);
-        onLogout?.();
-      }, warningMs);
-    }, timeoutMs - warningMs);  // Show warning `warningMs` before the timeout
-  }, [timeoutMs, warningMs, onLogout, onWarning, onActivity, clearTimers]);
+        onLogoutRef.current?.();
+      }, warning);
+    }, warningDelay);
+  }, [clearTimers]);   // ← ONLY depends on clearTimers (stable)
 
-  // ------------------------------------------------------------
-  // Reset warning state when `enabled` changes to false
-  // (extracted from the main effect to avoid ESLint's
-  //  "setState synchronously in effect" warning)
-  // ------------------------------------------------------------
+  // ──────────────────────────────────────────────────────────
+  // Reset warning state when `enabled` becomes false (deferred)
+  // ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!enabled) {
-      // Defer the state update to the next tick
-      const timer = setTimeout(() => {
-        setIsWarningVisible(false);
-      }, 0);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setIsWarningVisible(false), 0);
+      return () => clearTimeout(t);
     }
   }, [enabled]);
 
-  // ------------------------------------------------------------
-  // Track user activity
-  // ------------------------------------------------------------
+  // ──────────────────────────────────────────────────────────
+  // Register activity listeners (only when `enabled` changes)
+  // ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!enabled) {
       clearTimers();
       return;
     }
 
-    // Events that count as "activity"
     const events = [
       "mousedown",
       "mousemove",
@@ -106,9 +133,9 @@ export const useIdleLogout = ({
       "focus",
     ];
 
-    // Throttle mousemove / touchmove to avoid resetting on every pixel
+    // Throttle to once per second
     let lastReset = 0;
-    const THROTTLE_MS = 1000; // only reset at most once per second
+    const THROTTLE_MS = 1000;
 
     const handleActivity = () => {
       const now = Date.now();
@@ -117,23 +144,20 @@ export const useIdleLogout = ({
       resetTimer();
     };
 
-    // Handle tab visibility changes
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         handleActivity();
       }
     };
 
-    // Register listeners
     events.forEach((evt) => {
       window.addEventListener(evt, handleActivity, { passive: true });
     });
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Start the initial timer
+    // Kick off the initial timer
     resetTimer();
 
-    // Cleanup
     return () => {
       events.forEach((evt) => {
         window.removeEventListener(evt, handleActivity);
@@ -141,7 +165,7 @@ export const useIdleLogout = ({
       document.removeEventListener("visibilitychange", handleVisibility);
       clearTimers();
     };
-  }, [enabled, resetTimer, clearTimers]);
+  }, [enabled, resetTimer, clearTimers]);  // ← all deps are stable now
 
   return {
     isWarningVisible,
