@@ -7,11 +7,13 @@ import { useEffect, useRef, useState, useCallback } from "react";
  * Shows a warning modal WARNING_SECONDS before logout.
  * Any user interaction resets the timer.
  */
+
 export const useIdleLogout = ({
   onLogout,
   onWarning,
   onActivity,
-  timeoutMs = 30 * 60 * 1000,   // 30 min
+  /*timeoutMs = 30 * 60 * 1000,   // 30 min*/
+  timeoutMs = 2 * 60 * 1000,   // 2 min
   warningMs = 60 * 1000,        // 60 s
   enabled = true,
 }) => {

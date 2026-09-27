@@ -117,8 +117,8 @@ const AppContent = () => {
     onActivity: () => {
       console.log("[Idle] User active again — warning dismissed");
     },
-    timeoutMs: 60 * 1000, // 60s
-    warningMs: 20 * 1000, // 20s warning
+    timeoutMs: 2 * 60 * 1000, // 2 min
+    warningMs: 60 * 1000, // 60s warning
     enabled: isOnboarded, // only when signed in
   });
 
