@@ -93,7 +93,7 @@ const AppContent = () => {
   ];
 
   // 🆕 Idle auto-logout — 30 min of inactivity triggers logout
-  /*
+
   const { isWarningVisible, resetTimer } = useIdleLogout({
     onLogout: handleLogout,
     onWarning: () => {
@@ -106,21 +106,7 @@ const AppContent = () => {
     warningMs: 60 * 1000, // 60 s warning
     enabled: isOnboarded, // only when signed in
   });
-*/
 
-   // 🆕 Idle auto-logout — 30 min of inactivity triggers logout
-  const { isWarningVisible, resetTimer } = useIdleLogout({
-    onLogout: handleLogout,
-    onWarning: () => {
-      console.log("[Idle] Warning shown — user inactive for 29 min");
-    },
-    onActivity: () => {
-      console.log("[Idle] User active again — warning dismissed");
-    },
-    timeoutMs: 60 * 1000, // 60s
-    warningMs: 20 * 1000, // 20s warning
-    enabled: isOnboarded, // only when signed in
-  });
 
 
   const renderScreen = () => {
