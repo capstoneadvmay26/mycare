@@ -18,7 +18,8 @@ const app = express();
 app.use(cors({
     origin: [
       "http://localhost:5173",
-      "https://capstoneadvmay26.github.io"
+      "https://capstoneadvmay26.github.io",
+      "https://nurabsystems.github.io"
     ]
 }));
 
